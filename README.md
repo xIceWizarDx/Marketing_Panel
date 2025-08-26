@@ -16,17 +16,32 @@ Projeto privado desenvolvido em **Laravel 12** com **React** e **Inertia.js**, c
 ```
 marketing_panel/
 ├── app/               # Backend (Laravel)
-├── database/          # Migrations e SQLite
-├── public/            # Assets e build do Vite
+├── bootstrap/         # Bootstrap do framework
+├── config/            # Arquivos de configuração
+├── database/          # Migrations e seeders
+├── public/            # Assets públicos e build do Vite
 ├── resources/
 │   ├── js/            # Frontend (React + Inertia)
-│   │   ├── Components # Componentes reutilizáveis
-│   │   └── Pages      # Páginas (Dashboard, Login, etc.)
+│   │   ├── app.tsx
+│   │   ├── ssr.tsx
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   ├── layouts/
+│   │   ├── lib/
+│   │   ├── pages/
+│   │   └── types/
 │   └── views/         # Views Blade utilizadas pelo Inertia
 ├── routes/
-│   └── web.php        # Rotas principais
+│   ├── web.php        # Rotas web
+│   ├── api.php        # Rotas de API
+│   ├── console.php    # Comandos Artisan
+│   └── channels.php   # Canais de broadcast
+├── storage/           # Logs e arquivos gerados
 ├── tests/             # Testes com Pest
-└── .env               # Configurações de ambiente
+├── MarketingPanel-main/ # Aplicação React independente
+├── composer.json
+├── package.json
+└── vite.config.ts
 ```
 
 ## ⚙️ Instalação
