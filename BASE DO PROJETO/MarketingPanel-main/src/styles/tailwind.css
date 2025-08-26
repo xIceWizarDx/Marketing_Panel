@@ -1,0 +1,81 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Core Colors */
+    --color-background: #fafafa; /* warm off-white */
+    --color-foreground: #1e293b; /* rich dark slate */
+    --color-border: #e2e8f0; /* light slate */
+    --color-input: #ffffff; /* pure white */
+    --color-ring: #4f46e5; /* vibrant indigo */
+    
+    /* Card Colors */
+    --color-card: #ffffff; /* pure white */
+    --color-card-foreground: #1e293b; /* rich dark slate */
+    
+    /* Popover Colors */
+    --color-popover: #ffffff; /* pure white */
+    --color-popover-foreground: #1e293b; /* rich dark slate */
+    
+    /* Muted Colors */
+    --color-muted: #f1f5f9; /* very light slate */
+    --color-muted-foreground: #64748b; /* muted slate */
+    
+    /* Primary Colors */
+    --color-primary: #0f172a; /* deep slate */
+    --color-primary-foreground: #ffffff; /* white */
+    
+    /* Secondary Colors */
+    --color-secondary: #475569; /* balanced slate */
+    --color-secondary-foreground: #ffffff; /* white */
+    
+    /* Accent Colors */
+    --color-accent: #4f46e5; /* vibrant indigo */
+    --color-accent-foreground: #ffffff; /* white */
+    
+    /* Success Colors */
+    --color-success: #059669; /* professional emerald */
+    --color-success-foreground: #ffffff; /* white */
+    
+    /* Warning Colors */
+    --color-warning: #d97706; /* balanced amber */
+    --color-warning-foreground: #ffffff; /* white */
+    
+    /* Error/Destructive Colors */
+    --color-error: #dc2626; /* clear red */
+    --color-error-foreground: #ffffff; /* white */
+    --color-destructive: #dc2626; /* clear red */
+    --color-destructive-foreground: #ffffff; /* white */
+  }
+  
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  .shadow-soft {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  .shadow-modal {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  .transition-smooth {
+    transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .transition-drawer {
+    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
