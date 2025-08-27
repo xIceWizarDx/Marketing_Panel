@@ -15,18 +15,38 @@ Projeto privado desenvolvido em **Laravel 12** com **React** e **Inertia.js**, c
 
 ```
 marketing_panel/
-├── app/               # Backend (Laravel)
-├── database/          # Migrations e SQLite
-├── public/            # Assets e build do Vite
+├── app/ # Backend (Controllers, Middleware, Models, Requests)
+├── bootstrap/ # Inicialização do framework
+├── config/ # Arquivos de configuração
+├── database/ # Migrations, seeders e factories
+├── MarketingPanel-main/ # Aplicação React independente (base antiga)
+├── public/ # Assets públicos e build do Vite
 ├── resources/
-│   ├── js/            # Frontend (React + Inertia)
-│   │   ├── Components # Componentes reutilizáveis
-│   │   └── Pages      # Páginas (Dashboard, Login, etc.)
-│   └── views/         # Views Blade utilizadas pelo Inertia
+│ ├── css/ # Estilos com Tailwind
+│ ├── js/ # Frontend (React + Inertia)
+│ │ ├── actions/ # Camada de actions para rotas tipadas
+│ │ ├── components/ # Componentes reutilizáveis
+│ │ ├── hooks/ # Hooks customizados
+│ │ ├── layouts/ # Layouts (auth, app, settings)
+│ │ ├── lib/ # Funções utilitárias
+│ │ ├── pages/ # Páginas (auth, dashboard, settings, etc.)
+│ │ ├── routes/ # Rotas tipadas geradas pelo Wayfinder
+│ │ ├── types/ # Tipos TypeScript
+│ │ ├── app.tsx # Entrada do React
+│ │ └── ssr.tsx # Suporte a Server-Side Rendering
+│ └── views/ # Views Blade (shell do Inertia)
 ├── routes/
-│   └── web.php        # Rotas principais
-├── tests/             # Testes com Pest
-└── .env               # Configurações de ambiente
+│ ├── web.php # Rotas web principais
+│ ├── api.php # Rotas de API
+│ ├── console.php # Comandos Artisan
+│ └── channels.php # Canais de broadcast
+├── storage/ # Logs e arquivos gerados
+├── tests/ # Testes com Pest
+├── .github/ # Workflows de CI/CD
+├── composer.json # Dependências PHP
+├── package.json # Dependências Node
+├── tsconfig.json # Configuração TypeScript
+└── vite.config.ts # Configuração do Vite
 ```
 
 ## ⚙️ Instalação
