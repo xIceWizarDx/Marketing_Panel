@@ -14,6 +14,31 @@ const mainNavItems: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
+    {
+        title: 'Criar Conteúdo',
+        href: dashboard(),
+        icon: LayoutGrid,
+    },
+    {
+        title: 'Calendário',
+        href: dashboard(),
+        icon: LayoutGrid,
+    },
+    {
+        title: 'Biblioteca',
+        href: dashboard(),
+        icon: LayoutGrid,
+    },
+    {
+        title: 'Conexões',
+        href: dashboard(),
+        icon: LayoutGrid,
+    },
+    {
+        title: 'Perfil',
+        href: dashboard(),
+        icon: LayoutGrid,
+    },
 ];
 
 const footerNavItems: NavItem[] = [
