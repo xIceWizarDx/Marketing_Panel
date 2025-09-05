@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\SocialPost;
+use App\Models\PlatformAccount;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,9 +20,19 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user();
+        $postsCreated = SocialPost::where('user_id', $user->id)->count();
+        $platformsConnected = PlatformAccount::where('user_id', $user->id)->where('is_connected', true)->count();
+        $scheduled = SocialPost::where('user_id', $user->id)->where('status', 'scheduled')->count();
+
         return Inertia::render('settings/profile', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => $request->session()->get('status'),
+            'stats' => [
+                'postsCreated' => $postsCreated,
+                'platformsConnected' => $platformsConnected,
+                'scheduledPosts' => $scheduled,
+            ],
         ]);
     }
 

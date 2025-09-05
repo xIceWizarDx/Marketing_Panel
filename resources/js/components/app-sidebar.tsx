@@ -9,49 +9,17 @@ import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Criar Conteúdo',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Calendário',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Biblioteca',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Conexões',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Perfil',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
+    { title: 'Dashboard', href: dashboard(), icon: LayoutGrid },
+    { title: 'Criar Conteúdo', href: '/posts/create', icon: LayoutGrid },
+    { title: 'Calendário', href: '/calendar', icon: LayoutGrid },
+    { title: 'Biblioteca', href: '/media', icon: LayoutGrid },
+    { title: 'Conexões', href: '/connections', icon: LayoutGrid },
+    { title: 'Perfil', href: '/settings/profile', icon: LayoutGrid },
 ];
 
 const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: Folder,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
-    },
+    { title: 'Site', href: '#', icon: Folder },
+    { title: 'Ajuda', href: '#', icon: BookOpen },
 ];
 
 export function AppSidebar() {
