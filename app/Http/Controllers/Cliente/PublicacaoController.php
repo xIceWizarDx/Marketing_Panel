@@ -10,6 +10,7 @@ use App\Models\Destino;
 use App\Models\Midia;
 use App\Models\Publicacao;
 use App\Services\EnvioDePublicacao;
+use App\Support\GrupoCorrente;
 use App\Support\Midia\EspecificacaoDaRede;
 use App\Support\Midia\LimiteDeEnvio;
 use Illuminate\Http\RedirectResponse;
@@ -43,6 +44,9 @@ class PublicacaoController extends Controller
             : 'tudo';
 
         $publicacoes = Publicacao::query()
+            // ⭐ Pelo grupo GRAVADO na publicação (DEC-75): a lista de Notícias
+            // não pode mudar no dia em que um canal for para outro grupo.
+            ->where('grupo_id', GrupoCorrente::id())
             // ⚠️ `ulid`, `miniatura` e `arquivo_removido_em` fazem parte da
             // seleção: com strict mode ligado, ler coluna fora da lista estoura
             // 500 — e só em produção, que é onde ele costuma estar ligado.
@@ -110,14 +114,18 @@ class PublicacaoController extends Controller
             // O que o servidor aguenta de fato, nunca o que o produto gostaria:
             // prometer 300 MB numa maquina que corta em 2 seria mentir.
             'tamanhoMaximoMb' => LimiteDeEnvio::megabytes(),
-            'contas' => ContaSocial::query()->get()->map(fn (ContaSocial $c) => [
-                'ulid' => $c->ulid,
-                'nome' => $c->nome_exibicao,
-                'plataforma' => $c->plataforma->value,
-                'plataformaRotulo' => $c->plataforma->rotulo(),
-                'podePublicar' => $c->podePublicar(),
-                'statusRotulo' => $c->status->rotulo(),
-            ]),
+            // ⭐ Só os canais deste grupo. É o que torna o acidente impossível
+            // de cometer, e não só improvável (DEC-71).
+            'contas' => ContaSocial::query()
+                ->where('grupo_id', GrupoCorrente::id())
+                ->get()->map(fn (ContaSocial $c) => [
+                    'ulid' => $c->ulid,
+                    'nome' => $c->nome_exibicao,
+                    'plataforma' => $c->plataforma->value,
+                    'plataformaRotulo' => $c->plataforma->rotulo(),
+                    'podePublicar' => $c->podePublicar(),
+                    'statusRotulo' => $c->status->rotulo(),
+                ]),
 
             /*
              * ⛔ O compositor NÃO sugere nada (DEC-60): não existe lista de
@@ -247,10 +255,14 @@ class PublicacaoController extends Controller
      */
     private function contagemPorAba(): array
     {
-        $contagem = ['tudo' => Publicacao::query()->count()];
+        // ⚠️ MESMO filtro da lista. Contagem sem grupo faria a aba dizer 7 e a
+        // lista mostrar 3 — e aí nenhum dos dois números é confiável.
+        $doGrupo = fn () => Publicacao::query()->where('grupo_id', GrupoCorrente::id());
+
+        $contagem = ['tudo' => $doGrupo()->count()];
 
         foreach (['andando', 'no_ar', 'falharam'] as $aba) {
-            $contagem[$aba] = Publicacao::query()
+            $contagem[$aba] = $doGrupo()
                 ->whereHas('destinos', $this->filtroDaAba($aba))
                 ->count();
         }
@@ -280,6 +292,7 @@ class PublicacaoController extends Controller
     private function contasPorRede()
     {
         return $this->contasPorRede ??= ContaSocial::query()
+            ->where('grupo_id', GrupoCorrente::id())
             ->groupBy('plataforma')
             ->pluck(DB::raw('count(*)'), 'plataforma');
     }

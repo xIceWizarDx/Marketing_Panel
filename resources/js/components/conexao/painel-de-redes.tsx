@@ -1,5 +1,5 @@
-import { router, useForm } from '@inertiajs/react';
-import { AlertTriangle, LoaderCircle, Plus, ShieldCheck, Unplug } from 'lucide-react';
+import { router, useForm, usePage } from '@inertiajs/react';
+import { AlertTriangle, FolderInput, LoaderCircle, Plus, ShieldCheck, Unplug } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 import CampoSenha from '@/components/campo-senha';
@@ -13,6 +13,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAtualizacaoViva } from '@/hooks/use-atualizacao-viva';
+import { type DadosCompartilhados } from '@/types';
 
 interface Conta {
     ulid: string;
@@ -76,6 +77,10 @@ interface Props {
 export default function PainelDeRedes({ redes, totalConectado, aberta: redeAberta, aoAbrir, escolhendo, aoEscolher }: Props) {
     const [conectando, setConectando] = useState<Rede | null>(null);
     const [aDesconectar, setADesconectar] = useState<Conta | null>(null);
+    const [aMover, setAMover] = useState<Conta | null>(null);
+
+    const { grupos } = usePage<DadosCompartilhados>().props;
+    const outrosGrupos = (grupos?.lista ?? []).filter((g) => g.ulid !== grupos?.atual.ulid);
 
     /*
      * ⭐ Qual rede está aberta é decisão de QUEM USA este painel, não dele.
@@ -297,17 +302,37 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
                                 </div>
 
                                 {conta.status !== 'desconectada' && (
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setAberta(null);
-                                            setADesconectar(conta);
-                                        }}
-                                        aria-label={`Desconectar ${conta.nome}`}
-                                        className="text-muted-foreground focus-visible:ring-ring shrink-0 rounded p-1 transition-colors hover:text-[color:var(--destructive)] focus-visible:ring-2 focus-visible:outline-none"
-                                    >
-                                        <Unplug className="size-3.5" aria-hidden="true" />
-                                    </button>
+                                    <div className="flex shrink-0 items-center gap-0.5">
+                                        {/* ⭐ Sem isto, o primeiro erro de cadastro vira
+                                            permanente e a pessoa acaba conectando o mesmo
+                                            canal duas vezes (DEC-77). Só aparece quando há
+                                            para onde levar. */}
+                                        {outrosGrupos.length > 0 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setAberta(null);
+                                                    setAMover(conta);
+                                                }}
+                                                aria-label={`Mover ${conta.nome} de grupo`}
+                                                className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded p-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                                            >
+                                                <FolderInput className="size-3.5" aria-hidden="true" />
+                                            </button>
+                                        )}
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setAberta(null);
+                                                setADesconectar(conta);
+                                            }}
+                                            aria-label={`Desconectar ${conta.nome}`}
+                                            className="text-muted-foreground focus-visible:ring-ring rounded p-1 transition-colors hover:text-[color:var(--destructive)] focus-visible:ring-2 focus-visible:outline-none"
+                                        >
+                                            <Unplug className="size-3.5" aria-hidden="true" />
+                                        </button>
+                                    </div>
                                 )}
                             </li>
                         ))}
@@ -443,6 +468,39 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
                             </DialogFooter>
                         </form>
                     )}
+                </DialogContent>
+            </Dialog>
+
+            {/* Mover de grupo — diz o que vai e o que FICA */}
+            <Dialog open={!!aMover} onOpenChange={(estado) => !estado && setAMover(null)}>
+                <DialogContent>
+                    <DialogTitle>Levar «{aMover?.nome}» para outro grupo</DialogTitle>
+                    <DialogDescription>
+                        Daqui em diante ele publica pelo grupo novo. ⚠️ O que já foi publicado{' '}
+                        <strong>continua no histórico de {grupos?.atual.nome}</strong> — é o que mantém os números de cada grupo estáveis.
+                    </DialogDescription>
+
+                    <ul className="space-y-2">
+                        {outrosGrupos.map((grupo) => (
+                            <li key={grupo.ulid}>
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        aMover &&
+                                        router.patch(
+                                            route('conexoes.grupo', aMover.ulid),
+                                            { grupo: grupo.ulid },
+                                            { preserveScroll: true, onFinish: () => setAMover(null) },
+                                        )
+                                    }
+                                    className="border-border focus-visible:ring-ring flex w-full items-center gap-2 rounded-lg border p-3 text-left text-sm transition-colors hover:border-[color:var(--accent)] focus-visible:ring-2 focus-visible:outline-none"
+                                >
+                                    <FolderInput className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
+                                    <span className="truncate font-medium">{grupo.nome}</span>
+                                </button>
+                            </li>
+                        ))}
+                    </ul>
                 </DialogContent>
             </Dialog>
 

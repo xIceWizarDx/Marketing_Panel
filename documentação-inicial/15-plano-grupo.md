@@ -126,134 +126,193 @@ não tem métrica pública. O dashboard mostraria zero em tudo.
 
 ---
 
-## Fase 1 — O nome livre
+## ✅ Fase 1 — O nome livre — CONCLUÍDA
 
 ⚠️ Antes de existir tabela: a palavra tem que estar disponível, senão o conceito nasce ambíguo.
 
-- [ ] **1.1** `GrupoDeMenu` → `SecaoDeMenu` em `resources/js/types/index.ts` e consumidores
-- [ ] **1.2** Reescrever o comentário de `routes/admin.php` que usa "grupo" no sentido de middleware
-- [ ] **1.3** `grep` de "grupo" → só o sentido novo
+- [x] **1.1** `GrupoDeMenu` → `SecaoDeMenu` em `resources/js/types/index.ts` e consumidores
+- [x] **1.2** Reescrever o comentário de `routes/admin.php` que usa "grupo" no sentido de middleware
+- [x] **1.3** `grep` de "grupo" → só o sentido novo
 
 **Pronto quando:** a palavra grupo significa uma coisa só no projeto.
 
 ---
 
-## Fase 2 — O contrato e o glossário
+## ✅ Fase 2 — O contrato e o glossário — CONCLUÍDA
 
 ⚠️ DEC-18: nome nasce no glossário **antes** do código.
 
-- [ ] **2.1** `CLAUDE.md` §0.G — emenda datada, com o motivo
-- [ ] **2.2** `CLAUDE.md` §0.M — a frase que separa dono=segurança de grupo=organização
-- [ ] **2.3** Glossário: bloco `grupos` coluna a coluna (molde `midias`, que é o único que
+- [x] **2.1** `CLAUDE.md` §0.G — emenda datada, com o motivo
+- [x] **2.2** `CLAUDE.md` §0.M — a frase que separa dono=segurança de grupo=organização
+- [x] **2.3** Glossário: bloco `grupos` coluna a coluna (molde `midias`, que é o único que
   documenta `ulid`)
-- [ ] **2.4** Glossário: `grupo_id` em `contas_sociais` **com a nota de que ela NÃO entra na única
+- [x] **2.4** Glossário: `grupo_id` em `contas_sociais` **com a nota de que ela NÃO entra na única
   `contas_sociais_conta_unica`** — dentro dela, o mesmo canal poderia ser conectado em dois grupos
-- [ ] **2.5** Glossário: `grupo_id` em `publicacoes` **com o porquê ao lado** — senão a regra
+- [x] **2.5** Glossário: `grupo_id` em `publicacoes` **com o porquê ao lado** — senão a regra
   "derivado nunca vira coluna" apaga a coluna na próxima revisão
-- [ ] **2.6** Glossário: relações, regras de deleção, rotas, e `deleted_at` no território do
+- [x] **2.6** Glossário: relações, regras de deleção, rotas, e `deleted_at` no território do
   framework (senão o próximo saneamento renomeia para `arquivado_em` e quebra o SoftDeletes calado)
-- [ ] **2.7** `05-plano-de-acao.md`: DEC-69 a DEC-80
+- [x] **2.7** `05-plano-de-acao.md`: DEC-69 a DEC-80
 
 **Pronto quando:** dá para implementar lendo só o glossário.
 
 ---
 
-## Fase 3 — Banco
+## ✅ Fase 3 — Banco — CONCLUÍDA
 
-- [ ] **3.1** `grupos`: id, ulid único, `usuario_id` restrict, nome (**sem única**), softDeletes,
+- [x] **3.1** `grupos`: id, ulid único, `usuario_id` restrict, nome (**sem única**), softDeletes,
   índice `(usuario_id, deleted_at)`
-- [ ] **3.2** `contas_sociais.grupo_id` **nullable**, restrict, índice `(usuario_id, grupo_id)`
-- [ ] **3.3** `publicacoes.grupo_id` nullable, restrict, índice `(usuario_id, grupo_id, created_at)`
-- [ ] **3.4** ⚠️ Todo `down()` derruba o índice **antes** do `dropColumn` — o SQLite recusa dropar
+- [x] **3.2** `contas_sociais.grupo_id` **nullable**, restrict, índice `(usuario_id, grupo_id)`
+- [x] **3.3** `publicacoes.grupo_id` nullable, restrict, índice `(usuario_id, grupo_id, created_at)`
+- [x] **3.4** ⚠️ Todo `down()` derruba o índice **antes** do `dropColumn` — o SQLite recusa dropar
   coluna indexada, e a reversão quebrada só aparece no dia em que alguém precisa dela
-- [ ] **3.5** Model `Grupo` com `PertenceAoUsuario` + `SoftDeletes`; `grupo_id` no `$fillable` de
+- [x] **3.5** Model `Grupo` com `PertenceAoUsuario` + `SoftDeletes`; `grupo_id` no `$fillable` de
   `ContaSocial` e `Publicacao`
-- [ ] **3.6** Factories e seeder
+- [x] **3.6** Factories e seeder
 
 **Pronto quando:** `migrate:fresh --seed` sobe e `migrate:rollback` volta.
 
 ---
 
-## Fase 4 — Nascimento e migração de quem já tem dados
+## ✅ Fase 4 — Nascimento e migração de quem já tem dados — CONCLUÍDA
 
 ⚠️ É o único ponto do projeto que escreve em massa atravessando clientes. Aqui mora o risco.
 
-- [ ] **4.1** `GrupoService` — escritor único de `contas_sociais.grupo_id`. ⛔ **Proibido
+- [x] **4.1** `GrupoService` — escritor único de `contas_sociais.grupo_id`. ⛔ **Proibido
   `Grupo::withoutGlobalScopes()`**: derruba o escopo de dono E o de arquivado de uma vez. Onde
   precisar furar, `withoutGlobalScope(EscopoDoUsuario::class)` com o `where('usuario_id')` na mão
-- [ ] **4.2** Conta nova nasce com um grupo — no cadastro, no seeder e na factory (um ponto só)
-- [ ] **4.3** Comando `grupos:garantir-principal` que itera **usuários**, nunca "linhas sem grupo" —
+- [x] **4.2** Conta nova nasce com um grupo — no cadastro, no seeder e na factory (um ponto só)
+- [x] **4.3** Comando `grupos:garantir-principal` que itera **usuários**, nunca "linhas sem grupo" —
   cliente sem conta social nenhuma também precisa de grupo
-- [ ] **4.4** ⛔ O comando **nunca escreve dentro de `semEscopo`**: define o dono no contexto por
+- [x] **4.4** ⛔ O comando **nunca escreve dentro de `semEscopo`**: define o dono no contexto por
   cliente. `semEscopo` só para ler a lista de usuários
-- [ ] **4.5** Ao conectar, a conta nasce no grupo corrente — em todas as portas (Bluesky, YouTube,
+- [x] **4.5** Ao conectar, a conta nasce no grupo corrente — em todas as portas (Bluesky, YouTube,
   Meta), lembrando que uma conexão da Meta cria várias contas de uma vez
-- [ ] **4.6** Migration de apertar para NOT NULL em **commit separado**, começando por uma guarda
+- [x] **4.6** Migration de apertar para NOT NULL em **commit separado**, começando por uma guarda
   legível: se sobrou linha sem grupo, lança mandando rodar o comando **antes** de tocar em schema
 
 **Pronto quando:** um banco com dados reais atravessa a migração sem linha órfã.
 
 ---
 
-## Fase 5 — A trava do envio
+## ✅ Fase 5 — A trava do envio — CONCLUÍDA
 
 ⭐ O coração da feature. Tudo o mais é conveniência; isto é regra.
 
-- [ ] **5.1** `recusarGruposMisturados()` como **primeira** das recusas em `EnvioDePublicacao`
-- [ ] **5.2** Comparar a **coluna** `grupo_id`, nunca `$conta->grupo?->id` — grupo arquivado
+- [x] **5.1** `recusarGruposMisturados()` como **primeira** das recusas em `EnvioDePublicacao`
+- [x] **5.2** Comparar a **coluna** `grupo_id`, nunca `$conta->grupo?->id` — grupo arquivado
   devolve null, e dois nulos parecem "o mesmo grupo"
-- [ ] **5.3** Recusar quando alguma conta pedida não voltou da consulta (hoje some em silêncio)
-- [ ] **5.4** `Publicacao::create` grava o `grupo_id` derivado
-- [ ] **5.5** Depois de publicar, o modo passa a ser o grupo das contas, e o aviso o nomeia
-- [ ] **5.6** ⛔ `PublicarRequest` **não** aceita campo de grupo — a verdade não vem do cliente
+- [x] **5.3** Recusar quando alguma conta pedida não voltou da consulta (hoje some em silêncio)
+- [x] **5.4** `Publicacao::create` grava o `grupo_id` derivado
+- [x] **5.5** Depois de publicar, o modo passa a ser o grupo das contas, e o aviso o nomeia
+- [x] **5.6** ⛔ `PublicarRequest` **não** aceita campo de grupo — a verdade não vem do cliente
 
 **Pronto quando:** um POST montado à mão com contas de dois grupos é recusado.
 
 ---
 
-## Fase 6 — As telas leem por grupo
+## ✅ Fase 6 — As telas leem por grupo — CONCLUÍDA
 
-- [ ] **6.1** ⚠️ Nas consultas com `join` cru, **somar** o filtro de grupo — nunca trocar o
+- [x] **6.1** ⚠️ Nas consultas com `join` cru, **somar** o filtro de grupo — nunca trocar o
   `whereIn` escopado que já existe: ele é a única coisa que aplica o escopo de dono ali
-- [ ] **6.2** Proibido `when()` no filtro de grupo: grupo não resolvido é bug, tem que estourar
-- [ ] **6.3** Grade de redes, números da visão geral, lista e abas de publicações, contas do
+- [x] **6.2** Proibido `when()` no filtro de grupo: grupo não resolvido é bug, tem que estourar
+- [x] **6.3** Grade de redes, números da visão geral, lista e abas de publicações, contas do
   compositor
-- [ ] **6.4** Aviso de saúde fora do filtro, nomeando o grupo (DEC-80)
-- [ ] **6.5** Republicar deriva o grupo da publicação anterior **sem escrever na sessão** — a URL é
+- [x] **6.4** Aviso de saúde fora do filtro, nomeando o grupo (DEC-80)
+- [x] **6.5** Republicar deriva o grupo da publicação anterior **sem escrever na sessão** — a URL é
   compartilhável, e a sessão em outro grupo abriria texto de um com contas de outro
-- [ ] **6.6** Toda coluna nova lida entra no select parcial no mesmo passo (strict mode)
+- [x] **6.6** Toda coluna nova lida entra no select parcial no mesmo passo (strict mode)
 
 **Pronto quando:** trocar de grupo troca tudo, e nenhuma contagem discorda da lista.
 
 ---
 
-## Fase 7 — O seletor e o resto da tela
+## ✅ Fase 7 — O seletor e o resto da tela — CONCLUÍDA
 
-- [ ] **7.1** Seletor na barra superior, visível **mesmo com um grupo só** — é a única porta de
+- [x] **7.1** Seletor na barra superior, visível **mesmo com um grupo só** — é a única porta de
   entrada da funcionalidade: não há item de menu nem tela
-- [ ] **7.2** Estado sempre do servidor. Nunca `useState`, nunca `localStorage`
-- [ ] **7.3** Criar, renomear e arquivar em diálogo. Criar **pergunta** antes de trocar de modo
-- [ ] **7.4** Mover canal no detalhe da rede, dizendo o que vai e o que fica
-- [ ] **7.5** ⭐ Estados vazios **próprios** de grupo sem canal — o texto atual afirma que a pessoa
+- [x] **7.2** Estado sempre do servidor. Nunca `useState`, nunca `localStorage`
+- [x] **7.3** Criar, renomear e arquivar em diálogo. Criar **pergunta** antes de trocar de modo
+- [x] **7.4** Mover canal no detalhe da rede, dizendo o que vai e o que fica
+- [x] **7.5** ⭐ Estados vazios **próprios** de grupo sem canal — o texto atual afirma que a pessoa
   não tem conta conectada quando ela tem cinco, e a empurra para reconectar em laço
-- [ ] **7.6** Conectar um canal que já está em outro grupo não dá sucesso genérico: oferece trazer
+- [x] **7.6** Conectar um canal que já está em outro grupo não dá sucesso genérico: oferece trazer
   para cá ou deixar onde está
-- [ ] **7.7** O nome do grupo aparece dentro do compositor — ele cobre a tela e esconde o seletor
+- [x] **7.7** O nome do grupo aparece dentro do compositor — ele cobre a tela e esconde o seletor
   justamente durante o gesto que não desfaz
 
 **Pronto quando:** dá para viver com dois grupos sem se perder.
 
 ---
 
-## Fase 8 — Guardiões
+## ✅ Fase 8 — Guardiões — CONCLUÍDA
 
-- [ ] **8.1** Grupo de um cliente não aparece para outro
-- [ ] **8.2** Publicar com contas de grupos diferentes é recusado
-- [ ] **8.3** `publicacoes.grupo_id` não muda quando o canal troca de grupo
-- [ ] **8.4** Não arquiva grupo com canal, nem o último grupo
-- [ ] **8.5** Backfill com **dois** clientes com dados: nenhum recebe grupo do outro
-- [ ] **8.6** Cliente sem conta social nenhuma também ganha grupo
-- [ ] **8.7** Job continua rodando sem grupo no contexto
-- [ ] **8.8** Suíte inteira verde
+- [x] **8.1** Grupo de um cliente não aparece para outro
+- [x] **8.2** Publicar com contas de grupos diferentes é recusado
+- [x] **8.3** `publicacoes.grupo_id` não muda quando o canal troca de grupo
+- [x] **8.4** Não arquiva grupo com canal, nem o último grupo
+- [x] **8.5** Backfill com **dois** clientes com dados: nenhum recebe grupo do outro
+- [x] **8.6** Cliente sem conta social nenhuma também ganha grupo
+- [x] **8.7** Job continua rodando sem grupo no contexto
+- [x] **8.8** Suíte inteira verde
 
 **Pronto quando:** o que foi decidido aqui não volta a quebrar sozinho.
+
+---
+
+## Executado em 2026-08-04
+
+**357 testes verdes** (17 novos no guardião do grupo), `tsc`, `eslint`, `pint` e `npm run build`
+limpos. `migrate:fresh`, `migrate` e `migrate:rollback` conferidos com dados dentro.
+
+### O que o mapeamento em paralelo economizou
+
+Antes de escrever a primeira linha, seis leitores varreram o código em paralelo e três críticos
+adversariais tentaram derrubar o desenho. Acharam **10 bloqueadores** — todos previstos no código
+final. Os que mais teriam custado:
+
+**`Grupo::withoutGlobalScopes()` derruba DOIS escopos.** O de dono e o de arquivado, de uma vez. O
+gesto é idioma corrente no projeto (e inofensivo nos models que têm um scope só), então entraria
+sem ninguém notar — e um grupo arquivado voltaria a ser eleito o principal da pessoa.
+
+**O `whereIn` escopado nas consultas com `join` não é conveniência, é a trava.** O Global Scope não
+acompanha um `->join()` cru, então trocar aquela subconsulta por um filtro de grupo teria
+substituído isolamento por preferência de tela.
+
+**O backfill é a única escrita em massa que atravessa clientes.** O molde óbvio a copiar
+(`GerarMiniaturasPendentes`) usa `semEscopo` sem filtro de dono — copiado, entregaria as contas de
+todo mundo ao grupo do primeiro cliente do laço.
+
+**Criar o segundo grupo esvaziaria o painel sem explicar**, e a tela de vazio existente diz
+literalmente que a pessoa nunca publicou nada.
+
+### A escolha do nome pagou sozinha
+
+"Marca" tinha **quatro** sentidos vivos, dois deles intocáveis: `marca_propria` é termo auditado do
+TikTok, e "R$ 49–79/marca" é a unidade de preço. Adotá-la exigiria seis renomeações em cascata.
+"Grupo" custou apagar um tipo morto do front e reescrever um comentário.
+
+### Três defeitos que apareceram no caminho
+
+**Conta que não era do dono sumia em silêncio** da lista de destinos: a pessoa escolhia 4 contas e
+recebia "enviamos para 3".
+
+**Apagar a conta estourava erro de banco** para quem tivesse qualquer dado — e passaria a valer
+para todo mundo, já que agora todo usuário tem grupo.
+
+**Deslogar depois de apagar ressuscitava a conta.** O guard cicla o *remember token* do usuário que
+ainda tem em mãos e chama `save()`; `save()` num model apagado vira INSERT. A pessoa voltava com id
+novo, ganhava um grupo em branco, e a tela dizia que deu tudo certo. Só apareceu com sonda.
+
+### Um ponto que mudou de lugar durante a execução
+
+O canal nasce no grupo pelo **gatilho do model**, não pelos serviços de conexão. São quatro portas
+(Bluesky, YouTube, e a da Meta que cria Página e Instagram de uma vez), e espalhar por quatro
+garantiria esquecer uma — com a conta nascendo invisível **depois** de a pessoa já ter autorizado
+no Google, quando não há mais como voltar atrás.
+
+### O que ficou de fora, de propósito
+
+Cobrança por grupo (é coluna, não estrutura) e o dashboard de métricas — este bloqueado por fora:
+enquanto o aplicativo do YouTube estiver em modo de Testes, todo vídeo sobe privado, e vídeo
+privado não tem métrica pública.

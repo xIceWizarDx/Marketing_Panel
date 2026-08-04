@@ -32,12 +32,26 @@ export interface Impersonacao {
     usuarioNome: string;
 }
 
+/** Uma linha de conteudo com seus proprios canais. */
+export interface Grupo {
+    ulid: string;
+    nome: string;
+}
+
+/** ⭐ Em qual grupo a pessoa esta, e para onde ela pode ir. */
+export interface Grupos {
+    atual: Grupo;
+    lista: Grupo[];
+}
+
 /** Dados que chegam em TODA pagina (vem do HandleInertiaRequests). */
 export interface DadosCompartilhados {
     nomeDoApp: string;
     auth: Autenticacao;
     avisos: Avisos;
     impersonacao: Impersonacao | null;
+    /** `null` para visitante e para admin — quem nao publica nao tem grupo. */
+    grupos: Grupos | null;
     [key: string]: unknown;
 }
 

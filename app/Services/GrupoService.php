@@ -58,6 +58,14 @@ class GrupoService
         return $grupo;
     }
 
+    /** Quantos grupos este dono já tem — usado pelo comando de migração. */
+    public function contaDe(Usuario $usuario): int
+    {
+        return Grupo::withoutGlobalScope(EscopoDoUsuario::class)
+            ->where('usuario_id', $usuario->id)
+            ->count();
+    }
+
     public function criar(string $nome): Grupo
     {
         return Grupo::create(['nome' => $nome]);

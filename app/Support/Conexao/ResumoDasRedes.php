@@ -7,6 +7,7 @@ use App\Enums\StatusDestino;
 use App\Models\ContaSocial;
 use App\Models\Destino;
 use App\Publicadores\RegistroDePublicadores;
+use App\Support\GrupoCorrente;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -34,6 +35,9 @@ class ResumoDasRedes
     public function montar(): array
     {
         $contas = ContaSocial::query()
+            // Só os canais do grupo em foco (DEC-71): a grade é a resposta de
+            // "onde eu publico DAQUI", não de "tudo que já conectei".
+            ->where('grupo_id', GrupoCorrente::id())
             // ⚠️ `refresh_token` entra na seleção porque `venceEmBreve()` pergunta
             // se ele EXISTE. Fora da lista, com strict mode ligado, isso estoura
             // 500 — e só em produção, que é onde ele costuma estar ligado.
@@ -90,9 +94,26 @@ class ResumoDasRedes
     {
         $contagem = Destino::query()
             ->join('contas_sociais', 'contas_sociais.id', '=', 'destinos.conta_social_id')
-            // O escopo do dono não alcança `destinos` (a tabela não tem dono
-            // próprio), então o filtro vem pela conta — que tem.
+            ->join('publicacoes', 'publicacoes.id', '=', 'destinos.publicacao_id')
+            /*
+             * ⛔ Este `whereIn` NÃO sai daqui.
+             *
+             * O escopo do dono não acompanha um `join` cru, então esta
+             * subconsulta escopada é a **única** coisa que aplica isolamento
+             * nesta contagem. O filtro de grupo abaixo SOMA a ela; trocar um
+             * pelo outro substituiria a trava de segurança por uma preferência
+             * de tela (DEC-74).
+             */
             ->whereIn('contas_sociais.id', ContaSocial::query()->select('id'))
+            /*
+             * ⭐ O grupo vem de `publicacoes`, não da conta.
+             *
+             * Contar pela conta faria o número histórico mudar sozinho no dia
+             * em que alguém movesse um canal de grupo (DEC-75). Sem `when()`
+             * de propósito: grupo não resolvido é bug, e bug tem que estourar
+             * em vez de devolver a contagem de todo mundo.
+             */
+            ->where('publicacoes.grupo_id', GrupoCorrente::id())
             ->groupBy('contas_sociais.plataforma', 'destinos.status')
             ->get([
                 'contas_sociais.plataforma',

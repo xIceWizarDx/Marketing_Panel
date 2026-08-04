@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Cliente\ConexaoController;
+use App\Http\Controllers\Cliente\GrupoController;
 use App\Http\Controllers\Cliente\MidiaController;
 use App\Http\Controllers\Cliente\PublicacaoController;
 use App\Http\Controllers\Cliente\VisaoGeralController;
@@ -19,6 +20,19 @@ Route::middleware(['auth', 'papel:cliente'])->group(function () {
     // Separada do arquivo: a grade pede todas as miniaturas de uma vez, e
     // baixar o vídeo inteiro para desenhar um quadradinho seria absurdo.
     Route::get('midias/{ulid}/miniatura', [MidiaController::class, 'miniatura'])->name('midias.miniatura');
+
+    /*
+     * ⭐ O grupo nao tem tela: e MODO, e modo se muda de onde a pessoa esta.
+     * Por isso tudo aqui e acao e volta com `back()`.
+     *
+     * ⛔ Trocar de grupo e POST: com GET, o prefetch do navegador trocaria o
+     * modo sozinho — e a proxima publicacao sairia no lugar errado.
+     */
+    Route::post('grupos', [GrupoController::class, 'criar'])->name('grupos.criar');
+    Route::patch('grupos/{ulid}', [GrupoController::class, 'renomear'])->name('grupos.renomear');
+    Route::delete('grupos/{ulid}', [GrupoController::class, 'arquivar'])->name('grupos.arquivar');
+    Route::post('grupos/{ulid}/usar', [GrupoController::class, 'usar'])->name('grupos.usar');
+    Route::patch('conexoes/{ulid}/grupo', [GrupoController::class, 'moverCanal'])->name('conexoes.grupo');
 
     Route::post('conexoes/bluesky', [ConexaoController::class, 'conectarBluesky'])->name('conexoes.bluesky');
     Route::get('conexoes/youtube', [ConexaoController::class, 'iniciarYoutube'])->name('conexoes.youtube');

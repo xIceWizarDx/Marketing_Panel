@@ -1,4 +1,4 @@
-import { Link, useForm } from '@inertiajs/react';
+import { Link, useForm, usePage } from '@inertiajs/react';
 import { Check, LoaderCircle, Play, Send, X } from 'lucide-react';
 import { FormEventHandler, useEffect, useMemo, useState } from 'react';
 
@@ -13,7 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { contar, limiteMaisApertado, type LimiteDaRede } from '@/lib/medida-de-texto';
 import { cn } from '@/lib/utils';
-import { type Laudo } from '@/types';
+import { type DadosCompartilhados, type Laudo } from '@/types';
 
 /** O arquivo desta composição — o único que o compositor conhece. */
 interface ArquivoEnviado {
@@ -95,6 +95,9 @@ export default function Compositor({
         hashtags: inicial?.hashtags ?? [],
     });
 
+    // Qual grupo esta em foco — vem do servidor, nunca de estado local.
+    const grupo = usePage<DadosCompartilhados>().props.grupos?.atual.nome ?? null;
+
     const [aVer, setAVer] = useState<ArquivoEnviado | null>(null);
 
     // O arquivo é o desta sessão: só existe depois que a pessoa enviou.
@@ -134,18 +137,23 @@ export default function Compositor({
 
     if (conectadas.length === 0) {
         return (
-            <Janela titulo="Publicar" aoFechar={aoFechar}>
+            <Janela titulo={grupo ? `Publicar em ${grupo}` : 'Publicar'} aoFechar={aoFechar}>
                 {/* Só falta a CONTA: o arquivo entra aqui dentro, no mesmo
-                    gesto, então nunca é ele o impedimento. */}
+                    gesto, então nunca é ele o impedimento.
+
+                    ⚠️ Com grupos, o texto diz que falta canal NESTE grupo.
+                    Dizer "você não tem conta conectada" para quem tem cinco no
+                    grupo ao lado a empurra para reconectar em laço. */}
                 <div className="p-6">
-                    <h2 className="text-base font-medium">Falta conectar uma rede</h2>
+                    <h2 className="text-base font-medium">{grupo ? `${grupo} ainda não tem canal` : 'Falta conectar uma rede'}</h2>
                     <p className="text-muted-foreground mt-1.5 max-w-prose text-sm">
-                        Enquanto não houver uma conta conectada, não há para onde publicar. Você autoriza no site da própria rede — sua senha nunca
-                        passa por aqui.
+                        {grupo
+                            ? `Publicação sai de um grupo só, e ${grupo} ainda não tem para onde publicar. Conecte um canal aqui, ou traga um de outro grupo.`
+                            : 'Enquanto não houver uma conta conectada, não há para onde publicar. Você autoriza no site da própria rede — sua senha nunca passa por aqui.'}
                     </p>
 
                     <Button asChild className="mt-5">
-                        <Link href={route('painel')}>Conectar uma rede</Link>
+                        <Link href={route('painel')}>Ver minhas redes</Link>
                     </Button>
                 </div>
             </Janela>
@@ -154,7 +162,11 @@ export default function Compositor({
 
     return (
         <Janela
-            titulo={inicial ? 'Publicar em outra rede' : 'Publicar'}
+            /* ⭐ O nome do grupo fica VISIVEL durante o gesto que nao desfaz.
+               O compositor cobre a tela inteira e esconde o seletor — sem isto,
+               e justamente no momento irreversivel que a pessoa deixa de saber
+               onde esta. */
+            titulo={[inicial ? 'Publicar em outra rede' : 'Publicar', grupo].filter(Boolean).join(' · ')}
             descricao={inicial ? 'O texto veio da publicação anterior. Envie o vídeo de novo e escolha as redes.' : undefined}
             aoFechar={aoFechar}
             rodape={

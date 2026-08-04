@@ -1,22 +1,25 @@
 import { Link } from '@inertiajs/react';
 import { Fragment } from 'react';
 
-import Marca from '@/components/marca';
 import MenuDoUsuario from '@/components/menu-do-usuario';
+import SeletorDeGrupo from '@/components/seletor-de-grupo';
 import { type Migalha } from '@/types';
 
 /**
  * Barra do topo.
  *
- * No desktop mostra so as migalhas (a marca ja esta na lateral).
- * No celular mostra a marca e o avatar — a navegacao fica na barra de baixo.
+ * ⭐ E aqui que mora o SELETOR DE GRUPO, em toda largura: saber em qual grupo
+ * se esta tem que ser gratuito, porque publicar no grupo errado nao desfaz.
+ *
+ * ⚠️ No celular o seletor toma o lugar do logotipo. O logo e decoracao; o modo
+ * nao e — e a tela estreita nao comporta os dois.
  */
 export default function BarraSuperior({ migalhas = [] }: { migalhas?: Migalha[] }) {
     return (
         <header className="bg-background/85 border-border sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b px-4 backdrop-blur">
-            <Link href="/" className="md:hidden">
-                <Marca />
-            </Link>
+            <div className="min-w-0 md:hidden">
+                <SeletorDeGrupo />
+            </div>
 
             {migalhas.length > 0 && (
                 <nav aria-label="Você está em" className="hidden min-w-0 md:block">
@@ -49,8 +52,14 @@ export default function BarraSuperior({ migalhas = [] }: { migalhas?: Migalha[] 
                 </nav>
             )}
 
-            <div className="ml-auto flex items-center gap-2 md:hidden">
-                <MenuDoUsuario somenteAvatar />
+            <div className="ml-auto flex items-center gap-2">
+                <div className="hidden md:block">
+                    <SeletorDeGrupo />
+                </div>
+
+                <div className="md:hidden">
+                    <MenuDoUsuario somenteAvatar />
+                </div>
             </div>
         </header>
     );

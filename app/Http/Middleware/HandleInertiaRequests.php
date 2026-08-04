@@ -2,7 +2,10 @@
 
 namespace App\Http\Middleware;
 
+use App\Enums\Papel;
+use App\Models\Grupo;
 use App\Services\ImpersonacaoService;
+use App\Support\GrupoCorrente;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -46,6 +49,22 @@ class HandleInertiaRequests extends Middleware
                     'emailVerificado' => $usuario->hasVerifiedEmail(),
                 ] : null,
             ],
+
+            /*
+             * ⭐ O grupo em foco e a lista para trocar (DEC-71).
+             *
+             * ⚠️ Chave RAIZ, nunca dentro de `auth`: o guardião de vazamento
+             * confere o que sai em `auth.usuario` campo a campo, e enfiar coisa
+             * nova ali quebraria a garantia dele sem ninguém notar.
+             *
+             * Vem `null` para visitante e para o admin — que não publica, e para
+             * quem um seletor de grupo seria enfeite sem função.
+             */
+            'grupos' => $usuario?->papel === Papel::Cliente ? fn () => [
+                'atual' => GrupoCorrente::grupo()?->only(['ulid', 'nome']),
+                'lista' => Grupo::query()->oldest('id')->get(['ulid', 'nome'])
+                    ->map->only(['ulid', 'nome'])->all(),
+            ] : null,
 
             // Alimenta a tarja fixa de "modo impersonação". Enquanto tiver
             // conteudo, a tela inteira mostra que aquilo nao e a conta de quem

@@ -8,6 +8,7 @@ use Carbon\CarbonInterface;
 use Database\Factories\UsuarioFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -69,6 +70,17 @@ class Usuario extends Authenticatable
     public function uniqueIds(): array
     {
         return ['ulid'];
+    }
+
+    /**
+     * @return HasMany<Grupo, $this>
+     *
+     * ⚠️ Sem escopo de dono: e a relacao do PROPRIO usuario, e o comando de
+     * migracao a usa por fora da sessao.
+     */
+    public function grupos(): HasMany
+    {
+        return $this->hasMany(Grupo::class);
     }
 
     /** As rotas expoem o ULID; o id sequencial nunca sai do servidor (0.M). */

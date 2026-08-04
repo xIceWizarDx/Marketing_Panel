@@ -8,6 +8,7 @@ use App\Models\ContaSocial;
 use App\Models\Destino;
 use App\Models\Publicacao;
 use App\Support\Conexao\ResumoDasRedes;
+use App\Support\GrupoCorrente;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -40,7 +41,10 @@ class VisaoGeralController extends Controller
         // ⚠️ `refresh_token` entra na seleção porque `venceEmBreve()` pergunta se
         // ele EXISTE. Fora da lista, com strict mode ligado, isso estoura 500 — e
         // só em produção, que é onde ele costuma estar ligado.
-        $contas = ContaSocial::with('credencial:id,conta_social_id,expira_em,refresh_token')->get();
+        // ⚠️ TODAS as contas, de todos os grupos: o aviso de saúde ignora o
+        // filtro (DEC-80). Conta da outra ponta não pode morrer calada só
+        // porque a pessoa está olhando outro grupo.
+        $contas = ContaSocial::with(['credencial:id,conta_social_id,expira_em,refresh_token', 'grupo:id,nome'])->get();
         $numeros = $this->numeros();
 
         return Inertia::render('cliente/visao-geral', [
@@ -67,8 +71,12 @@ class VisaoGeralController extends Controller
     {
         $contagem = Destino::query()
             ->join('contas_sociais', 'contas_sociais.id', '=', 'destinos.conta_social_id')
-            // `destinos` não tem dono próprio: o filtro vem pela conta, que tem.
+            ->join('publicacoes', 'publicacoes.id', '=', 'destinos.publicacao_id')
+            // ⛔ Não sai daqui: é o que aplica o escopo do dono num `join` cru.
+            // O filtro de grupo abaixo SOMA a ele, nunca substitui (DEC-74).
             ->whereIn('contas_sociais.id', ContaSocial::query()->select('id'))
+            // ⭐ Pelo grupo da PUBLICAÇÃO, não pelo da conta (DEC-75).
+            ->where('publicacoes.grupo_id', GrupoCorrente::id())
             ->groupBy('destinos.status')
             ->pluck(DB::raw('count(*)'), 'destinos.status');
 
@@ -130,7 +138,7 @@ class VisaoGeralController extends Controller
                 'tom' => 'atencao',
                 'texto' => $vencendo->count() === 1
                     ? "Sua autorização do {$conta->plataforma->rotulo()} está para vencer. ".
-                        "Quando vencer, «{$conta->nome_exibicao}» para de publicar."
+                        "Quando vencer, «{$conta->nome_exibicao}»{$this->ondeEsta($conta)} para de publicar."
                     : "{$vencendo->count()} autorizações estão para vencer. Quando vencerem, essas contas param de publicar.",
                 'acao' => 'Reconectar',
                 'url' => null,
@@ -146,7 +154,7 @@ class VisaoGeralController extends Controller
             $pendencias[] = [
                 'tom' => 'erro',
                 'texto' => $quebradas->count() === 1
-                    ? "«{$conta->nome_exibicao}» parou de publicar no {$conta->plataforma->rotulo()}."
+                    ? "«{$conta->nome_exibicao}»{$this->ondeEsta($conta)} parou de publicar no {$conta->plataforma->rotulo()}."
                     : "{$quebradas->count()} contas pararam de publicar.",
                 'acao' => 'Resolver',
                 'url' => null,
@@ -155,6 +163,19 @@ class VisaoGeralController extends Controller
         }
 
         return $pendencias;
+    }
+
+    /**
+     * ", em Novelas" — ou nada, quando a conta está no grupo que já está à vista.
+     *
+     * ⚠️ Sem isto, o aviso fala de um canal que não aparece em tela nenhuma e a
+     * pessoa procura o problema onde ele não está.
+     */
+    private function ondeEsta(ContaSocial $conta): string
+    {
+        return $conta->grupo_id === GrupoCorrente::id()
+            ? ''
+            : ", em {$conta->grupo->nome},";
     }
 
     /**
@@ -188,7 +209,11 @@ class VisaoGeralController extends Controller
             [
                 'titulo' => 'Conectar uma rede',
                 'texto' => 'Você autoriza no site da própria rede; sua senha nunca passa por aqui.',
-                'feito' => $contas->filter->podePublicar()->isNotEmpty(),
+                // Só conta canal DESTE grupo: com o grupo novo vazio, o passo
+                // reabre — é a instrução certa para o estado em que ela está.
+                'feito' => $contas->filter(fn (ContaSocial $c) => $c->grupo_id === GrupoCorrente::id())
+                    ->filter->podePublicar()
+                    ->isNotEmpty(),
                 // ⚠️ Não é link: conectar acontece NESTA tela, num modal. Levar
                 // para a página onde a pessoa já está seria um link morto.
                 'url' => null,
@@ -201,7 +226,10 @@ class VisaoGeralController extends Controller
                 'titulo' => 'Publicar o primeiro vídeo',
                 'texto' => 'A gente confere o arquivo contra as regras de cada rede, publica e depois '.
                     'relê na própria rede para guardar o link como prova.',
-                'feito' => Publicacao::query()->whereNotNull('enviada_em')->exists(),
+                'feito' => Publicacao::query()
+                    ->where('grupo_id', GrupoCorrente::id())
+                    ->whereNotNull('enviada_em')
+                    ->exists(),
                 'url' => route('publicar'),
                 'abreCatalogo' => false,
             ],

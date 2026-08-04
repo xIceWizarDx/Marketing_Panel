@@ -5,6 +5,8 @@ namespace App\Models;
 use App\Enums\Plataforma;
 use App\Enums\StatusConta;
 use App\Models\Concerns\PertenceAoUsuario;
+use App\Services\GrupoService;
+use App\Support\GrupoCorrente;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -46,6 +48,30 @@ class ContaSocial extends Model
     public function getRouteKeyName(): string
     {
         return 'ulid';
+    }
+
+    /**
+     * ⭐ Todo canal nasce no grupo em foco.
+     *
+     * ⚠️ Mora no model, e não nos serviços de conexão, porque há **quatro**
+     * portas por onde uma conta nasce: Bluesky, YouTube, e a da Meta que cria
+     * várias de uma vez (Página + Instagram). Espalhar por quatro lugares
+     * garantiria esquecer um, e o esquecido faria a conta nascer sem grupo —
+     * invisível em toda tela, depois de a pessoa já ter autorizado no Google.
+     *
+     * ⛔ Não sobrescreve valor já definido: é o que permite a factory montar
+     * cenário e o serviço mover um canal de grupo sem briga.
+     */
+    protected static function booted(): void
+    {
+        static::creating(function (self $conta) {
+            if ($conta->grupo_id !== null) {
+                return;
+            }
+
+            $conta->grupo_id = GrupoCorrente::id()
+                ?? app(GrupoService::class)->garantirPrincipal($conta->usuario)->id;
+        });
     }
 
     /** @return BelongsTo<Grupo, $this> */
