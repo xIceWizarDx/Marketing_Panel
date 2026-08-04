@@ -169,7 +169,15 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    /*
+     * Cookie so viaja por HTTPS em producao.
+     *
+     * O padrao do Laravel e `null` (= deixa passar em HTTP). Aqui o default
+     * depende do ambiente: em producao vale `true` mesmo que ninguem lembre de
+     * escrever a variavel no `.env` do servidor — esquecer isso significa
+     * sessao trafegando em texto puro.
+     */
+    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production'),
 
     /*
     |--------------------------------------------------------------------------

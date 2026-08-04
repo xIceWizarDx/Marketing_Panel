@@ -2,49 +2,64 @@
 
 namespace App\Http\Middleware;
 
-use Illuminate\Foundation\Inspiring;
+use App\Services\ImpersonacaoService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
-    /**
-     * The root template that's loaded on the first page visit.
-     *
-     * @see https://inertiajs.com/server-side-setup#root-template
-     *
-     * @var string
-     */
     protected $rootView = 'app';
 
-    /**
-     * Determines the current asset version.
-     *
-     * @see https://inertiajs.com/asset-versioning
-     */
     public function version(Request $request): ?string
     {
         return parent::version($request);
     }
 
     /**
-     * Define the props that are shared by default.
+     * Dados enviados ao React em toda visita.
      *
-     * @see https://inertiajs.com/shared-data
+     * ⚠️ Regra de seguranca: o que entra aqui vai pro HTML de TODA pagina.
+     * Nada de token de rede, hash de senha ou dado de outro usuario. O usuario
+     * e montado campo a campo, de proposito — mandar o model inteiro faria
+     * qualquer coluna nova vazar pro navegador sem ninguem perceber.
      *
      * @return array<string, mixed>
      */
     public function share(Request $request): array
     {
-        [$message, $author] = str(Inspiring::quotes()->random())->explode('-');
+        $usuario = $request->user();
+        $impersonacao = app(ImpersonacaoService::class);
+        $adminResponsavel = $impersonacao->ativa($request) ? $impersonacao->administrador($request) : null;
 
-        return array_merge(parent::share($request), [
+        return [
             ...parent::share($request),
-            'name' => config('app.name'),
-            'quote' => ['message' => trim($message), 'author' => trim($author)],
+
+            'nomeDoApp' => config('app.name'),
+
             'auth' => [
-                'user' => $request->user(),
+                'usuario' => $usuario ? [
+                    'ulid' => $usuario->ulid,
+                    'nome' => $usuario->nome,
+                    'email' => $usuario->email,
+                    'papel' => $usuario->papel->value,
+                    'papelRotulo' => $usuario->papel->rotulo(),
+                    'emailVerificado' => $usuario->hasVerifiedEmail(),
+                ] : null,
             ],
-        ]);
+
+            // Alimenta a tarja fixa de "modo impersonação". Enquanto tiver
+            // conteudo, a tela inteira mostra que aquilo nao e a conta de quem
+            // esta olhando — e o que impede o admin de agir achando que e o dono.
+            'impersonacao' => $adminResponsavel ? [
+                'adminNome' => $adminResponsavel->nome,
+                'usuarioNome' => $usuario?->nome,
+            ] : null,
+
+            'avisos' => [
+                'sucesso' => fn () => $request->session()->get('sucesso'),
+                'erro' => fn () => $request->session()->get('erro'),
+                'aviso' => fn () => $request->session()->get('aviso'),
+            ],
+        ];
     }
 }

@@ -1,40 +1,103 @@
 import { LucideIcon } from 'lucide-react';
 
-export interface Auth {
-    user: User;
+/**
+ * Papel do usuario. A chave e a mesma do enum PHP `App\Enums\Papel` — se mudar
+ * aqui sem mudar la, o TypeScript nao acusa, mas o teste-guardiao de papel sim.
+ */
+export type Papel = 'admin' | 'cliente';
+
+export interface Usuario {
+    ulid: string;
+    nome: string;
+    email: string;
+    papel: Papel;
+    papelRotulo: string;
+    emailVerificado: boolean;
+    avatar?: string;
 }
 
-export interface BreadcrumbItem {
-    title: string;
-    href: string;
+export interface Autenticacao {
+    usuario: Usuario | null;
 }
 
-export interface NavGroup {
-    title: string;
-    items: NavItem[];
+export interface Avisos {
+    sucesso?: string;
+    erro?: string;
+    aviso?: string;
 }
 
-export interface NavItem {
-    title: string;
-    url: string;
-    icon?: LucideIcon | null;
-    isActive?: boolean;
+/** Preenchido so enquanto um admin esta vendo a conta de um cliente. */
+export interface Impersonacao {
+    adminNome: string;
+    usuarioNome: string;
 }
 
-export interface SharedData {
-    name: string;
-    quote: { message: string; author: string };
-    auth: Auth;
+/** Dados que chegam em TODA pagina (vem do HandleInertiaRequests). */
+export interface DadosCompartilhados {
+    nomeDoApp: string;
+    auth: Autenticacao;
+    avisos: Avisos;
+    impersonacao: Impersonacao | null;
     [key: string]: unknown;
 }
 
-export interface User {
-    id: number;
-    name: string;
-    email: string;
-    avatar?: string;
-    email_verified_at: string | null;
-    created_at: string;
-    updated_at: string;
-    [key: string]: unknown; // This allows for additional properties...
+/* ── Mídia ─────────────────────────────────────────────────────────────── */
+
+export type NivelDoAchado = 'ok' | 'atencao' | 'erro';
+
+export type Plataforma = 'youtube' | 'instagram' | 'facebook' | 'tiktok';
+
+/** Uma linha do laudo: o que foi conferido e o que será feito a respeito. */
+export interface Achado {
+    nivel: NivelDoAchado;
+    mensagem: string;
+    providencia: string | null;
+}
+
+export interface FichaTecnica {
+    formato: string | null;
+    duracao_segundos: number | null;
+    largura: number | null;
+    altura: number | null;
+    codec_video: string | null;
+    codec_audio: string | null;
+    fps: number | null;
+    bitrate: number | null;
+    tamanho_bytes: number | null;
+}
+
+export interface Laudo {
+    disponivel: boolean;
+    indisponivel_porque: string | null;
+    ficha: FichaTecnica;
+    por_rede: Record<string, Achado[]>;
+}
+
+/** Página do paginador do Laravel. */
+export interface Paginado<T> {
+    data: T[];
+    current_page: number;
+    last_page: number;
+    total: number;
+    links: { url: string | null; label: string; active: boolean }[];
+}
+
+export interface Migalha {
+    titulo: string;
+    url: string;
+}
+
+export interface ItemDeMenu {
+    titulo: string;
+    url: string;
+    icone?: LucideIcon | null;
+    /** Nome da rota Ziggy usado pra marcar o item como ativo. */
+    rota?: string;
+    /** Tela ainda não construída: aparece apagada, não leva a 404. */
+    emBreve?: boolean;
+}
+
+export interface GrupoDeMenu {
+    titulo: string;
+    itens: ItemDeMenu[];
 }

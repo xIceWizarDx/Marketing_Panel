@@ -1,0 +1,182 @@
+# TELAS — especificação, uma a uma
+
+> O que cada tela mostra, o que faz, e **o que muda no celular** (DEC-38).
+> Navegação por **tarefa**, rede como **filtro** (DEC-17 revisada).
+> Vocabulário PT-BR (DEC-15) · rótulo ≠ chave (DEC-18) · sistema fluido (DEC-37).
+>
+> ⚠️ Este documento descreve o que **existe**. O que ainda não foi construído vem marcado
+> com 🔜 — nunca escrito no presente, para o documento não virar propaganda de si mesmo.
+
+---
+
+## 🧭 Navegação
+
+**Sidebar do cliente — 4 itens fixos, independente de quantas redes existam:**
+
+```
+📊 Visão geral       ← landing pós-login
+📋 Publicações       ← histórico com a prova; é daqui que se publica
+🔌 Conexões          ← 1 tela, 1 cartão por rede
+⚙️  Minha conta
+```
+
+⛔ **Publicar não é item de menu.** Ele é um **botão dentro de Publicações**, que abre o
+compositor por cima da lista (DEC-60). Item de menu descreveria uma tela; não há tela.
+
+⛔ **Mídias não existe.** Enviar acontece dentro do compositor — o produto não guarda acervo
+(DEC-59), então não há o que gerenciar numa tela própria.
+
+**Admin (esqueleto — DEC-16):** `👥 Clientes · 🕵️ Logs de impersonação · ⚙️ Minha conta`
+
+**📱 No celular:**
+- Sidebar vira **gaveta** (`--sidebar-width: 0`, DEC-37)
+- Os 4 itens viram **barra inferior fixa** — alcance do polegar
+- O compositor abre em tela cheia, com o botão de publicar fixo no rodapé
+- Banner de impersonação fica **fixo no topo**, acima de tudo
+
+---
+
+## 1. 📤 O compositor *(modal por cima de Publicações)*
+
+**A tela mais importante — e ela não é uma tela.** Abre pelo botão **Publicar**, dentro de
+Publicações.
+
+⚠️ **Modal, mas por rota de verdade** (`/publicar`). Recarregar a página reabre no mesmo ponto e
+o botão voltar fecha o compositor em vez de sair do painel. Modal guardado só em memória perderia
+o texto escrito à mão — o defeito U-9 do estudo de usabilidade.
+
+**Três decisões numa coluna, um veredito ao lado.** A ação vive num rodapé que **não rola**:
+botão que exige rolar até o fim é botão escondido, e é o que a pessoa veio clicar.
+
+**Vídeo**
+- ⛔ **Nada é sugerido.** Não há lista de vídeos anteriores, porque não há acervo (DEC-60)
+- Arrastar/escolher do computador · o arquivo aparece **depois** de enviado, com miniatura,
+  duração, tamanho e link de prévia **9:16** (tamanho fluido, DEC-37)
+- Trocar de arquivo é **reenviar** — não há de onde escolher
+- ⭐ **Laudo do arquivo** (DEC-32) no painel ao lado:
+  `MP4 · H.264 · 1080×1920 · 45s · 12 MB · 30 fps` → **"passa intacto em todas as redes"**
+  ou **"vamos recodificar o áudio (está em 256 kbps)"**, sempre **por rede** e em português
+
+**Texto**
+- Título · legenda · hashtags, com **contador** por rede (o menor limite manda)
+- ⚠️ O teto do campo vem da **rede escolhida**, não de um 255 inventado: o YouTube corta em 100,
+  e deixar digitar mais é deixar escrever para levar erro depois
+
+**Para onde**
+- Etiquetas com a **marca da rede**, lado a lado — mais rápidas de varrer que linhas inteiras
+- Conta que não pode publicar aparece esmaecida, com o motivo
+- Ao republicar, as contas onde **já** foi publicado vêm **desmarcadas e avisadas** —
+  republicar na mesma conta é engano quase sempre, e publicação não tem desfazer
+
+🔜 **Falta:** personalizar legenda por destino (DEC-11) e o bloco de confirmação por rede
+(visibilidade do YouTube, privacidade do TikTok — regra YT-A07).
+
+**📱 No celular:** ocupa a tela inteira; o rodapé com o botão continua fixo.
+
+---
+
+## 1b. 🔁 Publicar em outra rede
+
+Botão no cartão da publicação. Abre o **mesmo** compositor com o texto pronto.
+
+⚠️ **Leva o texto, não o vídeo (DEC-61).** O arquivo saiu quando a publicação terminou, e a
+janela diz isso sem rodeio: *"O texto veio da publicação anterior. Envie o vídeo de novo e
+escolha as redes."* Reenviar o mesmo arquivo o devolve ao **mesmo registro** (DEC-58).
+
+---
+
+## 2. 📋 Publicações
+
+**Lista o histórico.** É aqui que o diferencial aparece.
+
+- **Filtros fixos no topo:** busca · status · **chips de rede** (`Todas · YouTube · Instagram…`)
+- **Colunas:** miniatura · título · **status por destino** · data · redes
+- ⭐ **O status é honesto (DEC-31):**
+  `Agendado` · `Enviando` · `Processando na rede` · **`No ar` 🔗** · `Falhou`
+  → **"No ar" só aparece com o link verificado**
+- Falhou → mostra o **motivo em português** + botão **reprocessar**
+- Uma publicação com 4 destinos mostra os 4 status separados
+
+**📱 No celular:** cada linha vira **card expansível** (padrão EmpiresCloud):
+```
+┌────────────────────────────────────┐
+│ [thumb]  Lançamento produto    ⋮   │  ← ações no CABEÇALHO (nunca somem)
+│          2 no ar · 1 falhou        │
+│          ▼ toque para detalhes     │
+├────────────────────────────────────┤
+│ ▶️ YouTube      No ar 🔗            │
+│ 📸 Instagram    No ar 🔗            │
+│ 🎵 TikTok       Falhou — token…     │
+│                 [Reprocessar]      │
+└────────────────────────────────────┘
+```
+Filtros viram **chips roláveis** na horizontal, fixos no topo.
+
+---
+
+## 3. 🔌 Conexões
+
+**Uma tela só, grade de cartões** — inspirada no bundle.social, mas com o que falta lá:
+
+```
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+│    ▶️ YouTube     │ │   📸 Instagram   │ │    🎵 TikTok     │
+│  🟢 Conectado    │ │  🟡 Expira em 5d │ │  ⚪ Não conectado│
+│  @meucanal       │ │  @minhaconta     │ │                  │
+│  [Configurar]    │ │  [Reconectar]    │ │   [Conectar]     │
+└──────────────────┘ └──────────────────┘ └──────────────────┘
+```
+
+- ⭐ **Semáforo do token** (DEC-32) — o que nenhum concorrente mostra
+- Rede ainda não liberada aparece **esmaecida** com "em breve" (DEC-36)
+- Várias contas da mesma rede = vários cartões (DEC-10)
+- Clicar em **Configurar** abre os padrões **daquela rede**: conta padrão, legenda padrão,
+  visibilidade padrão *(⚠️ nunca no TikTok — privacidade sem default é regra auditada)*
+
+**📱 No celular:** 1 cartão por linha, empilhados.
+
+---
+
+## 4. 📊 Visão geral *(landing pós-login)*
+
+- Cartões: **publicadas na semana** · **falhas pendentes** · **contas com problema**
+- Últimas 5 publicações com status
+- ⚠️ Alerta no topo se alguma conta está **prestes a expirar**
+
+**📱 No celular:** cartões empilhados, alerta primeiro.
+
+---
+
+## 5. ⚙️ Minha conta
+
+`Perfil · Senha · Aparência (claro/escuro) · Notificações (e-mail · sininho · WhatsApp) ·
+Meus dados e privacidade` *(baixar dados · excluir conta — regras BR-01/02)*
+
+---
+
+## 6. 👥 Admin — Clientes *(esqueleto, DEC-16)*
+
+- Lista: nome · e-mail · status · contas conectadas · **botão Impersonar**
+- Criar cliente = nome + e-mail → **envia link de definição de senha** (não digita senha)
+- Durante impersonação: **banner fixo no topo** com "Modo impersonação — [nome]" + **Sair**
+
+**📱 No celular:** card expansível, **Impersonar** no cabeçalho do card.
+
+---
+
+## 🎨 Padrões que valem em todas as telas
+
+| Padrão | Regra |
+|---|---|
+| **Tabela → card** | No celular, toda listagem vira card expansível: resumo visível, detalhes ao expandir |
+| **Ações no cabeçalho** | Ação de linha vai no topo do card — **nunca some no mobile** |
+| **Filtros fixos** | Barra de filtros gruda no topo ao rolar |
+| **Estado vazio** | Toda lista tem ilustração + frase + **ação sugerida** ("conecte sua primeira rede") |
+| **Erro em português** | Nunca código cru da API — sempre motivo + o que fazer |
+| **Carregamento** | Esqueleto (skeleton), não spinner |
+| **Fonte crítica** | ⚠️ Nunca `text-xs` em status ou link de prova (vira ~9,7px — DEC-37) |
+| **Marca do YouTube** | Logo **clicável** nas telas que mostram dados do YouTube (regra YT-G01/02) |
+| **Movimento** | Toda animação respeita `prefers-reduced-motion` |
+
+_2026-07-28 · revisto em 2026-08-04 para descrever o que existe: o compositor virou modal por
+cima de Publicações, a tela de Mídias saiu e a sidebar tem 4 itens._

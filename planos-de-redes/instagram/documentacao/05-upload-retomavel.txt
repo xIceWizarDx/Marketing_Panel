@@ -1,0 +1,121 @@
+ORIGEM: https://developers.facebook.com/docs/graph-api/guides/upload
+==============================================================================
+
+Video API
+Overview
+Get Started
+A/B Testing
+Crossposting
+Get Videos
+Get Insights
+Music Recommendations
+Upload a File or Video
+Splitting
+Publish a Video
+Publish a Reel
+Rights Manager API
+Slideshows
+Stories
+Reference
+
+Upload a file
+
+The Resumable Upload API allows you to upload large files to Meta's social graph and resume interrupted upload sessions without having to start over. Once you have uploaded your file, you can publish it.
+
+References for endpoints that support uploaded file handles will indicate if the endpoints support handles returned by the Resumable Upload API.
+
+Before you start
+
+This guide assumes you have read the Graph API Overview and the Meta Development guides and performed the necessary actions needed to develop with Meta.
+
+You will need:
+
+A Meta app ID
+
+A file in one of the following formats:
+
+pdf
+
+jpeg
+
+jpg
+
+png
+
+mp4
+
+A User access token
+
+Step 1: Start an upload session
+
+To start an upload session send a POST request to the /<APP_ID>/uploads endpoint, where <APP_ID> is your app's Meta ID, with the following required parameters:
+
+file_name - the name of your file
+
+file_length - file size in bytes
+
+file_type - The file's MIME type. Valid values are: application/pdf, image/jpeg, image/jpg, image/png, and video/mp4
+
+Request Syntax
+
+Formatted for readability.
+
+curl -i -X POST "https://graph.facebook.com/v26.0/<APP_ID>/uploads
+ ?file_name=<FILE_NAME>
+ &file_length=<FILE_LENGTH>
+ &file_type=<FILE_TYPE>
+ &access_token=<USER_ACCESS_TOKEN>"
+Upon success, your app will receive a JSON response with the upload session ID.
+
+&#123;
+ "id": "upload:<UPLOAD_SESSION_ID>"
+&#125;
+
+Step 2: Start the upload
+
+Start uploading the file by sending a POST request to the /upload:<UPLOAD_SESSION_ID> endpoint with the following file_offset set to 0.
+
+Request Syntax
+
+curl -i -X POST "https://graph.facebook.com/v26.0/upload:<UPLOAD_SESSION_ID>"
+ --header "Authorization: OAuth <USER_ACCESS_TOKEN>"
+ --header "file_offset: 0"
+ --data-binary &#064;<FILE_NAME>
+
+You must include the access token in the header or the call will fail.
+
+On success, your app receives the file handle which you will use in your API calls to publish the file to your endpoint.
+
+&#123;
+ "h": "<UPLOADED_FILE_HANDLE>"
+&#125;
+
+Sample Response
+
+&#123;
+ "h": "2:c2FtcGxl..."
+&#125;
+Resume an interrupted upload
+
+If you have initiated an upload session but it is taking longer than expected or has been interrupted, send a GET request to the /upload:<UPLOAD_SESSION_ID> endpoint from Step 1.
+
+curl -i -X GET "https://graph.facebook.com/v26.0/upload:<UPLOAD_SESSION_ID>"
+ --header "Authorization: OAuth <USER_ACCESS_TOKEN>"
+Upon success, your app will receive a JSON response with the file_offset value that you can use to resume the upload process from the point of interruption.
+
+&#123;
+ "id": "upload:<UPLOAD_SESSION_ID>"
+ "file_offset": "<FILE_OFFSET>"
+&#125;
+Send another POST request, like the you sent in Step 2, with file_offset set to this file_offset value you just received. This will resume the upload process from the point of interruption.
+
+curl -i -X POST "https://graph.facebook.com/v26.0/upload:<UPLOAD_SESSION_ID>"
+ --header "Authorization: OAuth <USER_ACCESS_TOKEN>"
+ --header "file_offset: <FILE_OFFSET>"
+ --data-binary &#064;<FILE_NAME>
+
+Next Steps
+
+Visit the Video API documentation to publish a video to a Facebook Page.
+
+ -->

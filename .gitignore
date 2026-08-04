@@ -1,7 +1,12 @@
 .DS_Store
-.env
-.env.backup
-.env.production
+
+# ⛔ TODO .env fica fora, com uma excecao explicita.
+#
+# Listar os nomes conhecidos (.env.backup, .env.production) deixava passar
+# qualquer variacao — e um `.env.bak-1785431955` gerado por script ja chegou
+# a aparecer como arquivo novo, com os segredos todos dentro.
+.env*
+!.env.example
 .phpactor.json
 .phpunit.result.cache
 /.fleet
@@ -23,3 +28,7 @@ Homestead.json
 Homestead.yaml
 npm-debug.log
 yarn-error.log
+
+# Credencial baixada do Google Cloud. O segredo mora no .env; o arquivo baixado
+# nao pode encostar no repositorio nem por engano.
+client_secret_*.json

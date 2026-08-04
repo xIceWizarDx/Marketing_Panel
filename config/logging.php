@@ -58,6 +58,25 @@ return [
             'ignore_exceptions' => false,
         ],
 
+        /*
+        | Canal de SEGURANCA — arquivo separado do log tecnico (0.M).
+        |
+        | Entra aqui o que uma auditoria pergunta: quem entrou, quem impersonou,
+        | quem trocou senha, quem conectou ou desconectou uma rede.
+        | Fica fora do `laravel.log` de proposito: misturado com stack trace de
+        | erro, ninguem acha nada, e o arquivo gira antes do prazo legal.
+        | 180 dias = 6 meses do Marco Civil art. 15.
+        |
+        | ⚠️ NUNCA gravar token, senha ou conteudo de midia neste canal.
+        */
+        'seguranca' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/seguranca.log'),
+            'level' => 'info',
+            'days' => 180,
+            'replace_placeholders' => true,
+        ],
+
         'single' => [
             'driver' => 'single',
             'path' => storage_path('logs/laravel.log'),
