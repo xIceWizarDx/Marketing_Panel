@@ -37,7 +37,9 @@ Antes de criar QUALQUER nome novo no projeto:
 | Componente React | PascalCase PT-BR | `CartaoConexao.tsx` |
 
 **🔒 Território do framework (INTOCÁVEL — nomes padrão em inglês):** colunas `password`,
-`remember_token`, `email_verified_at`, `created_at`, `updated_at`; tabelas
+`remember_token`, `email_verified_at`, `created_at`, `updated_at`, **`deleted_at`** (o
+`SoftDeletes` do Laravel procura esse nome — renomear para `arquivado_em` desliga o recurso
+inteiro **em silêncio**, e a linha arquivada volta a aparecer); tabelas
 `password_reset_tokens`, `sessions`, `cache`, `jobs`, `job_batches`, `failed_jobs`,
 `notifications` (canal database do Laravel — o "sininho", DEC-19); verbos HTTP/métodos
 resource. **Motivo:** renomear coluna de auth exige override frágil — classe do bug
@@ -204,17 +206,39 @@ mesmo instante em SQLite = leitura suja do agregado).
 Admin cria cliente → **sem digitar senha**: dispara link de definição de senha (mesma
 mecânica do reset, tabela framework `password_reset_tokens`) — padrão herdado do EmpiresCloud.
 
+### 🟢 `grupos` (Model `Grupo`)
+
+A **rede de canais de uma linha de conteúdo** (ex.: "Notícias", "Novelas"). O grupo **é** seus
+canais: sem canal, ele não tem o que ser (DEC-69).
+
+| Coluna | Tipo | Regra |
+|---|---|---|
+| `id` / `ulid` / `usuario_id` | PK / público / FK index | o `id` nunca sai do servidor |
+| `nome` | string | ⛔ **sem UNIQUE** — índice único + soft delete faria "já existe um grupo com esse nome" para um grupo que a pessoa não enxerga mais |
+| `deleted_at` | timestamp null | arquivado. Só arquiva grupo **sem canal** e **nunca o último** (DEC-76) |
+| timestamps | | índice (`usuario_id`,`deleted_at`) |
+
+⛔ **Grupo NÃO tem Global Scope** (DEC-74). Ele usa `PertenceAoUsuario` como toda tabela de
+cliente — isso é o escopo de **dono**. Filtrar por grupo é sempre **explícito**, na consulta da
+tela: job, comando e conciliação não têm grupo corrente, e um scope que lançasse aí quebraria o
+motor.
+
+⚠️ **Proibido `Grupo::withoutGlobalScopes()`** — ele derruba o escopo de dono **e** o de arquivado
+de uma vez. Onde precisar furar o de dono, usar `withoutGlobalScope(EscopoDoUsuario::class)` com o
+`where('usuario_id', ...)` escrito na mão.
+
 ### 🟢 `contas_sociais` (Model `ContaSocial`)
 | Coluna | Tipo | Regra |
 |---|---|---|
 | `id` / `usuario_id` | PK / FK index | |
+| `grupo_id` | FK `grupos` restrict | a conta pertence a **um** grupo só (DEC-70). ⛔ **NÃO entra na UNIQUE abaixo**: dentro dela, o mesmo canal poderia ser conectado em dois grupos, que é exatamente o que a única existe para impedir |
 | `plataforma` | string (enum `Plataforma`) | |
 | `identificador_externo` | string | id do canal/página/conta na rede |
 | `nome_exibicao` | string | nome do canal/página (vem da API) |
 | `avatar_url` | string null | |
 | `status` | string (enum `StatusConta`) default `ativa` | |
 | `status_detalhe` | string null | motivo humano do erro |
-| timestamps | | **UNIQUE** (`usuario_id`,`plataforma`,`identificador_externo`) — DEC-10 |
+| timestamps | | **UNIQUE** (`usuario_id`,`plataforma`,`identificador_externo`) — DEC-10 · índice (`usuario_id`,`grupo_id`) |
 
 ### 🟢 `credenciais` (Model `Credencial`) — filha 1:1 de conta
 | Coluna | Tipo | Regra |
@@ -272,6 +296,7 @@ na hora, sem carência. Fica o registro inteiro (miniatura, laudo, links e prova
 | Coluna | Tipo | Regra |
 |---|---|---|
 | `id` / `usuario_id` / `midia_id` | PK / FK / FK | |
+| `grupo_id` | FK `grupos` restrict | ⭐ **gravado, não deduzido** — e é exceção consciente à regra "derivado nunca vira coluna". Deduzir pelo canal faria o número histórico de um grupo **mudar sozinho** quando alguém reorganizasse os canais, e número que muda retroativamente não serve para decidir nada (DEC-75). Vem das **contas escolhidas** no envio (DEC-73). Índice (`usuario_id`,`grupo_id`,`created_at`) |
 | `titulo` | string null | exigido pelo YouTube |
 | `legenda` | text null | base para todas as redes |
 | `hashtags` | json null | array de strings **sem** `#` |
@@ -333,7 +358,12 @@ na hora, sem carência. Fica o registro inteiro (miniatura, laudo, links e prova
 | timestamps | | DEC-04: **toda** sessão registrada |
 
 ### Relações (resumo)
-`usuario 1—N` contas_sociais · midias · publicacoes · configuracoes_rede
+`usuario 1—N` grupos · contas_sociais · midias · publicacoes · configuracoes_rede
+`grupo 1—N` contas_sociais · publicacoes
+⛔ **mídia não pertence a grupo:** não existe acervo (DEC-59), o arquivo só vive dentro da
+composição. Dar grupo a ela criaria uma biblioteca por grupo que o produto decidiu não ter.
+⛔ **destino não tem `grupo_id`:** o grupo dele se lê pela publicação. Gravar nos dois criaria duas
+fontes para o mesmo fato, e bastaria mover um canal para elas discordarem.
 `conta_social 1—1` credencial · `1—N` destinos
 `publicacao N—1` midia · `1—N` destinos · `destino 1—N` tentativas
 
@@ -345,6 +375,9 @@ na hora, sem carência. Fica o registro inteiro (miniatura, laudo, links e prova
 | `destinos.publicacao_id` | **cascade** | destino não existe sem a publicação |
 | `tentativas.destino_id` | **cascade** | log da tentativa pertence ao destino |
 | `publicacoes.midia_id` | **restrict** | o registro da mídia é o histórico da publicação; some o arquivo pesado (`arquivo_removido_em`), nunca a linha |
+| `contas_sociais.grupo_id` | **restrict** | grupo com canal não se apaga — canal invisível continuaria publicando por trás da tela, ou falhando sem ninguém ver |
+| `publicacoes.grupo_id` | **restrict** | apagar um grupo levaria junto a prova de onde o post saiu |
+| `grupos.usuario_id` | **restrict** | mesmo padrão das outras tabelas de cliente |
 | `configuracoes_rede.conta_social_padrao_id` | **nullOnDelete** | perder a conta padrão não pode quebrar a config |
 | `*.usuario_id` (dados do cliente) | **restrict** | apagar cliente com dados exige decisão explícita (nunca cascata silenciosa) — quem apaga é o serviço de exclusão de conta, na ordem certa |
 | `logs_impersonacao.admin_id`/`usuario_id` | **nullOnDelete** + cópia do ULID | ⚠️ **corrigido**: com `restrict`, quem já tinha recebido suporte **nunca mais** conseguia apagar a conta — um log bloqueava o direito de eliminação (LGPD art. 18). Agora a **pessoa some e o evento fica** |
@@ -376,6 +409,9 @@ fim da publicação, não de um botão — não há o que gerenciar.
 | `GET /midias/{ulid}/miniatura` | `midias.miniatura` | separada do arquivo: a lista pede muitas de uma vez |
 | `POST /conexoes/bluesky` · `DELETE /conexoes/{ulid}` | `conexoes.bluesky` · `conexoes.desconectar` | conectar e desconectar |
 | `/conexoes/{rede}` → `/retorno` | `conexoes.{rede}[.retorno]` | OAuth (`youtube`, `meta`); o retorno cai em `/painel` |
+| `POST /grupos` · `PATCH /grupos/{ulid}` · `DELETE /grupos/{ulid}` | `grupos.criar` · `grupos.renomear` · `grupos.arquivar` | o grupo não tem tela: nasce, muda de nome e arquiva por diálogo |
+| `POST /grupos/{ulid}/usar` | `grupos.usar` | troca o grupo corrente. ⛔ **POST, nunca GET** — com GET, o prefetch do navegador trocaria o modo sozinho |
+| `PATCH /conexoes/{ulid}/grupo` | `conexoes.grupo` | move um canal de grupo (DEC-77) |
 | `/minha-conta/...` | `minha-conta.*` | perfil · senha · aparência (starter em PT-BR) |
 
 ⛔ **Não existe `/midias` como tela.** Ela existia quando o produto era um drive; enviar e publicar
@@ -387,6 +423,10 @@ lugar só: `App\Support\Conexao\ResumoDasRedes` (DEC-65).
 
 ⭐ **O menu do cliente tem dois itens:** Visão geral e Publicações. Publicar e conectar são ações,
 e ação não é lugar para onde ir.
+
+⛔ **O grupo também não é item de menu** (DEC-71). Ele é **modo**, e modo se mostra onde a pessoa
+está — o seletor vive na barra superior, visível em toda tela. O grupo corrente mora na **sessão**
+e nunca na URL (DEC-72): é preferência de visualização, não recorte compartilhável.
 
 ### Área do admin (prefixo `/admin`, middleware `papel:admin`)
 | Path | Nome | O quê |
@@ -470,3 +510,7 @@ Rodam na suíte normal (Pest). **Definição de pronto** de toda fase inclui os 
 - 2026-08-04 — Conexões deixou de ser tela (plano 14). A rota `conexoes` saiu; sobraram as de
   ação. O resumo das redes ganhou fonte única (`ResumoDasRedes`) e o menu do cliente ficou com
   dois itens. Restam **2 páginas de cliente**.
+- 2026-08-04 — Nasce o conceito **grupo** (plano 15): tabela `grupos`, `grupo_id` em
+  `contas_sociais` e `publicacoes`, rotas de criar/renomear/arquivar/usar e mover canal.
+  `deleted_at` entrou no território do framework. ⚠️ O nome foi escolhido por eliminação: "rede",
+  "perfil", "marca" e "projeto" já significam outra coisa aqui.

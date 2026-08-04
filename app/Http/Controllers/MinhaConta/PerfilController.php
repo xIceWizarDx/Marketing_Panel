@@ -4,6 +4,7 @@ namespace App\Http\Controllers\MinhaConta;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\MinhaConta\AtualizarPerfilRequest;
+use App\Services\ExclusaoDeConta;
 use App\Support\RegistroDeSeguranca;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
@@ -47,12 +48,24 @@ class PerfilController extends Controller
 
         RegistroDeSeguranca::registrar('apagou_a_propria_conta', request: $request);
 
+        /*
+         * ⚠️ **A sessão cai ANTES de apagar, e a ordem não é estilo.**
+         *
+         * Deslogar depois RESSUSCITA a conta: o guard cicla o *remember token*
+         * do usuário que ainda tem em mãos e chama `save()` — e `save()` num
+         * model já apagado vira INSERT. A pessoa volta com id novo, com um grupo
+         * em branco, e a tela diz que deu tudo certo.
+         *
+         * ⛔ `$usuario->delete()` sozinho também não serve: todas as chaves
+         * estrangeiras são `restrict`, e quem usou o produto levaria erro de
+         * banco em vez de conseguir sair.
+         */
         Auth::logout();
-
-        $usuario->delete();
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
+        app(ExclusaoDeConta::class)->apagar($usuario);
 
         return redirect('/');
     }

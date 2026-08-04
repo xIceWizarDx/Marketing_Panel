@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\Papel;
+use App\Services\GrupoService;
 use Carbon\CarbonInterface;
 use Database\Factories\UsuarioFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -41,6 +42,23 @@ class Usuario extends Authenticatable
             'papel' => Papel::class,
             'ativo' => 'boolean',
         ];
+    }
+
+    /**
+     * ⭐ Todo usuário nasce com um grupo (DEC-69).
+     *
+     * ⚠️ Mora no model, e não no controller de cadastro, porque há **três**
+     * portas por onde um usuário nasce: o cadastro, o seeder e a factory dos
+     * testes. Espalhar por três lugares garantiria esquecer um — e o esquecido
+     * viraria um cliente sem grupo, que é um beco sem saída silencioso: as telas
+     * não dão erro, elas mentem.
+     *
+     * O admin também ganha um. É uma linha, e custa menos que um `if` de papel
+     * mais o defeito do dia em que um papel mudar.
+     */
+    protected static function booted(): void
+    {
+        static::created(fn (self $usuario) => app(GrupoService::class)->garantirPrincipal($usuario));
     }
 
     /**

@@ -96,8 +96,3 @@ export interface ItemDeMenu {
     /** Tela ainda não construída: aparece apagada, não leva a 404. */
     emBreve?: boolean;
 }
-
-export interface GrupoDeMenu {
-    titulo: string;
-    itens: ItemDeMenu[];
-}

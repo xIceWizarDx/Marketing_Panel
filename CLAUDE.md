@@ -31,7 +31,7 @@
 | **0.D** | Vocabulário único | Um nome por conceito em código/banco/enum/teste. O texto da tela é camada separada (DEC-18) |
 | **0.E** | Descrição positiva | Código e doc falam só do que existe **agora**. Histórico vive no git e no LOG |
 | **0.F** | Zero drift | Um conceito = um nome técnico em rota, controller, service, model, tabela, coluna e teste |
-| **0.G** | Simplicidade | Banco único, papéis numa tabela só. **Proibido cedo:** billing, workspaces, multiempresa |
+| **0.G** | Simplicidade | Banco único, papéis numa tabela só. **Proibido cedo:** billing, multiempresa. *(Workspace saiu da lista em 2026-08-04 — ver a ressalva abaixo)* |
 | **0.H** | Camadas limpas | Controller magro → Service → Action → Job. Cada rede num `Publicador` isolado |
 | **0.I** | Testes + validar no real | Pest em todo fluxo crítico. Achado importante se **confere**, nunca se presume |
 | **0.J** | Idioma PT-BR | Tudo do negócio em português. Só o sufixo do framework fica em inglês |
@@ -39,6 +39,20 @@
 | **0.L** | Autonomia por reversibilidade | O critério **não** é "grande vs pequeno" — é **quanto custa desfazer** |
 | **0.M** | Segurança em camadas | O ativo mais valioso **não é o código, é o token da rede do cliente** |
 | **0.N** | Nome do produto nunca no código | O nome vive **só** em `APP_NAME` (`.env`). Proibido escrevê-lo em código, comentário, teste, dado de teste **ou documentação** — a doc diz "o produto"/"o painel" |
+
+### 📌 Ressalva de 0.G — **grupo**, o workspace que passou a existir (2026-08-04)
+
+A regra proibia inventar estrutura antes de existir problema. **O problema apareceu:** quem produz
+duas linhas de conteúdo (notícias e novelas) tem duas redes de canais, e o compositor mostrava as
+duas pilhas juntas. Marcar a caixinha errada publica no lugar errado — e publicação não tem desfazer.
+
+Existe **um** agrupamento, chamado **grupo**, e ele é deliberadamente magro:
+- **Não** tem cobrança, limite, convite nem membro. Grupo é de um dono só.
+- **Não** tem Global Scope (ver 0.M). É filtro explícito de tela.
+- **Não** vive na URL: é modo de sessão.
+
+⛔ **Billing e multiempresa continuam proibidos.** Detalhes em
+[`documentação-inicial/15-plano-grupo.md`](documentação-inicial/15-plano-grupo.md).
 
 ---
 
@@ -85,6 +99,13 @@ falha externa.
   ⚠️ Sem dono definido, a consulta **lança exceção** — de propósito. O worker da fila não tem
   sessão; filtrar por `usuario_id IS NULL` devolveria lista vazia sem erro, e `Queue::fake()`
   esconderia isso em todos os testes.
+- **Dono é segurança; grupo é organização — e os mecanismos são diferentes de propósito.**
+  Dono usa Global Scope que **lança**. Grupo usa **filtro explícito** na consulta da tela.
+  ⛔ **Não existe trait `PertenceAoGrupo` nem Global Scope de grupo:** job, comando e conciliação
+  não têm grupo corrente, e um scope que lançasse aí derrubaria o motor inteiro.
+  ⚠️ Consequência prática: em `join` cru, o filtro de grupo **soma** ao `whereIn` escopado que já
+  existe — nunca substitui. Trocar um pelo outro troca a trava de segurança por uma preferência
+  de tela.
 - **Impersonação:** toda sessão registrada · tarja sempre visível · token nunca exibido ·
   **nunca pode trocar senha do cliente nem desconectar rede**.
 - **Arquivos:** validar pelo **conteúdo** (magic bytes/`ffprobe`), nunca pela extensão · fora

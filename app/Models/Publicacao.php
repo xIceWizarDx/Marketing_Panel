@@ -16,7 +16,10 @@ class Publicacao extends Model
 
     protected $table = 'publicacoes';
 
-    protected $fillable = ['midia_id', 'titulo', 'legenda', 'hashtags', 'status', 'enviada_em'];
+    // ⭐ `grupo_id` e GRAVADO, derivado das contas no envio (DEC-73/DEC-75).
+    // Depois de gravado nao muda: mover canal de grupo nao pode alterar
+    // retroativamente o numero historico de um grupo.
+    protected $fillable = ['grupo_id', 'midia_id', 'titulo', 'legenda', 'hashtags', 'status', 'enviada_em'];
 
     protected function casts(): array
     {
@@ -40,6 +43,12 @@ class Publicacao extends Model
     public function midia(): BelongsTo
     {
         return $this->belongsTo(Midia::class);
+    }
+
+    /** @return BelongsTo<Grupo, $this> */
+    public function grupo(): BelongsTo
+    {
+        return $this->belongsTo(Grupo::class);
     }
 
     public function destinos(): HasMany

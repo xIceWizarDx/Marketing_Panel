@@ -47,13 +47,18 @@ class EnvioDePublicacao
             ]);
         }
 
+        $this->recusarContaQueNaoVoltou($contas, $contasUlid);
+        $grupoId = $this->recusarGruposMisturados($contas);
         $this->recusarSemArquivo($midia);
         $this->recusarContasSemConexao($contas);
         $this->recusarTextoLongoDemais($contas, $titulo, $legenda, $hashtags);
         $this->recusarFormatoIncompativel($contas, $midia);
 
-        $publicacao = DB::transaction(function () use ($midia, $contas, $titulo, $legenda, $hashtags) {
+        $publicacao = DB::transaction(function () use ($midia, $contas, $grupoId, $titulo, $legenda, $hashtags) {
             $publicacao = Publicacao::create([
+                // ⭐ Gravado, não deduzido: mover um canal de grupo depois não
+                // pode mudar retroativamente onde este post saiu (DEC-75).
+                'grupo_id' => $grupoId,
                 'midia_id' => $midia->id,
                 'titulo' => $titulo,
                 'legenda' => $legenda,
@@ -101,7 +106,74 @@ class EnvioDePublicacao
         return $destino->fresh();
     }
 
-    /** @param Collection<int, ContaSocial> $contas */
+    /**
+     * ⛔ Recusa quando alguma conta pedida não voltou da consulta.
+     *
+     * ⚠️ Antes elas sumiam **em silêncio**: o `whereIn` sob o escopo do dono
+     * descartava a conta alheia e a publicação seguia com as que sobraram. A
+     * pessoa recebia "enviamos para 3 contas" tendo escolhido 4.
+     *
+     * Com grupo isso ficou intolerável: filtrar calado é exatamente a
+     * implementação errada da DEC-73 — a que deixa o servidor "consertar" a
+     * escolha em vez de recusá-la.
+     *
+     * @param  Collection<int, ContaSocial>  $contas
+     * @param  list<string>  $contasUlid
+     *
+     * @throws ValidationException
+     */
+    private function recusarContaQueNaoVoltou($contas, array $contasUlid): void
+    {
+        if ($contas->count() === count(array_unique($contasUlid))) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'contas' => 'Uma das contas escolhidas não está mais disponível. Atualize a página e escolha de novo.',
+        ]);
+    }
+
+    /**
+     * ⭐ **A trava da feature.** Todas as contas têm que ser do mesmo grupo.
+     *
+     * A sessão só decide o que a tela mostra; a verdade sobre onde o post sai
+     * vem daqui, das contas escolhidas (DEC-73). É isto que torna impossível
+     * uma aba velha, um POST montado à mão ou um defeito de interface publicar
+     * novela no canal de notícias — e publicação não tem desfazer.
+     *
+     * ⚠️ Compara a **coluna** `grupo_id`, nunca `$conta->grupo?->id`: grupo
+     * arquivado faz a relação devolver `null`, e dois `null` passariam por "o
+     * mesmo grupo".
+     *
+     * @param  Collection<int, ContaSocial>  $contas
+     * @return int o grupo único das contas
+     *
+     * @throws ValidationException
+     */
+    private function recusarGruposMisturados($contas): int
+    {
+        $grupos = $contas->pluck('grupo_id')->unique();
+
+        if ($grupos->count() > 1) {
+            throw ValidationException::withMessages([
+                'contas' => 'Você escolheu canais de grupos diferentes. '.
+                    'Uma publicação sai de um grupo só — envie uma para cada.',
+            ]);
+        }
+
+        $grupoId = $grupos->first();
+
+        // Conta sem grupo é dado incompleto, não "grupo nenhum": publicar assim
+        // criaria um post que não aparece em lista nenhuma.
+        if ($grupoId === null) {
+            throw ValidationException::withMessages([
+                'contas' => 'Este canal ainda não está em nenhum grupo. Atualize a página e tente de novo.',
+            ]);
+        }
+
+        return $grupoId;
+    }
+
     /**
      * ⛔ Sem arquivo não há o que publicar.
      *

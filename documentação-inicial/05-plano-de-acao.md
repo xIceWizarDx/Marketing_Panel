@@ -1674,3 +1674,86 @@ faz o aviso parecer outra coisa. Agora diz a rede, a conta e a consequência.
 com uma âncora suja na barra de endereço para rolar até um bloco visível. Virou botão: abre o
 detalhe daquela rede ali mesmo. ⚠️ Quando o aviso cobre redes diferentes, **não há ação** — escolher
 uma seria decidir por conta própria qual é o problema; quem aponta é o ponto colorido na grade.
+
+---
+
+### 2026-08-04 — Grupo: a rede de canais de uma linha de conteúdo (DEC-69 a DEC-80)
+
+Plano completo em [`15-plano-grupo.md`](15-plano-grupo.md).
+
+⚠️ **Isto contraria a regra 0.G do contrato**, que proibia workspaces cedo. A regra não estava
+errada — ela impedia inventar estrutura antes de existir problema. O problema apareceu, e a
+**ressalva foi escrita no `CLAUDE.md` no mesmo commit**. Billing e multiempresa continuam proibidos.
+
+**DEC-69 — grupo é a rede de canais de uma linha de conteúdo, e o grupo É seus canais.** Quem
+produz notícias e novelas tem dois trios de canais; o compositor mostrava os seis juntos, e a única
+coisa separando um do outro era a atenção no momento de marcar a caixinha. Grupo não é pasta vazia
+que depois se enche: sem canal, não tem o que ser.
+
+⭐ **O nome saiu por eliminação, e a escolha economizou um bloco inteiro de trabalho.** "Rede" é
+rede social na UI toda; "perfil" é a tela de Minha conta; "marca" desenha o **nome do produto**
+(0.N) e ainda é termo auditado do TikTok (`marca_propria`) e a unidade de preço; "projeto" significa
+o próprio software em 34 pontos da documentação. Adotar "marca" teria exigido seis renomeações em
+cascata, inclusive em texto que a auditoria das plataformas leu.
+
+**DEC-70 — uma conta social pertence a UM grupo só.** Canal em dois grupos traz de volta o risco de
+publicar no lugar errado. Adotar o mais apertado agora é barato; afrouxar depois também. O inverso
+exigiria mexer em dado existente.
+
+**DEC-71 — grupo é MODO, não filtro.** Filtro se esquece de marcar; modo se está dentro. O seletor
+fica sempre visível — inclusive dentro do compositor, que cobre a tela inteira justamente durante o
+gesto que não desfaz.
+
+**DEC-72 — o grupo corrente vive na SESSÃO, nunca na URL.** É preferência de visualização, não
+recorte compartilhável (diferente da aba de Publicações, que vive na URL de propósito). Trocar de
+grupo é `POST`: com `GET`, o prefetch do navegador trocaria o modo sozinho.
+
+**DEC-73 — ⭐ o grupo de uma publicação vem das CONTAS escolhidas, e o servidor recusa contas de
+grupos diferentes.** A sessão só decide o que a tela mostra; a verdade vem das contas. É esta trava
+que torna impossível uma aba velha publicar no grupo errado, e ela sobrevive a qualquer defeito de
+interface.
+
+⚠️ Junto veio a correção de um defeito antigo: conta que não é do dono era **descartada em
+silêncio** da lista de destinos. Passa a lançar. Filtrar calado é a implementação errada desta
+mesma decisão.
+
+**DEC-74 — dono é SEGURANÇA, grupo é ORGANIZAÇÃO.** Dono tem Global Scope que **lança** sem
+contexto. Grupo tem filtro **explícito** na consulta da tela. ⛔ **Não existe trait
+`PertenceAoGrupo` nem Global Scope de grupo:** job, comando e conciliação não têm grupo corrente.
+
+⚠️ Consequência que quase passou batido: nas consultas com `join` cru, o `whereIn` escopado é a
+**única** coisa que aplica o escopo de dono (o Global Scope não acompanha um `->join()`). O filtro
+de grupo **soma** a ele — trocar um pelo outro substituiria uma trava de segurança por uma
+preferência de tela.
+
+**DEC-75 — `publicacoes.grupo_id` é gravado e imutável; toda contagem sai dele.** É exceção
+consciente à regra "derivado nunca vira coluna": deduzir pelo canal faria o número histórico de um
+grupo mudar sozinho quando alguém reorganizasse os canais, e número que muda retroativamente não
+serve para decidir nada.
+
+**DEC-76 — arquivar grupo é soft delete, e só vale para grupo sem canal.** Nunca o último. Arquivar
+com canais deixaria canal conectado e invisível — publicando por trás da tela, ou falhando sem
+ninguém ver. ⚠️ Sem tela de lixeira: recuperar é operação de suporte.
+
+**DEC-77 — mover canal entre grupos existe; o histórico NÃO vai junto.** Sem mover, o primeiro erro
+de cadastro vira permanente e a pessoa cria canal duplicado. O que já foi publicado fica onde saiu —
+é o que sustenta a DEC-75.
+
+**DEC-78 — criar grupo não troca de modo sozinho.** Trocar sozinho esvazia o painel inteiro sem
+explicar, e a pessoa conclui que o sistema apagou o trabalho dela — ainda mais porque a tela de
+vazio existente diz literalmente que ela nunca publicou nada. O diálogo pergunta, e avisa que canais
+e posts continuam onde estavam.
+
+**DEC-79 — publicar leva o modo junto.** Depois de enviar, o grupo corrente passa a ser o grupo das
+contas, e o aviso o nomeia: *"Enviamos para 2 contas de Notícias."* Sem isso, publicar de uma aba em
+outro grupo cai numa lista vazia com um aviso verde por cima — a tela contradiz a mensagem, e o
+reflexo da pessoa é publicar de novo.
+
+**DEC-80 — aviso de SAÚDE ignora o filtro de grupo.** Autorização vencendo e conta parada aparecem
+sempre, nomeando onde estão (*"«X», em Novelas, parou de publicar"*). Aviso de **volume** segue o
+grupo corrente. Conta da outra ponta não pode morrer calada só porque a pessoa está olhando outro
+grupo.
+
+⛔ **Fora de escopo, de propósito:** cobrança/limite por grupo (é coluna, não estrutura) e o
+dashboard de métricas por grupo — este bloqueado por fora, porque enquanto o aplicativo do YouTube
+estiver em modo de Testes todo vídeo sobe privado, e vídeo privado não tem métrica pública.

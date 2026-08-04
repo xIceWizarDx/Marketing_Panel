@@ -37,7 +37,7 @@ Route::middleware(['auth', 'papel:'.Papel::listaDeOperadores()])
             ->name('impersonar');
     });
 
-// Sair da impersonacao fica FORA do grupo `papel:admin`: durante a impersonacao
+// Sair da impersonacao fica FORA do middleware `papel:admin`: durante a impersonacao
 // o papel da sessao e o do cliente, e o admin ficaria preso sem poder voltar.
 Route::middleware('auth')
     ->post('sair-da-impersonacao', [ImpersonacaoController::class, 'encerrar'])

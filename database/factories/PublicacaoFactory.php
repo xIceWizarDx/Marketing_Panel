@@ -3,9 +3,11 @@
 namespace Database\Factories;
 
 use App\Enums\StatusPublicacao;
+use App\Models\Grupo;
 use App\Models\Midia;
 use App\Models\Publicacao;
 use App\Models\Usuario;
+use App\Services\GrupoService;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class PublicacaoFactory extends Factory
@@ -16,6 +18,7 @@ class PublicacaoFactory extends Factory
     {
         return [
             'usuario_id' => Usuario::factory(),
+            'grupo_id' => Grupo::factory(),
             'midia_id' => Midia::factory(),
             'titulo' => fake()->sentence(4),
             'legenda' => fake()->sentence(10),
@@ -37,6 +40,8 @@ class PublicacaoFactory extends Factory
     {
         return $this->state(fn () => [
             'usuario_id' => $usuario->id,
+            // Mesmo cuidado da midia: o grupo e o que o dono ja tem.
+            'grupo_id' => app(GrupoService::class)->garantirPrincipal($usuario)->id,
             'midia_id' => Midia::factory()->doUsuario($usuario),
         ]);
     }

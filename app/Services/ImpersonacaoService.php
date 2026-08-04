@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\LogImpersonacao;
 use App\Models\Usuario;
+use App\Support\GrupoCorrente;
 use App\Support\RegistroDeSeguranca;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -89,6 +90,11 @@ class ImpersonacaoService
         Auth::login($alvo);
         $request->session()->regenerate();
 
+        // ⚠️ `regenerate()` troca o id do cookie mas PRESERVA o conteudo: sem
+        // isto o admin entraria no cliente carregando o grupo que ele mesmo
+        // estava olhando, e a tela mostraria a lista errada.
+        GrupoCorrente::esquecer();
+
         $request->session()->put(self::CHAVE_ADMIN, $admin->id);
         $request->session()->put(self::CHAVE_LOG, $log->id);
 
@@ -121,6 +127,9 @@ class ImpersonacaoService
 
         Auth::login($admin);
         $request->session()->regenerate();
+
+        // O caminho de volta tem o mesmo problema, ao contrario.
+        GrupoCorrente::esquecer();
 
         RegistroDeSeguranca::registrar('impersonacao_encerrada', [
             'log_id' => $logId,
