@@ -37,7 +37,10 @@ class VisaoGeralController extends Controller
 
     public function __invoke(): Response
     {
-        $contas = ContaSocial::with('credencial:id,conta_social_id,expira_em')->get();
+        // ⚠️ `refresh_token` entra na seleção porque `venceEmBreve()` pergunta se
+        // ele EXISTE. Fora da lista, com strict mode ligado, isso estoura 500 — e
+        // só em produção, que é onde ele costuma estar ligado.
+        $contas = ContaSocial::with('credencial:id,conta_social_id,expira_em,refresh_token')->get();
         $numeros = $this->numeros();
 
         return Inertia::render('cliente/visao-geral', [
@@ -91,9 +94,14 @@ class VisaoGeralController extends Controller
      * treina a pessoa a ignorá-lo — e no dia em que houver problema de verdade,
      * ela não vai olhar. Aviso que aparece sempre não é aviso, é decoração.
      *
+     * ⚠️ **Cada aviso diz de QUAL rede se trata.** "A conexão de Fulano está para
+     * vencer" nomeia o canal e mais nada — quem lê não sabe onde o problema
+     * está, e nome de canal do YouTube costuma ser nome de pessoa, o que faz o
+     * aviso parecer outra coisa.
+     *
      * @param  Collection<int, ContaSocial>  $contas
      * @param  array{noAr: int, andando: int, falharam: int}  $numeros
-     * @return list<array{tom: string, texto: string, acao: string, url: string}>
+     * @return list<array{tom: string, texto: string, acao: string, url: ?string, rede: ?string}>
      */
     private function pendencias($contas, array $numeros): array
     {
@@ -109,37 +117,60 @@ class VisaoGeralController extends Controller
                     : "{$quantas} publicações não subiram.",
                 'acao' => 'Ver o que houve',
                 'url' => route('publicacoes'),
+                'rede' => null,
             ];
         }
 
         $vencendo = $contas->filter(fn (ContaSocial $c) => (bool) $c->credencial?->venceEmBreve());
 
         if ($vencendo->isNotEmpty()) {
+            $conta = $vencendo->first();
+
             $pendencias[] = [
                 'tom' => 'atencao',
                 'texto' => $vencendo->count() === 1
-                    ? "A conexão de {$vencendo->first()->nome_exibicao} está para vencer."
-                    : "{$vencendo->count()} conexões estão para vencer.",
+                    ? "Sua autorização do {$conta->plataforma->rotulo()} está para vencer. ".
+                        "Quando vencer, «{$conta->nome_exibicao}» para de publicar."
+                    : "{$vencendo->count()} autorizações estão para vencer. Quando vencerem, essas contas param de publicar.",
                 'acao' => 'Reconectar',
-                // A grade fica logo abaixo, nesta mesma tela.
-                'url' => route('painel').'#redes',
+                'url' => null,
+                'rede' => $this->redeEmComum($vencendo),
             ];
         }
 
         $quebradas = $contas->reject->podePublicar();
 
         if ($quebradas->isNotEmpty()) {
+            $conta = $quebradas->first();
+
             $pendencias[] = [
                 'tom' => 'erro',
                 'texto' => $quebradas->count() === 1
-                    ? "{$quebradas->first()->nome_exibicao} parou de publicar."
+                    ? "«{$conta->nome_exibicao}» parou de publicar no {$conta->plataforma->rotulo()}."
                     : "{$quebradas->count()} contas pararam de publicar.",
                 'acao' => 'Resolver',
-                'url' => route('painel').'#redes',
+                'url' => null,
+                'rede' => $this->redeEmComum($quebradas),
             ];
         }
 
         return $pendencias;
+    }
+
+    /**
+     * A rede que o aviso pode abrir direto — ou `null` quando são várias.
+     *
+     * ⚠️ Com contas de redes diferentes no mesmo aviso, abrir uma delas seria
+     * escolher por conta própria qual o problema da pessoa. Aí o aviso vira só
+     * texto, e quem aponta o dedo é o ponto colorido na grade logo abaixo.
+     *
+     * @param  Collection<int, ContaSocial>  $contas
+     */
+    private function redeEmComum($contas): ?string
+    {
+        $redes = $contas->map(fn (ContaSocial $c) => $c->plataforma->value)->unique();
+
+        return $redes->count() === 1 ? $redes->first() : null;
     }
 
     /**
@@ -149,7 +180,7 @@ class VisaoGeralController extends Controller
      * mostra progresso; um cartaz fixo mostra que ninguém está olhando.
      *
      * @param  Collection<int, ContaSocial>  $contas
-     * @return list<array{titulo: string, texto: string, feito: bool, url: string}>
+     * @return list<array{titulo: string, texto: string, feito: bool, url: ?string, abreCatalogo: bool}>
      */
     private function primeirosPassos($contas): array
     {
@@ -158,7 +189,10 @@ class VisaoGeralController extends Controller
                 'titulo' => 'Conectar uma rede',
                 'texto' => 'Você autoriza no site da própria rede; sua senha nunca passa por aqui.',
                 'feito' => $contas->filter->podePublicar()->isNotEmpty(),
-                'url' => route('painel').'#redes',
+                // ⚠️ Não é link: conectar acontece NESTA tela, num modal. Levar
+                // para a página onde a pessoa já está seria um link morto.
+                'url' => null,
+                'abreCatalogo' => true,
             ],
             [
                 // ⚠️ Enviar deixou de ser etapa própria: o arquivo entra dentro
@@ -169,6 +203,7 @@ class VisaoGeralController extends Controller
                     'relê na própria rede para guardar o link como prova.',
                 'feito' => Publicacao::query()->whereNotNull('enviada_em')->exists(),
                 'url' => route('publicar'),
+                'abreCatalogo' => false,
             ],
         ];
     }

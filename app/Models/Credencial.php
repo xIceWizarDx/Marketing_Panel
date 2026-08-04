@@ -48,9 +48,29 @@ class Credencial extends Model
         return $this->expira_em !== null && $this->expira_em->isPast();
     }
 
-    /** ⭐ DEC-32: avisar ANTES de quebrar, nao depois. */
+    /**
+     * ⭐ DEC-32: avisar ANTES de quebrar, nao depois.
+     *
+     * ⛔ **`expira_em` sozinho NAO responde isso.** No YouTube ele guarda o token
+     * de acesso, que dura **1 hora** e o `TokenDoGoogle` renova sozinho — comparar
+     * essa data com "vence nos proximos 7 dias" da verdadeiro SEMPRE. O aviso
+     * aparecia para todo mundo, o tempo todo, sem significar nada; e alerta que
+     * nunca desliga e a forma mais rapida de ensinar alguem a ignorar alertas.
+     *
+     * A pergunta certa e **"ainda da para renovar?"**. Tendo `refresh_token`, da:
+     * o vencimento de hora em hora e encanamento, nao noticia. Quando a renovacao
+     * falha de verdade (`invalid_grant`), a conta vira `expirada` e quem avisa e o
+     * status — nao este metodo.
+     *
+     * ⚠️ Le o valor CRU: aqui so importa se existe, nunca o que ele e. Assim o
+     * segredo nem chega a ser decifrado para responder um booleano.
+     */
     public function venceEmBreve(int $dias = 7): bool
     {
+        if ($this->getRawOriginal('refresh_token') !== null) {
+            return false;
+        }
+
         return $this->expira_em !== null && $this->expira_em->isBefore(now()->addDays($dias));
     }
 }

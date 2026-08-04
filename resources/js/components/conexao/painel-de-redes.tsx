@@ -51,6 +51,17 @@ const corDoSemaforo: Record<Conta['cor'], string> = {
     neutro: 'var(--saude-neutro)',
 };
 
+interface Props {
+    redes: Rede[];
+    totalConectado: number;
+    /** Plataforma cujo detalhe está aberto, ou `null`. */
+    aberta: string | null;
+    aoAbrir: (rede: string | null) => void;
+    /** O catálogo está aberto? Fechado por padrão: escolher rede é raro. */
+    escolhendo: boolean;
+    aoEscolher: (aberto: boolean) => void;
+}
+
 /**
  * ⭐ Onde as redes moram — e elas moram na **porta de entrada** (DEC-63).
  *
@@ -62,12 +73,20 @@ const corDoSemaforo: Record<Conta['cor'], string> = {
  * diferencial atrás de um clique é algo que se descobre quando a publicação já
  * foi perdida. O detalhe de cada rede é que é modal — e é aberto daqui.
  */
-export default function PainelDeRedes({ redes, totalConectado }: { redes: Rede[]; totalConectado: number }) {
+export default function PainelDeRedes({ redes, totalConectado, aberta: redeAberta, aoAbrir, escolhendo, aoEscolher }: Props) {
     const [conectando, setConectando] = useState<Rede | null>(null);
-    const [aberta, setAberta] = useState<Rede | null>(null);
     const [aDesconectar, setADesconectar] = useState<Conta | null>(null);
-    /** O catálogo de redes — fechado por padrão, porque escolher rede é raro. */
-    const [escolhendo, setEscolhendo] = useState(false);
+
+    /*
+     * ⭐ Qual rede está aberta é decisão de QUEM USA este painel, não dele.
+     *
+     * ⚠️ É o que permite o aviso lá em cima abrir a rede com problema **sem
+     * navegar**. Levar para a própria tela onde a pessoa já está é link morto,
+     * e sujar a barra de endereço com uma âncora para rolar até um bloco já
+     * visível é pior que não ter ação nenhuma.
+     */
+    const aberta = redes.find((rede) => rede.valor === redeAberta) ?? null;
+    const setAberta = (rede: Rede | null) => aoAbrir(rede?.valor ?? null);
 
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         identificador: '',
@@ -126,7 +145,7 @@ export default function PainelDeRedes({ redes, totalConectado }: { redes: Rede[]
     });
 
     return (
-        <section id="redes" className="scroll-mt-4">
+        <section>
             <TituloDeSecao
                 titulo="Suas redes"
                 // ⚠️ O número é o de posts CONFIRMADOS na rede, não o de envios
@@ -185,7 +204,7 @@ export default function PainelDeRedes({ redes, totalConectado }: { redes: Rede[]
                 {/* ⭐ O catálogo inteiro vive AQUI, atrás de um clique. Escolher
                     rede acontece uma vez; olhar as suas, todo dia. */}
                 <li>
-                    <Quadro como="button" onClick={() => setEscolhendo(true)} tracejado className="gap-2">
+                    <Quadro como="button" onClick={() => aoEscolher(true)} tracejado className="gap-2">
                         <Plus className="text-muted-foreground size-6" aria-hidden="true" />
                         <span className="text-muted-foreground text-xs leading-tight font-medium">
                             {minhas.length === 0 ? 'Conectar uma rede' : 'Conectar outra'}
@@ -195,7 +214,7 @@ export default function PainelDeRedes({ redes, totalConectado }: { redes: Rede[]
             </ul>
 
             {/* Escolher qual rede conectar — o catálogo */}
-            <Dialog open={escolhendo} onOpenChange={setEscolhendo}>
+            <Dialog open={escolhendo} onOpenChange={aoEscolher}>
                 <DialogContent className="max-h-[85svh] overflow-y-auto sm:max-w-xl">
                     <DialogTitle>Conectar uma rede</DialogTitle>
                     <DialogDescription>Você autoriza no site da própria rede — sua senha nunca passa por aqui.</DialogDescription>
@@ -211,7 +230,7 @@ export default function PainelDeRedes({ redes, totalConectado }: { redes: Rede[]
                                         tamanho="pequeno"
                                         disabled={!clicavel}
                                         onClick={() => {
-                                            setEscolhendo(false);
+                                            aoEscolher(false);
                                             abrirConexao(rede);
                                         }}
                                         className="gap-1"

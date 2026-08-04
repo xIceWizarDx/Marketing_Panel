@@ -73,6 +73,60 @@ it('avisa quando uma publicação não subiu', function () {
             ->contains(fn ($x) => str_contains($x['texto'], 'não subiu'))));
 });
 
+describe('⛔ o aviso de vencimento (o que NÃO pode virar ruído)', function () {
+    it('⭐ NÃO avisa quando a autorização se renova sozinha', function () {
+        // O bug: `expira_em` do YouTube guarda o token de ACESSO, que dura 1
+        // hora e é renovado sozinho. Comparado com "vence nos próximos 7 dias"
+        // dava verdadeiro SEMPRE — o aviso aparecia para todo mundo, o tempo
+        // todo, sem significar nada. Alerta que nunca desliga ensina a pessoa
+        // a ignorar alertas, inclusive os de verdade.
+        $dono = cliente();
+        ContextoDoUsuario::definir($dono);
+
+        $conta = ContaSocial::factory()->doUsuario($dono)->comCredencial()->create();
+        $conta->credencial->forceFill([
+            'refresh_token' => 'ainda-da-para-renovar',
+            'expira_em' => now()->addHour(),
+        ])->save();
+
+        ContextoDoUsuario::limpar();
+
+        $this->actingAs($dono)
+            ->get('/painel')
+            ->assertInertia(fn ($p) => $p->where('pendencias', []));
+    });
+
+    it('avisa quando NÃO há como renovar e a data está chegando', function () {
+        $dono = cliente();
+        ContextoDoUsuario::definir($dono);
+
+        $conta = ContaSocial::factory()->doUsuario($dono)->comCredencial()->create();
+        $conta->credencial->forceFill([
+            'refresh_token' => null,
+            'expira_em' => now()->addDays(2),
+        ])->save();
+
+        ContextoDoUsuario::limpar();
+
+        $this->actingAs($dono)
+            ->get('/painel')
+            ->assertInertia(fn ($p) => $p->where('pendencias', function ($lista) {
+                $aviso = collect($lista)->firstWhere('acao', 'Reconectar');
+
+                // ⚠️ Dizer de QUAL rede. "A conexão de Fulano está para vencer"
+                // nomeia o canal e mais nada — e nome de canal costuma ser nome
+                // de pessoa, o que faz o aviso parecer outra coisa.
+                expect($aviso)->not->toBeNull()
+                    ->and($aviso['texto'])->toContain('Bluesky')
+                    // Sem âncora suja na barra de endereço: abre aqui mesmo.
+                    ->and($aviso['url'])->toBeNull()
+                    ->and($aviso['rede'])->toBe('bluesky');
+
+                return true;
+            }));
+    });
+});
+
 it('os primeiros passos vão sendo marcados', function () {
     // ⚠️ São DOIS passos agora: enviar deixou de ser etapa própria, porque o
     // arquivo entra dentro do compositor. Manter três descreveria um caminho

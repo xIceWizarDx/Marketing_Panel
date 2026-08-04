@@ -1,5 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { AlertTriangle, ArrowRight, Check } from 'lucide-react';
+import { useState } from 'react';
 
 import CabecalhoDePagina from '@/components/cabecalho-de-pagina';
 import PainelDeRedes, { type Rede } from '@/components/conexao/painel-de-redes';
@@ -13,14 +14,19 @@ interface Pendencia {
     tom: 'erro' | 'atencao';
     texto: string;
     acao: string;
-    url: string;
+    /** Navegação de verdade — para outra tela. */
+    url: string | null;
+    /** Abre o detalhe desta rede aqui mesmo, sem sair da tela. */
+    rede: string | null;
 }
 
 interface Passo {
     titulo: string;
     texto: string;
     feito: boolean;
-    url: string;
+    url: string | null;
+    /** Conectar acontece nesta tela, num modal — não é link. */
+    abreCatalogo: boolean;
 }
 
 interface Props {
@@ -63,6 +69,16 @@ export default function VisaoGeral({ numeros, pendencias, primeirosPassos, redes
     // Enquanto a pessoa não tiver publicado, ensinar vale mais que resumir.
     const comecando = primeirosPassos.some((passo) => !passo.feito);
 
+    /*
+     * ⛔ O que está aberto na grade de redes mora AQUI, não lá dentro.
+     *
+     * É o que deixa o aviso do topo e o passo "conectar uma rede" abrirem a
+     * grade **sem navegar**. Os dois resolvem nesta mesma tela, e ação que
+     * resolve aqui não pode virar link para cá.
+     */
+    const [redeAberta, setRedeAberta] = useState<string | null>(null);
+    const [escolhendoRede, setEscolhendoRede] = useState(false);
+
     return (
         <LayoutPainel migalhas={[{ titulo: 'Visão geral', url: '/painel' }]}>
             <Head title="Visão geral" />
@@ -90,13 +106,26 @@ export default function VisaoGeral({ numeros, pendencias, primeirosPassos, redes
                                 >
                                     <AlertTriangle className="size-4 shrink-0" style={{ color: cor }} aria-hidden="true" />
                                     <span className="flex-1">{pendencia.texto}</span>
-                                    <Link
-                                        href={pendencia.url}
-                                        className="inline-flex items-center gap-1 text-xs font-medium text-[color:var(--accent)] hover:underline"
-                                    >
-                                        {pendencia.acao}
-                                        <ArrowRight className="size-3" aria-hidden="true" />
-                                    </Link>
+
+                                    {/* Link quando leva para outra tela; botão quando
+                                        resolve aqui mesmo. ⚠️ Aviso sobre várias redes
+                                        de uma vez não ganha ação: escolher uma delas
+                                        seria decidir por conta própria qual é o
+                                        problema da pessoa. O ponto colorido na grade
+                                        logo abaixo é quem aponta. */}
+                                    {pendencia.url ? (
+                                        <Link href={pendencia.url} className={acaoDoAviso}>
+                                            {pendencia.acao}
+                                            <ArrowRight className="size-3" aria-hidden="true" />
+                                        </Link>
+                                    ) : (
+                                        pendencia.rede && (
+                                            <button type="button" onClick={() => setRedeAberta(pendencia.rede)} className={acaoDoAviso}>
+                                                {pendencia.acao}
+                                                <ArrowRight className="size-3" aria-hidden="true" />
+                                            </button>
+                                        )
+                                    )}
                                 </li>
                             );
                         })}
@@ -143,7 +172,14 @@ export default function VisaoGeral({ numeros, pendencias, primeirosPassos, redes
                 {/* ⚠️ Fica na porta de entrada porque o semáforo do token
                     (DEC-32) precisa ser visto ANTES de a conexão quebrar — não
                     no dia em que a publicação já falhou por causa dela. */}
-                <PainelDeRedes redes={redes} totalConectado={totalConectado} />
+                <PainelDeRedes
+                    redes={redes}
+                    totalConectado={totalConectado}
+                    aberta={redeAberta}
+                    aoAbrir={setRedeAberta}
+                    escolhendo={escolhendoRede}
+                    aoEscolher={setEscolhendoRede}
+                />
 
                 {/* ─── PRIMEIROS PASSOS ─────────────────────────────────────── */}
                 {/* Some sozinho quando tudo está feito: uma lista que completa
@@ -168,8 +204,17 @@ export default function VisaoGeral({ numeros, pendencias, primeirosPassos, redes
                                     <span className={`text-sm ${passo.feito ? 'text-muted-foreground line-through' : ''}`}>
                                         {passo.feito ? (
                                             <strong className="font-medium">{passo.titulo}</strong>
+                                        ) : passo.abreCatalogo ? (
+                                            /* Conectar acontece aqui, num modal. */
+                                            <button
+                                                type="button"
+                                                onClick={() => setEscolhendoRede(true)}
+                                                className="font-medium text-[color:var(--accent)] hover:underline"
+                                            >
+                                                {passo.titulo}
+                                            </button>
                                         ) : (
-                                            <Link href={passo.url} className="font-medium text-[color:var(--accent)] hover:underline">
+                                            <Link href={passo.url ?? ''} className="font-medium text-[color:var(--accent)] hover:underline">
                                                 {passo.titulo}
                                             </Link>
                                         )}
@@ -184,6 +229,8 @@ export default function VisaoGeral({ numeros, pendencias, primeirosPassos, redes
         </LayoutPainel>
     );
 }
+
+const acaoDoAviso = 'inline-flex items-center gap-1 text-xs font-medium text-[color:var(--accent)] hover:underline';
 
 /** Um dos números do topo — quadrado, como tudo que é resumo aqui. */
 function Numero({ valor, rotulo, apoio, cor }: { valor: number; rotulo: string; apoio: string; cor: string }) {

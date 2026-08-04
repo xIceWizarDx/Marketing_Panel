@@ -34,7 +34,10 @@ class ResumoDasRedes
     public function montar(): array
     {
         $contas = ContaSocial::query()
-            ->with('credencial:id,conta_social_id,expira_em')
+            // ⚠️ `refresh_token` entra na seleção porque `venceEmBreve()` pergunta
+            // se ele EXISTE. Fora da lista, com strict mode ligado, isso estoura
+            // 500 — e só em produção, que é onde ele costuma estar ligado.
+            ->with('credencial:id,conta_social_id,expira_em,refresh_token')
             ->latest()
             ->get()
             ->groupBy(fn (ContaSocial $c) => $c->plataforma->value);

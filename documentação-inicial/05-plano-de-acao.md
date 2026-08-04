@@ -1644,3 +1644,33 @@ das duas é confiável.
 ⭐ **O que fica na Visão geral são os NÚMEROS**, que é coisa diferente: eles respondem *"como
 está"*, não *"o que eu publiquei"*. O caminho até a lista de verdade vira um *ver publicações* ao
 lado do título — um link em vez de uma cópia.
+
+---
+
+### 2026-08-04 — O alerta que nunca desligava (bug encontrado na tela)
+
+**⛔ O aviso "sua conexão está para vencer" aparecia SEMPRE, e não queria dizer nada.**
+
+`Credencial::venceEmBreve()` comparava `expira_em` com "vence nos próximos 7 dias". Só que no
+YouTube o `expira_em` guarda o **token de acesso**, que dura **1 hora** e é renovado sozinho pelo
+`TokenDoGoogle`. Uma data que está sempre a 1 hora de distância está sempre dentro de 7 dias — o
+alerta ligava no primeiro login e não desligava nunca mais.
+
+⭐ **A pergunta certa não é "quando vence?", é "ainda dá para renovar?".** Tendo `refresh_token`, o
+vencimento de hora em hora é encanamento, não notícia. Quando a renovação falha de verdade
+(`invalid_grant`), a conta vira `expirada` e quem avisa é o **status** — não o relógio.
+
+⚠️ **Alerta que nunca desliga é pior que alerta nenhum:** ensina a pessoa a ignorar a faixa
+amarela, e no dia do problema de verdade ela não olha. O bloco de pendências foi construído
+justamente com a regra de sumir quando não há nada (DEC-31 em espírito), e este bug a furava.
+
+**Duas correções que vieram junto:**
+
+**O aviso não dizia de qual rede era.** *"A conexão de Gabriel Ferreira de Moraes está para
+vencer"* nomeia o canal e mais nada — e nome de canal do YouTube costuma ser nome de pessoa, o que
+faz o aviso parecer outra coisa. Agora diz a rede, a conta e a consequência.
+
+**A ação do aviso apontava para `/painel#redes`.** Era link para a tela onde a pessoa já estava,
+com uma âncora suja na barra de endereço para rolar até um bloco visível. Virou botão: abre o
+detalhe daquela rede ali mesmo. ⚠️ Quando o aviso cobre redes diferentes, **não há ação** — escolher
+uma seria decidir por conta própria qual é o problema; quem aponta é o ponto colorido na grade.
