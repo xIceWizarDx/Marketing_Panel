@@ -91,7 +91,7 @@ it('os primeiros passos vão sendo marcados', function () {
             ->where('primeirosPassos.1.feito', false));
 });
 
-it('⛔ não mostra publicação de outro cliente', function () {
+it('⛔ não soma o número de outro cliente', function () {
     $ana = cliente();
     $bruno = cliente();
 
@@ -109,5 +109,6 @@ it('⛔ não mostra publicação de outro cliente', function () {
         ->get('/painel')
         ->assertInertia(fn ($p) => $p
             ->where('numeros.noAr', 0)
-            ->where('ultimas', []));
+            // ⛔ Publicação não mora aqui (DEC-68): só o número dela.
+            ->missing('ultimas'));
 });

@@ -23,12 +23,14 @@ use Inertia\Response;
  *
  * Quem abre o painel quer saber **o que aconteceu enquanto eu não estava
  * olhando**. Tudo aqui responde a isso, ou não deveria estar aqui.
+ *
+ * ⛔ **Publicação não mora aqui** (DEC-68). Uma prévia das últimas era a mesma
+ * lista de Publicações com outra moldura — e lista duplicada envelhece: um dia
+ * uma mostra o que a outra não mostra, e nenhuma das duas é confiável. Aqui
+ * ficam os **números** delas, que é coisa diferente.
  */
 class VisaoGeralController extends Controller
 {
-    /** O suficiente para dar o pulso do dia sem virar uma segunda tela de listagem. */
-    private const ULTIMAS = 5;
-
     public function __construct(
         private readonly ResumoDasRedes $redes,
     ) {}
@@ -40,7 +42,6 @@ class VisaoGeralController extends Controller
 
         return Inertia::render('cliente/visao-geral', [
             'numeros' => $numeros,
-            'ultimas' => $this->ultimasPublicacoes(),
             // ⭐ O bloco que justifica abrir o painel: o que está esperando VOCÊ.
             'pendencias' => $this->pendencias($contas, $numeros),
             'primeirosPassos' => $this->primeirosPassos($contas),
@@ -81,33 +82,6 @@ class VisaoGeralController extends Controller
             ),
             'falharam' => $de(StatusDestino::Falhou),
         ];
-    }
-
-    /** @return list<array<string, mixed>> */
-    private function ultimasPublicacoes(): array
-    {
-        return Publicacao::query()
-            ->whereNotNull('enviada_em')
-            // ⚠️ `ulid` e `miniatura` na seleção: com strict mode ligado, ler
-            // coluna fora da lista estoura 500 — e só em produção.
-            ->with(['midia:id,ulid,nome_original,miniatura', 'destinos.contaSocial:id,plataforma'])
-            ->latest('enviada_em')
-            ->take(self::ULTIMAS)
-            ->get()
-            ->map(fn (Publicacao $p) => [
-                'ulid' => $p->ulid,
-                'titulo' => $p->titulo ?: $p->midia->nome_original,
-                'miniatura' => $p->midia->miniatura ? route('midias.miniatura', $p->midia->ulid) : null,
-                'quando' => $p->enviada_em?->toIso8601String(),
-                'statusRotulo' => $p->status->rotulo(),
-                // Um selo por destino: é onde a prova mora.
-                'destinos' => $p->destinos->map(fn (Destino $d) => [
-                    'plataforma' => $d->contaSocial->plataforma->value,
-                    'status' => $d->status->value,
-                    'url' => $d->url_publicada,
-                ])->values(),
-            ])
-            ->all();
     }
 
     /**

@@ -1,30 +1,13 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { AlertTriangle, ArrowRight, Check, ExternalLink } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Check } from 'lucide-react';
 
 import CabecalhoDePagina from '@/components/cabecalho-de-pagina';
-import MarcaDaRede from '@/components/conexao/marca-da-rede';
 import PainelDeRedes, { type Rede } from '@/components/conexao/painel-de-redes';
-import Miniatura from '@/components/midia/miniatura';
 import Quadro from '@/components/quadro';
 import TituloDeSecao from '@/components/titulo-de-secao';
 import { useAtualizacaoViva } from '@/hooks/use-atualizacao-viva';
 import LayoutPainel from '@/layouts/painel';
 import { type DadosCompartilhados } from '@/types';
-
-interface DestinoResumido {
-    plataforma: string;
-    status: string;
-    url: string | null;
-}
-
-interface Publicacao {
-    ulid: string;
-    titulo: string;
-    miniatura: string | null;
-    quando: string | null;
-    statusRotulo: string;
-    destinos: DestinoResumido[];
-}
 
 interface Pendencia {
     tom: 'erro' | 'atencao';
@@ -42,7 +25,6 @@ interface Passo {
 
 interface Props {
     numeros: { noAr: number; andando: number; falharam: number };
-    ultimas: Publicacao[];
     pendencias: Pendencia[];
     primeirosPassos: Passo[];
     /** ⭐ Conexões deixou de ser tela (DEC-63): as redes moram aqui. */
@@ -50,29 +32,32 @@ interface Props {
     totalConectado: number;
 }
 
-const quando = (iso: string | null) => (iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '');
-
 /**
  * A porta de entrada — e a única pergunta que ela responde.
  *
  * ⭐ **A ordem é a resposta**, de cima para baixo: *o que espera você* → *como
- * está* → *onde você publica* → *o que você publicou*. Quem abre o painel quer
- * saber o que aconteceu enquanto não estava olhando, e cada seção responde uma
- * parte disso — ou não deveria estar aqui.
+ * está* → *onde você publica*. Quem abre o painel quer saber o que aconteceu
+ * enquanto não estava olhando, e cada seção responde uma parte disso — ou não
+ * deveria estar aqui.
+ *
+ * ⛔ **Publicação não aparece aqui** (DEC-68). Uma prévia das últimas era a mesma
+ * lista de Publicações com outra moldura, e lista duplicada envelhece: um dia
+ * uma mostra o que a outra não mostra, e nenhuma das duas é confiável. O que
+ * fica são os **números** — que respondem "como está", não "o que publiquei".
  *
  * ⚠️ **A forma padrão é o quadrado.** Retângulo aparece só onde ele é a forma
  * certa: aviso com texto corrido e lista de passos. Faixa larga com um número
  * dentro desperdiça a linha inteira e faz o olho varrer da esquerda à direita
  * para ler três dígitos.
  */
-export default function VisaoGeral({ numeros, ultimas, pendencias, primeirosPassos, redes, totalConectado }: Props) {
+export default function VisaoGeral({ numeros, pendencias, primeirosPassos, redes, totalConectado }: Props) {
     const { auth } = usePage<DadosCompartilhados>().props;
     const primeiroNome = auth.usuario?.nome.split(' ')[0] ?? '';
 
     // O motor é assíncrono: os números mudam sozinhos enquanto há envio em curso.
     useAtualizacaoViva({
         ativo: numeros.andando > 0,
-        propriedades: ['numeros', 'ultimas', 'pendencias', 'redes'],
+        propriedades: ['numeros', 'pendencias', 'redes'],
     });
 
     // Enquanto a pessoa não tiver publicado, ensinar vale mais que resumir.
@@ -120,7 +105,16 @@ export default function VisaoGeral({ numeros, ultimas, pendencias, primeirosPass
 
                 {/* ─── COMO ESTÁ ────────────────────────────────────────────── */}
                 <section>
-                    <TituloDeSecao titulo="Como está" apoio="contando o que já foi conferido na rede" />
+                    <TituloDeSecao
+                        titulo="Como está"
+                        // ⚠️ O caminho para a lista mora aqui: os números são o
+                        // resumo dela, e é daqui que se quer ir ver de perto.
+                        apoio={
+                            <Link href={route('publicacoes')} className="hover:text-foreground">
+                                ver publicações
+                            </Link>
+                        }
+                    />
 
                     {/* ⭐ Os três lados do mesmo fato — a falha do lado do acerto,
                         no mesmo tamanho. Mostrar só o que deu certo é o que os
@@ -146,9 +140,9 @@ export default function VisaoGeral({ numeros, ultimas, pendencias, primeirosPass
                 </section>
 
                 {/* ─── ONDE VOCÊ PUBLICA ────────────────────────────────────── */}
-                {/* ⚠️ Vem ANTES das publicações: sem conta conectada não há
-                    publicação nenhuma, e o semáforo do token (DEC-32) precisa
-                    ser visto antes de a conexão quebrar. */}
+                {/* ⚠️ Fica na porta de entrada porque o semáforo do token
+                    (DEC-32) precisa ser visto ANTES de a conexão quebrar — não
+                    no dia em que a publicação já falhou por causa dela. */}
                 <PainelDeRedes redes={redes} totalConectado={totalConectado} />
 
                 {/* ─── PRIMEIROS PASSOS ─────────────────────────────────────── */}
@@ -186,93 +180,6 @@ export default function VisaoGeral({ numeros, ultimas, pendencias, primeirosPass
                         </ol>
                     </section>
                 )}
-
-                {/* ─── O QUE VOCÊ PUBLICOU ──────────────────────────────────── */}
-                <section>
-                    <TituloDeSecao
-                        titulo="Últimas publicações"
-                        apoio={
-                            ultimas.length > 0 && (
-                                <Link href={route('publicacoes')} className="hover:text-foreground">
-                                    ver todas
-                                </Link>
-                            )
-                        }
-                    />
-
-                    {ultimas.length === 0 ? (
-                        <p className="text-muted-foreground text-sm">
-                            {comecando
-                                ? 'Assim que você publicar, o resultado aparece aqui — com o link do post como prova.'
-                                : 'Tudo pronto. Quando você publicar, o resultado aparece aqui.'}
-                        </p>
-                    ) : (
-                        /* ⭐ Cartão QUADRADO com a miniatura preenchendo o fundo,
-                           igual à tela de Publicações: o olho varre uma grade
-                           muito mais rápido que uma lista de faixas largas, e o
-                           conteúdo aqui é vídeo — grade de vídeo é assim. */
-                        <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-                            {ultimas.map((publicacao) => {
-                                // O primeiro destino com prova manda: é o link que a pessoa quer.
-                                const comProva = publicacao.destinos.find((d) => d.url);
-
-                                return (
-                                    <li key={publicacao.ulid}>
-                                        <article className="border-border bg-card relative aspect-square overflow-hidden rounded-xl border">
-                                            <Miniatura
-                                                url={publicacao.miniatura}
-                                                tipo="video"
-                                                alt={publicacao.titulo}
-                                                className="absolute inset-0 size-full rounded-none"
-                                            />
-
-                                            {/* Escurecido só embaixo: cobrir a imagem inteira
-                                                apagaria justamente o que faz reconhecer o vídeo. */}
-                                            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent p-2.5 pt-8">
-                                                <p className="truncate text-xs font-medium text-white" title={publicacao.titulo}>
-                                                    {publicacao.titulo}
-                                                </p>
-
-                                                <div className="mt-1 flex items-center gap-x-1.5">
-                                                    {/* Um selo por rede: apagado enquanto não há prova. */}
-                                                    {publicacao.destinos.map((destino, i) => (
-                                                        <span
-                                                            key={i}
-                                                            className={destino.url ? undefined : 'opacity-40'}
-                                                            title={destino.url ? 'No ar' : publicacao.statusRotulo}
-                                                        >
-                                                            <MarcaDaRede rede={destino.plataforma} className="size-4 rounded" />
-                                                        </span>
-                                                    ))}
-
-                                                    <span className="ml-auto text-[0.625rem] text-white/65">{quando(publicacao.quando)}</span>
-                                                </div>
-                                            </div>
-
-                                            {/* ⭐ A PROVA. Cobre o cartão inteiro para virar o
-                                                alvo natural do clique — e só existe depois de
-                                                relermos o post na rede. */}
-                                            {comProva?.url && (
-                                                <a
-                                                    href={comProva.url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    title="Ver o post na rede"
-                                                    className="focus-visible:ring-ring absolute inset-0 focus-visible:ring-2 focus-visible:outline-none"
-                                                >
-                                                    <span className="absolute top-2 right-2 rounded-full bg-black/55 p-1.5 backdrop-blur-sm">
-                                                        <ExternalLink className="size-3 text-white" aria-hidden="true" />
-                                                    </span>
-                                                    <span className="sr-only">Ver o post de {publicacao.titulo}</span>
-                                                </a>
-                                            )}
-                                        </article>
-                                    </li>
-                                );
-                            })}
-                        </ul>
-                    )}
-                </section>
             </div>
         </LayoutPainel>
     );

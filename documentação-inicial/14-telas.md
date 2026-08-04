@@ -162,8 +162,11 @@ enquanto eu não estava olhando*, e cada seção responde uma parte disso:
    lado do acerto, no mesmo tamanho. "A caminho" e "não subiram" só aparecem quando existem.
 3. **Suas redes** — a grade da seção 3, com o semáforo do token à vista.
 4. **Primeiros passos** — só enquanto houver passo por fazer; some sozinho quando tudo está feito.
-5. **Últimas publicações** — 5 cartões quadrados com a miniatura de fundo, iguais aos de
-   Publicações. O link da prova cobre o cartão inteiro.
+
+⛔ **Publicação não aparece aqui** (DEC-68). Uma prévia das últimas era a lista de Publicações com
+outra moldura — e lista duplicada envelhece: um dia uma mostra o que a outra não mostra, e nenhuma
+das duas é confiável. O que fica são os **números**, com um *ver publicações* levando à lista de
+verdade.
 
 **📱 No celular:** as seções empilham na mesma ordem; os quadrados quebram de linha sozinhos.
 

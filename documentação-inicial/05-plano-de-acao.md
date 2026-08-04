@@ -1635,3 +1635,12 @@ continua em Publicações, com os links.
 
 ⭐ **O servidor continua mandando o catálogo inteiro** — quem filtra é a tela. Filtrar no servidor
 deixaria o modal de conectar sem o que oferecer.
+
+**DEC-68 — publicação aparece SÓ na tela de Publicações.** A Visão geral mostrava uma prévia das
+últimas cinco. Era a mesma lista com outra moldura — e lista duplicada envelhece: um dia uma passa
+a mostrar o que a outra não mostra (um filtro novo, uma coluna nova, um status novo), e aí nenhuma
+das duas é confiável.
+
+⭐ **O que fica na Visão geral são os NÚMEROS**, que é coisa diferente: eles respondem *"como
+está"*, não *"o que eu publiquei"*. O caminho até a lista de verdade vira um *ver publicações* ao
+lado do título — um link em vez de uma cópia.
