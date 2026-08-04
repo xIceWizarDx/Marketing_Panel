@@ -122,7 +122,15 @@ Filtros viram **chips roláveis** na horizontal, fixos no topo.
 
 ## 3. 🔌 Suas redes *(seção da Visão geral)*
 
-**Grade de quadradinhos** — inspirada no bundle.social, mas com o que falta lá:
+⛔ **Só aparecem as redes CONECTADAS.** Mostrar as catorze de uma vez enchia a tela de coisa que
+não é da pessoa — e o que é dela ficava do mesmo tamanho de um "em estudo". Conta desconectada
+também não aparece: a linha dela sobrevive porque o histórico aponta para ela, mas quem
+desconectou não quer a rede de volta na tela.
+
+⭐ **O catálogo inteiro mora atrás do `+`**, num modal. Escolher rede acontece uma vez; olhar as
+suas, todo dia.
+
+**Grade de quadradinhos de tamanho fixo** — inspirada no bundle.social, mas com o que falta lá:
 
 ```
 ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
@@ -145,11 +153,19 @@ Filtros viram **chips roláveis** na horizontal, fixos no topo.
 
 ## 4. 📊 Visão geral *(landing pós-login)*
 
-- Cartões: **publicadas na semana** · **falhas pendentes** · **contas com problema**
-- Últimas 5 publicações com status
-- ⚠️ Alerta no topo se alguma conta está **prestes a expirar**
+⭐ **A ordem é a resposta**, de cima para baixo — quem abre o painel quer saber *o que aconteceu
+enquanto eu não estava olhando*, e cada seção responde uma parte disso:
 
-**📱 No celular:** cartões empilhados, alerta primeiro.
+1. **O que espera você** — pendências. ⚠️ **Some quando não há nada:** um bloco que vive dizendo
+   "está tudo bem" treina a pessoa a ignorá-lo, e no dia do problema de verdade ela não olha.
+2. **Como está** — os três lados do mesmo fato: `no ar` · `a caminho` · `não subiram`. A falha do
+   lado do acerto, no mesmo tamanho. "A caminho" e "não subiram" só aparecem quando existem.
+3. **Suas redes** — a grade da seção 3, com o semáforo do token à vista.
+4. **Primeiros passos** — só enquanto houver passo por fazer; some sozinho quando tudo está feito.
+5. **Últimas publicações** — 5 cartões quadrados com a miniatura de fundo, iguais aos de
+   Publicações. O link da prova cobre o cartão inteiro.
+
+**📱 No celular:** as seções empilham na mesma ordem; os quadrados quebram de linha sozinhos.
 
 ---
 
@@ -174,6 +190,8 @@ Meus dados e privacidade` *(baixar dados · excluir conta — regras BR-01/02)*
 
 | Padrão | Regra |
 |---|---|
+| **A forma padrão é o QUADRADO** | Resumo, rede e publicação vivem em quadrados de lado fixo (`Quadro`). ⚠️ Grade que estica vira retângulo quando há poucos itens, e o painel muda de cara conforme o conteúdo |
+| **Retângulo só quando é a forma certa** | Aviso com frase e ação, e lista de passos — texto quer largura. O que não existe é retângulo **por acidente de grade** |
 | **Tabela → card** | No celular, toda listagem vira card expansível: resumo visível, detalhes ao expandir |
 | **Ações no cabeçalho** | Ação de linha vai no topo do card — **nunca some no mobile** |
 | **Filtros fixos** | Barra de filtros gruda no topo ao rolar |

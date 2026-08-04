@@ -1607,3 +1607,31 @@ diferentes — o defeito que mais rápido faz alguém parar de confiar no painel
 
 ⭐ **O menu do cliente ficou com dois itens:** Visão geral e Publicações. Publicar e conectar são
 ações, e ação não é lugar para onde ir.
+
+---
+
+### 2026-08-04 — A forma padrão do painel é o quadrado (DEC-66 e DEC-67)
+
+**DEC-66 — quadrado de lado FIXO, e retângulo só quando ele é a forma certa.** O painel usava
+faixas largas com um número dentro: a linha inteira gasta para exibir três dígitos, e o olho
+varrendo da esquerda à direita para lê-los.
+
+⚠️ **Fixo, não elástico.** Grade que estica devolve quadrado quando há sete itens e retângulo
+quando há dois — o painel muda de cara conforme o conteúdo, e a pessoa não reconhece a própria
+tela. Com lado fixo e quebra de linha, três quadros ou onze desenham o mesmo ritmo. Vive em
+`components/quadro.tsx`.
+
+⛔ **Retângulo continua existindo onde é a forma certa:** aviso com frase e ação, e lista de
+passos — texto quer largura. O que não existe é retângulo **por acidente de grade**.
+
+**DEC-67 — "Suas redes" mostra só as conectadas; o catálogo mora num modal.** Mostrar as catorze
+de uma vez enchia a tela de coisa que não é da pessoa, e o que é dela ficava do mesmo tamanho de
+um "em estudo". Escolher rede acontece uma vez; olhar as suas, todo dia — então o catálogo inteiro
+fica atrás do quadro `+`.
+
+⚠️ Conta **desconectada** não conta como conectada: a linha dela sobrevive porque o histórico
+aponta para ela, mas quem desconectou não quer a rede de volta na tela. O que já foi publicado
+continua em Publicações, com os links.
+
+⭐ **O servidor continua mandando o catálogo inteiro** — quem filtra é a tela. Filtrar no servidor
+deixaria o modal de conectar sem o que oferecer.

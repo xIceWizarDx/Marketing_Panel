@@ -6,6 +6,8 @@ import CampoSenha from '@/components/campo-senha';
 import MarcaDaRede from '@/components/conexao/marca-da-rede';
 import TermosDaRede from '@/components/conexao/termos-da-rede';
 import ErroDeCampo from '@/components/erro-de-campo';
+import Quadro from '@/components/quadro';
+import TituloDeSecao from '@/components/titulo-de-secao';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -64,6 +66,8 @@ export default function PainelDeRedes({ redes, totalConectado }: { redes: Rede[]
     const [conectando, setConectando] = useState<Rede | null>(null);
     const [aberta, setAberta] = useState<Rede | null>(null);
     const [aDesconectar, setADesconectar] = useState<Conta | null>(null);
+    /** O catálogo de redes — fechado por padrão, porque escolher rede é raro. */
+    const [escolhendo, setEscolhendo] = useState(false);
 
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         identificador: '',
@@ -101,6 +105,20 @@ export default function PainelDeRedes({ redes, totalConectado }: { redes: Rede[]
 
     const totalPublicado = redes.reduce((soma, rede) => soma + rede.publicados, 0);
 
+    /*
+     * ⭐ Na tela ficam SÓ as redes conectadas.
+     *
+     * Mostrar as catorze de uma vez enchia a tela de coisa que não é da pessoa
+     * — e a que é dela, que é o que ela veio ver, ficava do mesmo tamanho de um
+     * "em estudo". O catálogo inteiro mora atrás do botão de conectar, que é
+     * onde ele tem função.
+     *
+     * ⚠️ Conta DESCONECTADA não conta: a linha dela sobrevive porque o histórico
+     * aponta para ela, mas quem desconectou não quer a rede de volta na tela.
+     * O que já foi publicado continua em Publicações, com os links.
+     */
+    const minhas = redes.filter((rede) => rede.contas.some((c) => c.status !== 'desconectada'));
+
     // Os números do cartão mudam sozinhos enquanto houver envio em curso.
     useAtualizacaoViva({
         ativo: redes.some((rede) => rede.andando > 0),
@@ -109,36 +127,27 @@ export default function PainelDeRedes({ redes, totalConectado }: { redes: Rede[]
 
     return (
         <section id="redes" className="scroll-mt-4">
-            <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                <h2 className="text-sm font-medium">Suas redes</h2>
+            <TituloDeSecao
+                titulo="Suas redes"
+                // ⚠️ O número é o de posts CONFIRMADOS na rede, não o de envios
+                // feitos. Contar envio seria contar promessa (DEC-31).
+                apoio={
+                    totalConectado === 0
+                        ? 'Sem uma conta conectada não há para onde publicar'
+                        : `${totalConectado} ${totalConectado === 1 ? 'conta' : 'contas'} · ` +
+                          `${totalPublicado} ${totalPublicado === 1 ? 'post no ar' : 'posts no ar'}`
+                }
+            />
 
-                {/* ⚠️ O número é o de posts CONFIRMADOS na rede, não o de envios
-                    feitos. Contar envio seria contar promessa (DEC-31). */}
-                <p className="text-muted-foreground text-xs">
-                    {totalConectado === 0
-                        ? 'Nenhuma conta conectada ainda — sem uma, não há para onde publicar.'
-                        : `${totalConectado} ${totalConectado === 1 ? 'conta conectada' : 'contas conectadas'} · ` +
-                          `${totalPublicado} ${totalPublicado === 1 ? 'post confirmado no ar' : 'posts confirmados no ar'}`}
-                </p>
-            </div>
-
-            {/* Cards quadrados: a lista de contas vive no detalhe, não na carta —
-                era o que deixava tudo largo e baixo. */}
-            <ul className="grid grid-cols-3 gap-2.5 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 2xl:grid-cols-7">
-                {redes.map((rede) => {
+            {/* Quadrados de tamanho fixo: uma grade que estica transformaria
+                duas redes conectadas em dois retângulos enormes. */}
+            <ul className="flex flex-wrap gap-2.5">
+                {minhas.map((rede) => {
                     const problemas = rede.contas.filter((c) => c.podePublicar === false && c.status !== 'desconectada');
-                    const clicavel = rede.disponivel || rede.contas.length > 0;
 
                     return (
                         <li key={rede.valor}>
-                            <button
-                                type="button"
-                                disabled={!clicavel}
-                                onClick={() => (rede.contas.length > 0 ? setAberta(rede) : abrirConexao(rede))}
-                                className={`border-border bg-card focus-visible:ring-ring relative flex aspect-square w-full flex-col items-center justify-center gap-1.5 rounded-xl border p-2 transition-colors focus-visible:ring-2 focus-visible:outline-none ${
-                                    clicavel ? 'hover:border-[color:var(--accent)]' : 'cursor-default opacity-60'
-                                }`}
-                            >
+                            <Quadro como="button" onClick={() => setAberta(rede)} className="gap-1.5">
                                 {/* Um ponto no canto avisa que algo precisa de você. */}
                                 {problemas.length > 0 && (
                                     <span
@@ -152,59 +161,83 @@ export default function PainelDeRedes({ redes, totalConectado }: { redes: Rede[]
 
                                 <span className="w-full truncate text-center text-xs leading-tight font-medium">{rede.rotulo}</span>
 
-                                {rede.contas.length > 0 ? (
-                                    <span className="flex items-end justify-center gap-2.5">
-                                        {/* ⭐ Os três lados do mesmo fato. Mostrar só o que
-                                            deu certo é o que os concorrentes fazem — e é por
-                                            isso que o painel deles mente. Aqui a falha fica
-                                            do lado do acerto, no mesmo tamanho.
+                                {/* ⭐ Os três lados do mesmo fato. Mostrar só o que deu
+                                    certo é o que os concorrentes fazem — e é por isso que
+                                    o painel deles mente. Aqui a falha fica do lado do
+                                    acerto, no mesmo tamanho.
 
-                                            Cada número só aparece quando existe: zeros em
-                                            toda parte viram ruído e escondem o que importa. */}
-                                        <span className="text-center">
-                                            <span
-                                                className="block text-lg leading-none font-semibold tabular-nums"
-                                                style={{ color: rede.publicados > 0 ? 'var(--saude-ok)' : 'var(--muted-foreground)' }}
-                                            >
-                                                {rede.publicados}
-                                            </span>
-                                            <span className="text-muted-foreground block text-[0.6rem] leading-tight">no ar</span>
-                                        </span>
-
-                                        {rede.andando > 0 && (
-                                            <span className="text-center">
-                                                <span
-                                                    className="block text-lg leading-none font-semibold tabular-nums"
-                                                    style={{ color: 'var(--saude-atencao)' }}
-                                                >
-                                                    {rede.andando}
-                                                </span>
-                                                <span className="text-muted-foreground block text-[0.6rem] leading-tight">indo</span>
-                                            </span>
-                                        )}
-
-                                        {rede.falhas > 0 && (
-                                            <span className="text-center">
-                                                <span
-                                                    className="block text-lg leading-none font-semibold tabular-nums"
-                                                    style={{ color: 'var(--saude-erro)' }}
-                                                >
-                                                    {rede.falhas}
-                                                </span>
-                                                <span className="text-muted-foreground block text-[0.6rem] leading-tight">não foi</span>
-                                            </span>
-                                        )}
-                                    </span>
-                                ) : (
-                                    <span className="text-muted-foreground text-center text-[0.6rem] leading-tight">
-                                        {rede.disponivel ? 'Conectar' : rede.faltaConfigurar ? 'Falta configurar' : rede.situacaoRotulo}
-                                    </span>
-                                )}
-                            </button>
+                                    Cada número só aparece quando existe: zeros em toda
+                                    parte viram ruído e escondem o que importa. */}
+                                <span className="flex items-end justify-center gap-2.5">
+                                    <NumeroDaRede
+                                        valor={rede.publicados}
+                                        rotulo="no ar"
+                                        cor={rede.publicados > 0 ? 'var(--saude-ok)' : 'var(--muted-foreground)'}
+                                    />
+                                    {rede.andando > 0 && <NumeroDaRede valor={rede.andando} rotulo="indo" cor="var(--saude-atencao)" />}
+                                    {rede.falhas > 0 && <NumeroDaRede valor={rede.falhas} rotulo="não foi" cor="var(--saude-erro)" />}
+                                </span>
+                            </Quadro>
                         </li>
                     );
                 })}
+
+                {/* ⭐ O catálogo inteiro vive AQUI, atrás de um clique. Escolher
+                    rede acontece uma vez; olhar as suas, todo dia. */}
+                <li>
+                    <Quadro como="button" onClick={() => setEscolhendo(true)} tracejado className="gap-2">
+                        <Plus className="text-muted-foreground size-6" aria-hidden="true" />
+                        <span className="text-muted-foreground text-xs leading-tight font-medium">
+                            {minhas.length === 0 ? 'Conectar uma rede' : 'Conectar outra'}
+                        </span>
+                    </Quadro>
+                </li>
             </ul>
+
+            {/* Escolher qual rede conectar — o catálogo */}
+            <Dialog open={escolhendo} onOpenChange={setEscolhendo}>
+                <DialogContent className="max-h-[85svh] overflow-y-auto sm:max-w-xl">
+                    <DialogTitle>Conectar uma rede</DialogTitle>
+                    <DialogDescription>Você autoriza no site da própria rede — sua senha nunca passa por aqui.</DialogDescription>
+
+                    <ul className="flex flex-wrap gap-2.5">
+                        {redes.map((rede) => {
+                            const clicavel = rede.disponivel;
+
+                            return (
+                                <li key={rede.valor}>
+                                    <Quadro
+                                        como="button"
+                                        tamanho="pequeno"
+                                        disabled={!clicavel}
+                                        onClick={() => {
+                                            setEscolhendo(false);
+                                            abrirConexao(rede);
+                                        }}
+                                        className="gap-1"
+                                    >
+                                        <MarcaDaRede rede={rede.valor} className="size-8" />
+
+                                        <span className="w-full truncate text-center text-xs leading-tight font-medium">{rede.rotulo}</span>
+
+                                        {/* ⚠️ "Aguardando aprovação" e "em estudo" são coisas
+                                            diferentes: uma tem caminho, a outra é ideia. */}
+                                        <span className="text-muted-foreground text-center text-[0.6rem] leading-tight">
+                                            {rede.contas.some((c) => c.status !== 'desconectada')
+                                                ? 'já conectada'
+                                                : rede.disponivel
+                                                  ? 'conectar'
+                                                  : rede.faltaConfigurar
+                                                    ? 'falta configurar'
+                                                    : rede.situacaoRotulo.toLowerCase()}
+                                        </span>
+                                    </Quadro>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </DialogContent>
+            </Dialog>
 
             {/* Detalhe de uma rede — contas, saúde e ações */}
             <Dialog open={!!aberta} onOpenChange={(estado) => !estado && setAberta(null)}>
@@ -421,5 +454,17 @@ export default function PainelDeRedes({ redes, totalConectado }: { redes: Rede[]
                 </DialogContent>
             </Dialog>
         </section>
+    );
+}
+
+/** Um dos três números do quadrado da rede. */
+function NumeroDaRede({ valor, rotulo, cor }: { valor: number; rotulo: string; cor: string }) {
+    return (
+        <span className="text-center">
+            <span className="block text-lg leading-none font-semibold tabular-nums" style={{ color: cor }}>
+                {valor}
+            </span>
+            <span className="text-muted-foreground block text-[0.6rem] leading-tight">{rotulo}</span>
+        </span>
     );
 }

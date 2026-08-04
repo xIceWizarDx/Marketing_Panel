@@ -432,6 +432,8 @@ resources/js/
   components/midia/      EnviarMidia · Miniatura · Previa · PainelLaudo · SeloLaudo
   components/conexao/    PainelDeRedes ← ⭐ as redes vivem DENTRO da visao geral ·
                          MarcaDaRede · TermosDaRede
+  components/            Quadro ← ⭐ o quadrado de lado FIXO; a forma padrao do painel ·
+                         TituloDeSecao · CabecalhoDePagina · Avisos · ...
   hooks/            useAvisos · useAtualizacaoViva
 ```
 

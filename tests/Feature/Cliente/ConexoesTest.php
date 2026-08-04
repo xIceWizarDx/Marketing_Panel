@@ -144,16 +144,19 @@ it('não lista a conta de outro cliente', function () {
             ->where('redes', fn ($redes) => collect($redes)->every(fn ($r) => $r['contas'] === [])));
 });
 
-it('mostra uma carta por rede, com o Bluesky disponível e o resto em breve', function () {
+it('manda TODAS as redes — a tela é que mostra só as conectadas', function () {
     // ⚠️ Procurar pelo valor, nunca pela posição. A ordem da lista é decisão de
     // produto e já mudou uma vez; teste preso ao índice quebra junto sem que
     // nada de errado tenha acontecido.
+    //
+    // O servidor manda o catálogo inteiro porque ele vive no modal de conectar.
+    // Quem filtra "só as minhas" é a tela: filtrar aqui deixaria o catálogo sem
+    // o que oferecer.
     $rede = fn ($redes, string $valor) => collect($redes)->firstWhere('valor', $valor);
 
     $this->actingAs(cliente())
         ->get('/painel')
         ->assertInertia(fn ($p) => $p
-            // Todas as redes aparecem: dá pra ver o todo num relance.
             ->has('redes', count(Plataforma::cases()))
             ->where('redes', function ($redes) use ($rede) {
                 // O Bluesky publica sem depender de aprovação nem de credencial
