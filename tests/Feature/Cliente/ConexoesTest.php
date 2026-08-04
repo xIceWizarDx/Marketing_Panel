@@ -10,6 +10,7 @@ use App\Models\Publicacao;
 use App\Support\ContextoDoUsuario;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Route;
 
 beforeEach(fn () => ContextoDoUsuario::limpar());
 afterEach(fn () => ContextoDoUsuario::limpar());
@@ -23,11 +24,21 @@ function blueskyAceitaLogin(): void
     ])]);
 }
 
-it('mostra a tela de conexoes', function () {
+it('⭐ as redes moram na VISAO GERAL, nao numa tela propria', function () {
+    // DEC-63: Conexoes deixou de ser tela. Uma tela so para responder "como
+    // esta tudo?" obrigava a passar por duas para ter certeza.
     $this->actingAs(cliente())
-        ->get('/conexoes')
+        ->get('/painel')
         ->assertOk()
-        ->assertInertia(fn ($p) => $p->component('cliente/conexoes'));
+        ->assertInertia(fn ($p) => $p->component('cliente/visao-geral')->has('redes'));
+});
+
+it('⛔ a tela antiga de conexoes nao existe mais', function () {
+    // Rota viva sem tela vira 500 latente; rota morta com link vivo vira 404 na
+    // cara da pessoa. As duas saem juntas.
+    expect(Route::has('conexoes'))->toBeFalse();
+
+    $this->actingAs(cliente())->get('/conexoes')->assertNotFound();
 });
 
 it('conecta uma conta do Bluesky', function () {
@@ -39,7 +50,7 @@ it('conecta uma conta do Bluesky', function () {
             'identificador' => '@ana.bsky.social',
             'senha_de_aplicativo' => 'abcd-efgh-ijkl-mnop',
         ])
-        ->assertRedirect('/conexoes')
+        ->assertRedirect('/painel')
         ->assertSessionHasNoErrors();
 
     $conta = ContextoDoUsuario::semEscopo(fn () => ContaSocial::firstOrFail());
@@ -54,7 +65,7 @@ it('confere a senha antes de guardar', function () {
     Http::fake(['*com.atproto.server.createSession*' => Http::response(['error' => 'AuthFactorTokenRequired'], 401)]);
 
     $this->actingAs(cliente())
-        ->from('/conexoes')
+        ->from('/painel')
         ->post('/conexoes/bluesky', ['identificador' => 'ana.bsky.social', 'senha_de_aplicativo' => 'errada'])
         ->assertSessionHasErrors('identificador');
 
@@ -82,7 +93,7 @@ it('guarda a senha criptografada e nunca a devolve para a tela', function () {
         ->and($credencial->access_token)->toBe('segredo-abcd-1234');
 
     // E na tela: nem o valor, nem a chave.
-    $html = $this->actingAs($ana)->get('/conexoes')->getContent();
+    $html = $this->actingAs($ana)->get('/painel')->getContent();
     expect($html)->not->toContain('segredo-abcd-1234')
         ->and($html)->not->toContain('access_token');
 });
@@ -104,7 +115,7 @@ it('desconectar apaga a credencial e PRESERVA a conta', function () {
     $conta = ContaSocial::factory()->doUsuario($ana)->comCredencial()->create();
     ContextoDoUsuario::limpar();
 
-    $this->actingAs($ana)->delete("/conexoes/{$conta->ulid}")->assertRedirect('/conexoes');
+    $this->actingAs($ana)->delete("/conexoes/{$conta->ulid}")->assertRedirect('/painel');
 
     // A linha sobrevive: o histórico de publicações aponta pra ela, e apagar
     // levaria junto a prova de entrega do que já foi publicado.
@@ -127,7 +138,7 @@ it('não lista a conta de outro cliente', function () {
     ContaSocial::factory()->doUsuario(cliente())->create();
 
     $this->actingAs(cliente())
-        ->get('/conexoes')
+        ->get('/painel')
         ->assertInertia(fn ($p) => $p
             ->where('totalConectado', 0)
             ->where('redes', fn ($redes) => collect($redes)->every(fn ($r) => $r['contas'] === [])));
@@ -140,7 +151,7 @@ it('mostra uma carta por rede, com o Bluesky disponível e o resto em breve', fu
     $rede = fn ($redes, string $valor) => collect($redes)->firstWhere('valor', $valor);
 
     $this->actingAs(cliente())
-        ->get('/conexoes')
+        ->get('/painel')
         ->assertInertia(fn ($p) => $p
             // Todas as redes aparecem: dá pra ver o todo num relance.
             ->has('redes', count(Plataforma::cases()))
@@ -164,7 +175,7 @@ it('agrupa a conta conectada dentro da carta da rede certa', function () {
     ContaSocial::factory()->doUsuario($ana)->comCredencial()->create(['nome_exibicao' => 'ana.bsky.social']);
 
     $this->actingAs($ana)
-        ->get('/conexoes')
+        ->get('/painel')
         ->assertInertia(fn ($p) => $p
             ->where('totalConectado', 1)
             ->where('redes', function ($redes) {
@@ -178,11 +189,11 @@ it('agrupa a conta conectada dentro da carta da rede certa', function () {
 });
 
 it('barra o admin', function () {
-    $this->actingAs(admin())->get('/conexoes')->assertNotFound();
+    $this->actingAs(admin())->get('/painel')->assertNotFound();
 });
 
 it('barra o visitante', function () {
-    $this->get('/conexoes')->assertRedirect(route('entrar'));
+    $this->get('/painel')->assertRedirect(route('entrar'));
 });
 
 it('conta como "no ar" só o que foi CONFIRMADO na rede', function () {
@@ -210,7 +221,7 @@ it('conta como "no ar" só o que foi CONFIRMADO na rede', function () {
     ContextoDoUsuario::limpar();
 
     $this->actingAs($ana)
-        ->get('/conexoes')
+        ->get('/painel')
         // ⭐ DEC-31: contar envio seria contar promessa. So conta o confirmado.
         ->assertInertia(fn ($p) => $p->where('redes', function ($redes) {
             expect(collect($redes)->firstWhere('valor', 'bluesky')['publicados'])->toBe(1);
@@ -239,7 +250,7 @@ it('nao soma no KPI o que subiu na conta de outro cliente', function () {
     // `destinos` nao tem dono proprio: o filtro vem pela conta. Se falhasse,
     // a Ana veria o numero do Bruno somado ao dela.
     $this->actingAs($ana)
-        ->get('/conexoes')
+        ->get('/painel')
         ->assertInertia(fn ($p) => $p->where('redes', function ($redes) {
             expect(collect($redes)->firstWhere('valor', 'bluesky')['publicados'])->toBe(1);
 
@@ -278,7 +289,7 @@ it('⭐ mostra a falha do lado do acerto, não só o que deu certo', function ()
     ContextoDoUsuario::limpar();
 
     $this->actingAs($ana)
-        ->get('/conexoes')
+        ->get('/painel')
         ->assertInertia(fn ($p) => $p->where('redes', function ($redes) {
             $bluesky = collect($redes)->firstWhere('valor', 'bluesky');
 
@@ -307,7 +318,7 @@ it('não soma a falha de um cliente no número de outro', function () {
     ContextoDoUsuario::limpar();
 
     $this->actingAs($ana)
-        ->get('/conexoes')
+        ->get('/painel')
         ->assertInertia(fn ($p) => $p->where('redes', function ($redes) {
             expect(collect($redes)->firstWhere('valor', 'bluesky')['falhas'])->toBe(0);
 

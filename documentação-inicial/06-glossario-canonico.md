@@ -374,12 +374,19 @@ fim da publicação, não de um botão — não há o que gerenciar.
 | `POST /midias` | `midias.salvar` | envio — vive **dentro** do compositor, não numa tela própria |
 | `GET /midias/{ulid}/arquivo` | `midias.arquivo` | único caminho até o vídeo; o disco fica fora da raiz pública |
 | `GET /midias/{ulid}/miniatura` | `midias.miniatura` | separada do arquivo: a lista pede muitas de uma vez |
-| `/conexoes` (+ `POST`/`DELETE`) | `conexoes.*` | conectar e desconectar rede |
-| `/conexoes/{rede}` → `/retorno` | `conexoes.{rede}[.retorno]` | OAuth (`youtube`, `meta`) e senha de app (`bluesky`) |
+| `POST /conexoes/bluesky` · `DELETE /conexoes/{ulid}` | `conexoes.bluesky` · `conexoes.desconectar` | conectar e desconectar |
+| `/conexoes/{rede}` → `/retorno` | `conexoes.{rede}[.retorno]` | OAuth (`youtube`, `meta`); o retorno cai em `/painel` |
 | `/minha-conta/...` | `minha-conta.*` | perfil · senha · aparência (starter em PT-BR) |
 
 ⛔ **Não existe `/midias` como tela.** Ela existia quando o produto era um drive; enviar e publicar
 viraram o mesmo gesto (DEC-60), e o que restou de `midias` são rotas de serviço.
+
+⛔ **Não existe `/conexoes` como tela** (DEC-63). O estado das redes mora na Visão geral, que é a
+primeira coisa que a pessoa abre; `conexoes` sobrou como rotas de **ação**. O resumo é montado num
+lugar só: `App\Support\Conexao\ResumoDasRedes` (DEC-65).
+
+⭐ **O menu do cliente tem dois itens:** Visão geral e Publicações. Publicar e conectar são ações,
+e ação não é lugar para onde ir.
 
 ### Área do admin (prefixo `/admin`, middleware `papel:admin`)
 | Path | Nome | O quê |
@@ -419,11 +426,12 @@ app/
   Http/Middleware/  VerificarPapel
 lang/pt_BR/         rotulos.php · validation.php · ...
 resources/js/
-  pages/            auth/ · cliente/ (visao-geral · publicacoes · conexoes) ·
+  pages/            auth/ · cliente/ (visao-geral · publicacoes) ·
                     minha-conta/ · admin/ (visao-geral · clientes · impersonacoes)
   components/publicacao/ Compositor  ← ⭐ publicar é um MODAL por cima de publicacoes
   components/midia/      EnviarMidia · Miniatura · Previa · PainelLaudo · SeloLaudo
-  components/conexao/    MarcaDaRede · TermosDaRede
+  components/conexao/    PainelDeRedes ← ⭐ as redes vivem DENTRO da visao geral ·
+                         MarcaDaRede · TermosDaRede
   hooks/            useAvisos · useAtualizacaoViva
 ```
 
@@ -457,3 +465,6 @@ Rodam na suíte normal (Pest). **Definição de pronto** de toda fase inclui os 
   reais: `/publicar` é o **compositor** (modal por rota), `/publicacoes` é a tela principal e
   `midias` sobrou só como rotas de serviço — **não há tela de mídias**. Pastas do front
   reescritas: existem 3 páginas de cliente, não 6.
+- 2026-08-04 — Conexões deixou de ser tela (plano 14). A rota `conexoes` saiu; sobraram as de
+  ação. O resumo das redes ganhou fonte única (`ResumoDasRedes`) e o menu do cliente ficou com
+  dois itens. Restam **2 páginas de cliente**.

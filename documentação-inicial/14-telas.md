@@ -11,12 +11,11 @@
 
 ## 🧭 Navegação
 
-**Sidebar do cliente — 4 itens fixos, independente de quantas redes existam:**
+**Sidebar do cliente — 3 itens fixos, independente de quantas redes existam:**
 
 ```
-📊 Visão geral       ← landing pós-login
+📊 Visão geral       ← landing pós-login; é aqui que ficam as redes
 📋 Publicações       ← histórico com a prova; é daqui que se publica
-🔌 Conexões          ← 1 tela, 1 cartão por rede
 ⚙️  Minha conta
 ```
 
@@ -26,11 +25,18 @@ compositor por cima da lista (DEC-60). Item de menu descreveria uma tela; não h
 ⛔ **Mídias não existe.** Enviar acontece dentro do compositor — o produto não guarda acervo
 (DEC-59), então não há o que gerenciar numa tela própria.
 
+⛔ **Conexões não existe como tela.** A grade de redes é uma **seção da Visão geral** (DEC-63):
+"como está tudo?" é a pergunta da porta de entrada, e responder em duas telas obrigava a passar
+pelas duas para ter certeza.
+
+⭐ **A regra que separa os casos:** *Publicar* é **ação** — começo, meio e resultado; modal serve.
+*Conexões* é **estado** — pertence à tela que a pessoa abre primeiro.
+
 **Admin (esqueleto — DEC-16):** `👥 Clientes · 🕵️ Logs de impersonação · ⚙️ Minha conta`
 
 **📱 No celular:**
 - Sidebar vira **gaveta** (`--sidebar-width: 0`, DEC-37)
-- Os 4 itens viram **barra inferior fixa** — alcance do polegar
+- Os 3 itens viram **barra inferior fixa** — alcance do polegar
 - O compositor abre em tela cheia, com o botão de publicar fixo no rodapé
 - Banner de impersonação fica **fixo no topo**, acima de tudo
 
@@ -114,9 +120,9 @@ Filtros viram **chips roláveis** na horizontal, fixos no topo.
 
 ---
 
-## 3. 🔌 Conexões
+## 3. 🔌 Suas redes *(seção da Visão geral)*
 
-**Uma tela só, grade de cartões** — inspirada no bundle.social, mas com o que falta lá:
+**Grade de quadradinhos** — inspirada no bundle.social, mas com o que falta lá:
 
 ```
 ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
@@ -178,5 +184,5 @@ Meus dados e privacidade` *(baixar dados · excluir conta — regras BR-01/02)*
 | **Marca do YouTube** | Logo **clicável** nas telas que mostram dados do YouTube (regra YT-G01/02) |
 | **Movimento** | Toda animação respeita `prefers-reduced-motion` |
 
-_2026-07-28 · revisto em 2026-08-04 para descrever o que existe: o compositor virou modal por
-cima de Publicações, a tela de Mídias saiu e a sidebar tem 4 itens._
+_2026-07-28 · revisto em 2026-08-04 para descrever o que existe: o compositor virou modal por cima
+de Publicações, as telas de Mídias e Conexões saíram e a sidebar do cliente tem 3 itens._

@@ -2,8 +2,9 @@ import { Head, Link, usePage } from '@inertiajs/react';
 import { AlertTriangle, ArrowRight, Check, ExternalLink, Info } from 'lucide-react';
 
 import CabecalhoDePagina from '@/components/cabecalho-de-pagina';
-import Miniatura from '@/components/midia/miniatura';
 import MarcaDaRede from '@/components/conexao/marca-da-rede';
+import PainelDeRedes, { type Rede } from '@/components/conexao/painel-de-redes';
+import Miniatura from '@/components/midia/miniatura';
 import { useAtualizacaoViva } from '@/hooks/use-atualizacao-viva';
 import LayoutPainel from '@/layouts/painel';
 import { type DadosCompartilhados } from '@/types';
@@ -42,19 +43,21 @@ interface Props {
     ultimas: Publicacao[];
     pendencias: Pendencia[];
     primeirosPassos: Passo[];
+    /** ⭐ Conexões deixou de ser tela (DEC-63): as redes moram aqui. */
+    redes: Rede[];
+    totalConectado: number;
 }
 
-const quando = (iso: string | null) =>
-    iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '';
+const quando = (iso: string | null) => (iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '');
 
-export default function VisaoGeral({ numeros, ultimas, pendencias, primeirosPassos }: Props) {
+export default function VisaoGeral({ numeros, ultimas, pendencias, primeirosPassos, redes, totalConectado }: Props) {
     const { auth } = usePage<DadosCompartilhados>().props;
     const primeiroNome = auth.usuario?.nome.split(' ')[0] ?? '';
 
     // O motor é assíncrono: os números mudam sozinhos enquanto há envio em curso.
     useAtualizacaoViva({
         ativo: numeros.andando > 0,
-        propriedades: ['numeros', 'ultimas', 'pendencias'],
+        propriedades: ['numeros', 'ultimas', 'pendencias', 'redes'],
     });
 
     // Enquanto a pessoa não tiver publicado, ensinar vale mais que resumir.
@@ -112,11 +115,7 @@ export default function VisaoGeral({ numeros, ultimas, pendencias, primeirosPass
                                 <span
                                     aria-hidden="true"
                                     className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border"
-                                    style={
-                                        passo.feito
-                                            ? { background: 'var(--saude-ok)', borderColor: 'var(--saude-ok)' }
-                                            : undefined
-                                    }
+                                    style={passo.feito ? { background: 'var(--saude-ok)', borderColor: 'var(--saude-ok)' } : undefined}
                                 >
                                     {passo.feito && <Check className="size-3 text-white" />}
                                 </span>
@@ -136,6 +135,13 @@ export default function VisaoGeral({ numeros, ultimas, pendencias, primeirosPass
                     </ol>
                 </div>
             )}
+
+            {/* ⭐ As redes ficam ANTES das últimas publicações: sem conta
+                conectada não há publicação nenhuma, e o semáforo do token
+                (DEC-32) precisa ser visto antes de a conexão quebrar. */}
+            <div className="mb-5">
+                <PainelDeRedes redes={redes} totalConectado={totalConectado} />
+            </div>
 
             {ultimas.length > 0 && (
                 <section>
@@ -161,12 +167,7 @@ export default function VisaoGeral({ numeros, ultimas, pendencias, primeirosPass
                                     {publicacao.destinos.map((destino, i) => (
                                         <li key={i} title={destino.url ? 'No ar — clique para ver' : publicacao.statusRotulo}>
                                             {destino.url ? (
-                                                <a
-                                                    href={destino.url}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="relative block"
-                                                >
+                                                <a href={destino.url} target="_blank" rel="noopener noreferrer" className="relative block">
                                                     <MarcaDaRede rede={destino.plataforma} className="size-6" />
                                                     <ExternalLink
                                                         className="absolute -right-1 -bottom-1 size-3 text-[color:var(--saude-ok)]"

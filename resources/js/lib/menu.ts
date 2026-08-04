@@ -1,4 +1,4 @@
-import { Building2, Compass, FileVideo, Link2, ScrollText, Settings2, Users } from 'lucide-react';
+import { Building2, Compass, FileVideo, ScrollText, Settings2, Users } from 'lucide-react';
 
 import { type ItemDeMenu, type Papel } from '@/types';
 
@@ -16,6 +16,14 @@ import { type ItemDeMenu, type Papel } from '@/types';
  */
 
 /*
+ * ⚠️ **Conexoes NAO esta aqui.**
+ *
+ * Conectar rede deixou de ser uma tela (DEC-63): o estado das redes vive na
+ * Visao geral, que e a primeira coisa que a pessoa abre. Um item de menu
+ * apontaria para um lugar que nao existe mais.
+ */
+
+/*
  * ⚠️ **Publicar NAO esta aqui.**
  *
  * Publicar deixou de ser tela: e uma acao que abre por cima da lista. Como
@@ -25,7 +33,6 @@ import { type ItemDeMenu, type Papel } from '@/types';
 const menuDoCliente: ItemDeMenu[] = [
     { titulo: 'Visão geral', url: '/painel', rota: 'painel', icone: Compass },
     { titulo: 'Publicações', url: '/publicacoes', rota: 'publicacoes', icone: FileVideo },
-    { titulo: 'Conexões', url: '/conexoes', rota: 'conexoes', icone: Link2 },
 ];
 
 const menuDoAdmin: ItemDeMenu[] = [

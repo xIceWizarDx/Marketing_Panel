@@ -20,7 +20,6 @@ Route::middleware(['auth', 'papel:cliente'])->group(function () {
     // baixar o vídeo inteiro para desenhar um quadradinho seria absurdo.
     Route::get('midias/{ulid}/miniatura', [MidiaController::class, 'miniatura'])->name('midias.miniatura');
 
-    Route::get('conexoes', [ConexaoController::class, 'listar'])->name('conexoes');
     Route::post('conexoes/bluesky', [ConexaoController::class, 'conectarBluesky'])->name('conexoes.bluesky');
     Route::get('conexoes/youtube', [ConexaoController::class, 'iniciarYoutube'])->name('conexoes.youtube');
     Route::get('conexoes/youtube/retorno', [ConexaoController::class, 'retornoYoutube'])->name('conexoes.youtube.retorno');

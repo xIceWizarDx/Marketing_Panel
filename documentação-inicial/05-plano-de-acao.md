@@ -1578,3 +1578,32 @@ legenda (`MIDIA_LIMPAR_ABANDONADO_EM_DIAS`, padrão 1).
 Instagram amanhã precisa **enviar o vídeo de novo**. Não dá para baixar de volta: a API do YouTube
 não tem método de download, e o vídeo indexado depende de ser público — os nossos sobem privados.
 Esse é o preço, e ele é dito na própria janela em vez de aparecer como surpresa.
+
+---
+
+### 2026-08-04 — Conexões deixa de ser tela (DEC-63 a DEC-65)
+
+**DEC-63 — Conexões não é uma tela; é uma seção da Visão geral.** As duas respondiam à mesma
+pergunta — *"como está tudo?"* — em lugares diferentes: a Visão geral avisava "3 conexões estão
+para vencer" e mandava para outra tela, onde a mesma informação aparecia de novo. Quem abria o
+painel para ter certeza precisava passar pelas duas.
+
+⭐ **A regra que separa os casos:** *Publicar* é uma **ação** — tem começo, meio e um resultado,
+e modal serve. *Conexões* é **estado**, e estado pertence à tela que a pessoa abre primeiro.
+
+⚠️ **A grade fica visível, não dentro de um modal.** Clicar numa rede já abre um modal (contas,
+conectar, desconectar); abrir isso a partir de outro empilharia duas camadas para uma tarefa só. E
+o semáforo do token (DEC-32) é o diferencial — atrás de um clique, vira algo que se descobre depois
+de a publicação já ter sido perdida.
+
+**DEC-64 — a rota `/conexoes` sai inteira.** Saneamento radical: sem tela, não há rota, nem método
+no controller, nem item de menu, nem teste que a abra. Tudo o que apontava para lá aponta para
+`/painel` — inclusive o retorno do OAuth, que é onde a resposta precisa aparecer: a pessoa
+autoriza no Google e volta vendo o semáforo da conta que acabou de conectar.
+
+**DEC-65 — o resumo das redes tem fonte única (`ResumoDasRedes`).** Duas montagens do mesmo array
+divergiriam, e a divergência apareceria como número diferente para o mesmo fato em telas
+diferentes — o defeito que mais rápido faz alguém parar de confiar no painel.
+
+⭐ **O menu do cliente ficou com dois itens:** Visão geral e Publicações. Publicar e conectar são
+ações, e ação não é lugar para onde ir.

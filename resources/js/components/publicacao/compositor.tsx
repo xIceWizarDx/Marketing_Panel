@@ -145,7 +145,7 @@ export default function Compositor({
                     </p>
 
                     <Button asChild className="mt-5">
-                        <Link href={route('conexoes')}>Conectar uma rede</Link>
+                        <Link href={route('painel')}>Conectar uma rede</Link>
                     </Button>
                 </div>
             </Janela>

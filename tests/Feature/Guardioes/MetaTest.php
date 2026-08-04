@@ -140,7 +140,7 @@ describe('a conexão — uma só para as duas redes', function () {
 
         $this->actingAs($dono)
             ->get('/conexoes/meta/retorno?code=codigo&state='.$query['state'])
-            ->assertRedirect(route('conexoes'))
+            ->assertRedirect(route('painel'))
             ->assertSessionHas('sucesso');
 
         ContextoDoUsuario::definir($dono);

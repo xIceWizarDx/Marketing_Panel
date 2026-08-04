@@ -1,8 +1,7 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { router, useForm } from '@inertiajs/react';
 import { AlertTriangle, LoaderCircle, Plus, ShieldCheck, Unplug } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
-import CabecalhoDePagina from '@/components/cabecalho-de-pagina';
 import CampoSenha from '@/components/campo-senha';
 import MarcaDaRede from '@/components/conexao/marca-da-rede';
 import TermosDaRede from '@/components/conexao/termos-da-rede';
@@ -12,7 +11,6 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAtualizacaoViva } from '@/hooks/use-atualizacao-viva';
-import LayoutPainel from '@/layouts/painel';
 
 interface Conta {
     ulid: string;
@@ -28,7 +26,7 @@ interface Conta {
     venceEmBreve: boolean;
 }
 
-interface Rede {
+export interface Rede {
     valor: string;
     rotulo: string;
     disponivel: boolean;
@@ -51,7 +49,18 @@ const corDoSemaforo: Record<Conta['cor'], string> = {
     neutro: 'var(--saude-neutro)',
 };
 
-export default function Conexoes({ redes, totalConectado }: { redes: Rede[]; totalConectado: number }) {
+/**
+ * ⭐ Onde as redes moram — e elas moram na **porta de entrada** (DEC-63).
+ *
+ * ⚠️ Isto já foi uma tela. Virou seção da Visão geral porque respondia a mesma
+ * pergunta que ela: *"como está tudo?"*. Duas telas para uma pergunta obrigavam
+ * a pessoa a passar pelas duas para ter certeza.
+ *
+ * ⛔ **Não vira modal.** O semáforo do token é o diferencial (DEC-32), e
+ * diferencial atrás de um clique é algo que se descobre quando a publicação já
+ * foi perdida. O detalhe de cada rede é que é modal — e é aberto daqui.
+ */
+export default function PainelDeRedes({ redes, totalConectado }: { redes: Rede[]; totalConectado: number }) {
     const [conectando, setConectando] = useState<Rede | null>(null);
     const [aberta, setAberta] = useState<Rede | null>(null);
     const [aDesconectar, setADesconectar] = useState<Conta | null>(null);
@@ -99,41 +108,19 @@ export default function Conexoes({ redes, totalConectado }: { redes: Rede[]; tot
     });
 
     return (
-        <LayoutPainel migalhas={[{ titulo: 'Conexões', url: '/conexoes' }]}>
-            <Head title="Conexões" />
+        <section id="redes" className="scroll-mt-4">
+            <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                <h2 className="text-sm font-medium">Suas redes</h2>
 
-            <CabecalhoDePagina
-                titulo="Conexões"
-                descricao="As contas onde você publica, e quanto já subiu em cada uma. Avisamos aqui quando uma conexão está para quebrar."
-            />
-
-            {/* Resumo: o número grande é o de posts CONFIRMADOS na rede, não o de
-                envios feitos. Contar envio seria contar promessa (DEC-31). */}
-            <div className="border-border bg-card mb-4 flex flex-wrap gap-x-8 gap-y-3 rounded-xl border p-4">
-                <div>
-                    <p className="text-2xl leading-none font-semibold tabular-nums">{totalConectado}</p>
-                    <p className="text-muted-foreground mt-1 text-xs">
-                        {totalConectado === 1 ? 'conta conectada' : 'contas conectadas'}
-                    </p>
-                </div>
-                <div>
-                    <p className="text-2xl leading-none font-semibold tabular-nums" style={{ color: 'var(--saude-ok)' }}>
-                        {totalPublicado}
-                    </p>
-                    <p className="text-muted-foreground mt-1 text-xs">
-                        {totalPublicado === 1 ? 'post confirmado no ar' : 'posts confirmados no ar'}
-                    </p>
-                </div>
+                {/* ⚠️ O número é o de posts CONFIRMADOS na rede, não o de envios
+                    feitos. Contar envio seria contar promessa (DEC-31). */}
+                <p className="text-muted-foreground text-xs">
+                    {totalConectado === 0
+                        ? 'Nenhuma conta conectada ainda — sem uma, não há para onde publicar.'
+                        : `${totalConectado} ${totalConectado === 1 ? 'conta conectada' : 'contas conectadas'} · ` +
+                          `${totalPublicado} ${totalPublicado === 1 ? 'post confirmado no ar' : 'posts confirmados no ar'}`}
+                </p>
             </div>
-
-            {totalConectado === 0 && (
-                <div className="border-border bg-card mb-4 rounded-xl border p-4">
-                    <p className="text-sm font-medium">Comece conectando uma conta</p>
-                    <p className="text-muted-foreground mt-1 text-sm">
-                        Enquanto não houver nenhuma conta conectada, não há para onde publicar.
-                    </p>
-                </div>
-            )}
 
             {/* Cards quadrados: a lista de contas vive no detalhe, não na carta —
                 era o que deixava tudo largo e baixo. */}
@@ -192,9 +179,7 @@ export default function Conexoes({ redes, totalConectado }: { redes: Rede[]; tot
                                                 >
                                                     {rede.andando}
                                                 </span>
-                                                <span className="text-muted-foreground block text-[0.6rem] leading-tight">
-                                                    indo
-                                                </span>
+                                                <span className="text-muted-foreground block text-[0.6rem] leading-tight">indo</span>
                                             </span>
                                         )}
 
@@ -206,19 +191,13 @@ export default function Conexoes({ redes, totalConectado }: { redes: Rede[]; tot
                                                 >
                                                     {rede.falhas}
                                                 </span>
-                                                <span className="text-muted-foreground block text-[0.6rem] leading-tight">
-                                                    não foi
-                                                </span>
+                                                <span className="text-muted-foreground block text-[0.6rem] leading-tight">não foi</span>
                                             </span>
                                         )}
                                     </span>
                                 ) : (
                                     <span className="text-muted-foreground text-center text-[0.6rem] leading-tight">
-                                        {rede.disponivel
-                                            ? 'Conectar'
-                                            : rede.faltaConfigurar
-                                              ? 'Falta configurar'
-                                              : rede.situacaoRotulo}
+                                        {rede.disponivel ? 'Conectar' : rede.faltaConfigurar ? 'Falta configurar' : rede.situacaoRotulo}
                                     </span>
                                 )}
                             </button>
@@ -273,7 +252,7 @@ export default function Conexoes({ redes, totalConectado }: { redes: Rede[]; tot
                                             setADesconectar(conta);
                                         }}
                                         aria-label={`Desconectar ${conta.nome}`}
-                                        className="text-muted-foreground hover:text-[color:var(--destructive)] focus-visible:ring-ring shrink-0 rounded p-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                                        className="text-muted-foreground focus-visible:ring-ring shrink-0 rounded p-1 transition-colors hover:text-[color:var(--destructive)] focus-visible:ring-2 focus-visible:outline-none"
                                     >
                                         <Unplug className="size-3.5" aria-hidden="true" />
                                     </button>
@@ -305,16 +284,14 @@ export default function Conexoes({ redes, totalConectado }: { redes: Rede[]; tot
                         <MarcaDaRede rede={conectando?.valor ?? ''} className="size-8" />
                         Conectar {conectando?.rotulo}
                     </DialogTitle>
-                    <DialogDescription>
-                        Você pode conectar quantas contas quiser — cada uma aparece separada na hora de publicar.
-                    </DialogDescription>
+                    <DialogDescription>Você pode conectar quantas contas quiser — cada uma aparece separada na hora de publicar.</DialogDescription>
 
                     {/* ⭐ DEC-41: explicar o que pedimos e o que NÃO pedimos. O medo
                         de dar acesso total é documentado, e custa quase nada tratar. */}
                     <div className="border-border rounded-lg border border-dashed p-3">
                         <p className="flex items-center gap-1.5 text-sm font-medium">
-                            <ShieldCheck className="size-4 shrink-0" style={{ color: 'var(--saude-ok)' }} aria-hidden="true" />
-                            O que pedimos, e o que não pedimos
+                            <ShieldCheck className="size-4 shrink-0" style={{ color: 'var(--saude-ok)' }} aria-hidden="true" />O que pedimos, e o que
+                            não pedimos
                         </p>
 
                         {conectando?.valor === 'youtube' ? (
@@ -349,16 +326,15 @@ export default function Conexoes({ redes, totalConectado }: { redes: Rede[]; tot
                         <div className="rounded-lg border border-[color:var(--saude-atencao)]/30 bg-[color:var(--saude-atencao)]/10 p-3 text-sm">
                             <p className="font-medium">Enquanto a aprovação do YouTube não sair</p>
                             <p className="text-muted-foreground mt-1">
-                                Todo vídeo enviado por aqui fica <strong>privado</strong> — é regra do YouTube para aplicativos ainda não
-                                auditados, e vale mesmo que você escolha “público”. Você consegue ver e testar tudo; só outras pessoas ainda
-                                não.
+                                Todo vídeo enviado por aqui fica <strong>privado</strong> — é regra do YouTube para aplicativos ainda não auditados, e
+                                vale mesmo que você escolha “público”. Você consegue ver e testar tudo; só outras pessoas ainda não.
                             </p>
                             {/* DEC-46: a consequência do escopo mínimo, dita ANTES
                                 de conectar — não descoberta depois. */}
                             <p className="text-muted-foreground mt-2">
-                                Quando a aprovação sair, esses vídeos <strong>continuam privados</strong> e você os torna públicos no YouTube
-                                Studio. Isso acontece porque <strong>não pedimos permissão para alterar nem apagar vídeos do seu canal</strong>{' '}
-                                — e não há como pedir uma sem a outra.
+                                Quando a aprovação sair, esses vídeos <strong>continuam privados</strong> e você os torna públicos no YouTube Studio.
+                                Isso acontece porque <strong>não pedimos permissão para alterar nem apagar vídeos do seu canal</strong> — e não há
+                                como pedir uma sem a outra.
                             </p>
                         </div>
                     )}
@@ -372,50 +348,48 @@ export default function Conexoes({ redes, totalConectado }: { redes: Rede[]; tot
                                     Cancelar
                                 </Button>
                             </DialogClose>
-                            <Button onClick={() => (window.location.href = route('conexoes.youtube'))}>
-                                Autorizar no Google
-                            </Button>
+                            <Button onClick={() => (window.location.href = route('conexoes.youtube'))}>Autorizar no Google</Button>
                         </DialogFooter>
                     ) : (
-                    <form onSubmit={conectar} className="space-y-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="identificador">Seu nome de usuário</Label>
-                            <Input
-                                id="identificador"
-                                value={data.identificador}
-                                onChange={(e) => setData('identificador', e.target.value)}
-                                placeholder="voce.bsky.social"
-                                autoComplete="off"
-                                aria-invalid={!!errors.identificador}
-                            />
-                            <ErroDeCampo mensagem={errors.identificador} />
-                        </div>
+                        <form onSubmit={conectar} className="space-y-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="identificador">Seu nome de usuário</Label>
+                                <Input
+                                    id="identificador"
+                                    value={data.identificador}
+                                    onChange={(e) => setData('identificador', e.target.value)}
+                                    placeholder="voce.bsky.social"
+                                    autoComplete="off"
+                                    aria-invalid={!!errors.identificador}
+                                />
+                                <ErroDeCampo mensagem={errors.identificador} />
+                            </div>
 
-                        <div className="grid gap-2">
-                            <Label htmlFor="senha_de_aplicativo">Senha de aplicativo</Label>
-                            <CampoSenha
-                                id="senha_de_aplicativo"
-                                value={data.senha_de_aplicativo}
-                                onChange={(e) => setData('senha_de_aplicativo', e.target.value)}
-                                placeholder="xxxx-xxxx-xxxx-xxxx"
-                                autoComplete="off"
-                                aria-invalid={!!errors.senha_de_aplicativo}
-                            />
-                            <ErroDeCampo mensagem={errors.senha_de_aplicativo} />
-                        </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="senha_de_aplicativo">Senha de aplicativo</Label>
+                                <CampoSenha
+                                    id="senha_de_aplicativo"
+                                    value={data.senha_de_aplicativo}
+                                    onChange={(e) => setData('senha_de_aplicativo', e.target.value)}
+                                    placeholder="xxxx-xxxx-xxxx-xxxx"
+                                    autoComplete="off"
+                                    aria-invalid={!!errors.senha_de_aplicativo}
+                                />
+                                <ErroDeCampo mensagem={errors.senha_de_aplicativo} />
+                            </div>
 
-                        <DialogFooter>
-                            <DialogClose asChild>
-                                <Button type="button" variant="secondary">
-                                    Cancelar
+                            <DialogFooter>
+                                <DialogClose asChild>
+                                    <Button type="button" variant="secondary">
+                                        Cancelar
+                                    </Button>
+                                </DialogClose>
+                                <Button type="submit" disabled={processing}>
+                                    {processing && <LoaderCircle className="mr-1.5 size-4 animate-spin" aria-hidden="true" />}
+                                    Conectar
                                 </Button>
-                            </DialogClose>
-                            <Button type="submit" disabled={processing}>
-                                {processing && <LoaderCircle className="mr-1.5 size-4 animate-spin" aria-hidden="true" />}
-                                Conectar
-                            </Button>
-                        </DialogFooter>
-                    </form>
+                            </DialogFooter>
+                        </form>
                     )}
                 </DialogContent>
             </Dialog>
@@ -425,8 +399,8 @@ export default function Conexoes({ redes, totalConectado }: { redes: Rede[]; tot
                 <DialogContent>
                     <DialogTitle>Desconectar {aDesconectar?.nome}?</DialogTitle>
                     <DialogDescription>
-                        Paramos de publicar nessa conta e apagamos a senha de aplicativo guardada aqui. O que já foi publicado continua no ar, e
-                        o histórico com os links continua nesta tela.
+                        Paramos de publicar nessa conta e apagamos a senha de aplicativo guardada aqui. O que já foi publicado continua no ar, e o
+                        histórico com os links continua nesta tela.
                     </DialogDescription>
                     <DialogFooter>
                         <DialogClose asChild>
@@ -446,6 +420,6 @@ export default function Conexoes({ redes, totalConectado }: { redes: Rede[]; tot
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </LayoutPainel>
+        </section>
     );
 }

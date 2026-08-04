@@ -555,7 +555,7 @@ it('conecta o canal de ponta a ponta e guarda a credencial cifrada', function ()
 
     $this->actingAs($dono)
         ->get('/conexoes/youtube/retorno?code=codigo-do-google&state='.$query['state'])
-        ->assertRedirect(route('conexoes'))
+        ->assertRedirect(route('painel'))
         ->assertSessionHas('sucesso');
 
     ContextoDoUsuario::definir($dono);
@@ -575,7 +575,7 @@ it('recusa o retorno sem o `state` da sessao (CSRF)', function () {
 
     $this->actingAs(cliente())
         ->get('/conexoes/youtube/retorno?code=x&state=forjado')
-        ->assertRedirect(route('conexoes'))
+        ->assertRedirect(route('painel'))
         ->assertSessionHas('erro');
 
     ContextoDoUsuario::definir(cliente());

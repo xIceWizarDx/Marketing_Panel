@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ContaSocial;
 use App\Models\Destino;
 use App\Models\Publicacao;
+use App\Support\Conexao\ResumoDasRedes;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -28,6 +29,10 @@ class VisaoGeralController extends Controller
     /** O suficiente para dar o pulso do dia sem virar uma segunda tela de listagem. */
     private const ULTIMAS = 5;
 
+    public function __construct(
+        private readonly ResumoDasRedes $redes,
+    ) {}
+
     public function __invoke(): Response
     {
         $contas = ContaSocial::with('credencial:id,conta_social_id,expira_em')->get();
@@ -39,6 +44,10 @@ class VisaoGeralController extends Controller
             // ⭐ O bloco que justifica abrir o painel: o que está esperando VOCÊ.
             'pendencias' => $this->pendencias($contas, $numeros),
             'primeirosPassos' => $this->primeirosPassos($contas),
+            // ⭐ Conexões deixou de ser tela (DEC-63): o estado das redes mora
+            // aqui, com o semáforo à vista. Escondido atrás de um clique, ele
+            // vira algo que se descobre depois de já ter perdido a publicação.
+            ...$this->redes->montar(),
         ]);
     }
 
@@ -138,7 +147,8 @@ class VisaoGeralController extends Controller
                     ? "A conexão de {$vencendo->first()->nome_exibicao} está para vencer."
                     : "{$vencendo->count()} conexões estão para vencer.",
                 'acao' => 'Reconectar',
-                'url' => route('conexoes'),
+                // A grade fica logo abaixo, nesta mesma tela.
+                'url' => route('painel').'#redes',
             ];
         }
 
@@ -151,7 +161,7 @@ class VisaoGeralController extends Controller
                     ? "{$quebradas->first()->nome_exibicao} parou de publicar."
                     : "{$quebradas->count()} contas pararam de publicar.",
                 'acao' => 'Resolver',
-                'url' => route('conexoes'),
+                'url' => route('painel').'#redes',
             ];
         }
 
@@ -174,7 +184,7 @@ class VisaoGeralController extends Controller
                 'titulo' => 'Conectar uma rede',
                 'texto' => 'Você autoriza no site da própria rede; sua senha nunca passa por aqui.',
                 'feito' => $contas->filter->podePublicar()->isNotEmpty(),
-                'url' => route('conexoes'),
+                'url' => route('painel').'#redes',
             ],
             [
                 // ⚠️ Enviar deixou de ser etapa própria: o arquivo entra dentro
