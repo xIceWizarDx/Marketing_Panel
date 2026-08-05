@@ -89,10 +89,10 @@ export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean;
                                                 "as redes deste grupo", e nao quatro coisas
                                                 soltas disputando atencao com o nome. */}
                                             {grupo.plataformas.length > 0 && (
-                                                <span className="flex items-center -space-x-1.5">
+                                                <span className="flex items-center -space-x-2">
                                                     {grupo.plataformas.map((rede) => (
                                                         <span key={rede} className="ring-background rounded-md ring-2">
-                                                            <MarcaDaRede rede={rede} className="size-5 rounded-md" />
+                                                            <MarcaDaRede rede={rede} className="size-6 rounded-md" />
                                                         </span>
                                                     ))}
                                                 </span>

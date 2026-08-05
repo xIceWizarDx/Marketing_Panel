@@ -80,7 +80,12 @@ export default function MarcaDaRede({ rede, className }: { rede: string; classNa
             className={cn('flex size-10 shrink-0 items-center justify-center rounded-xl', className)}
             style={{ backgroundColor: `#${marca.hex}` }}
         >
-            <svg viewBox={marca.caixa ?? '0 0 24 24'} className="size-5" fill={glifoEscuro.has(rede) ? '#000' : '#fff'} role="presentation">
+            {/* ⚠️ Metade do quadro, não 20px fixos.
+                Com tamanho fixo, todo uso menor que `size-10` ficava com o
+                glifo grande demais — e nos de 16px ele TRANSBORDAVA a marca,
+                porque nada aqui corta o que sobra. A proporção é a mesma do
+                tamanho padrão, então nenhum uso existente muda de cara. */}
+            <svg viewBox={marca.caixa ?? '0 0 24 24'} className="size-1/2" fill={glifoEscuro.has(rede) ? '#000' : '#fff'} role="presentation">
                 <path d={marca.path} />
             </svg>
         </span>
