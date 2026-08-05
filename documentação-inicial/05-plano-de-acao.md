@@ -1806,3 +1806,17 @@ onde só restaram contas desconectadas parece **vazio** para ela — e ficava im
 sem nada em tela explicando o quê. Ela ficava presa num grupo que não enxerga.
 
 ⚠️ A linha da conta continua sobrevivendo: o histórico aponta para ela.
+
+**DEC-86 — a lista de "primeiros passos" sai da Visão geral.** Ela marcava dois passos: conectar
+uma rede e publicar o primeiro vídeo.
+
+⛔ **Ensinava o que a tela já mostrava.** A grade de redes está logo abaixo dela, vazia, dizendo a
+mesma coisa; e o número "0 no ar" já responde o segundo passo. Ocupava a porta de entrada de quem
+abre o painel todo dia para resolver uma coisa que acontece uma vez.
+
+⚠️ **Isso não fecha a porta para receber quem chega** — só reconhece que uma lista de tarefas na
+tela principal não era a resposta. Quando existir uma primeira-vez de verdade, ela nasce como
+primeira-vez, e não como bloco permanente.
+
+⭐ **Saneamento radical:** saiu a seção, a prop, o método do controller, a interface do front e o
+teste. Meia remoção deixaria um payload calculado a cada requisição para ninguém.

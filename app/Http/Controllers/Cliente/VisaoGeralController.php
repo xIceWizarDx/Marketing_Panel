@@ -6,7 +6,6 @@ use App\Enums\StatusDestino;
 use App\Http\Controllers\Controller;
 use App\Models\ContaSocial;
 use App\Models\Destino;
-use App\Models\Publicacao;
 use App\Support\Conexao\ResumoDasRedes;
 use App\Support\GrupoCorrente;
 use Illuminate\Support\Collection;
@@ -51,7 +50,6 @@ class VisaoGeralController extends Controller
             'numeros' => $numeros,
             // ⭐ O bloco que justifica abrir o painel: o que está esperando VOCÊ.
             'pendencias' => $this->pendencias($contas, $numeros),
-            'primeirosPassos' => $this->primeirosPassos($contas),
             // ⭐ Conexões deixou de ser tela (DEC-63): o estado das redes mora
             // aqui, com o semáforo à vista. Escondido atrás de um clique, ele
             // vira algo que se descobre depois de já ter perdido a publicação.
@@ -192,47 +190,5 @@ class VisaoGeralController extends Controller
         $redes = $contas->map(fn (ContaSocial $c) => $c->plataforma->value)->unique();
 
         return $redes->count() === 1 ? $redes->first() : null;
-    }
-
-    /**
-     * Os primeiros passos — que **se marcam** conforme acontecem.
-     *
-     * A tela antiga repetia o mesmo convite para sempre. Uma lista que completa
-     * mostra progresso; um cartaz fixo mostra que ninguém está olhando.
-     *
-     * @param  Collection<int, ContaSocial>  $contas
-     * @return list<array{titulo: string, texto: string, feito: bool, url: ?string, abreCatalogo: bool}>
-     */
-    private function primeirosPassos($contas): array
-    {
-        return [
-            [
-                'titulo' => 'Conectar uma rede',
-                'texto' => 'Você autoriza no site da própria rede; sua senha nunca passa por aqui.',
-                // Só conta canal DESTE grupo: com o grupo novo vazio, o passo
-                // reabre — é a instrução certa para o estado em que ela está.
-                'feito' => $contas->filter(fn (ContaSocial $c) => $c->grupo_id === GrupoCorrente::id())
-                    ->filter->podePublicar()
-                    ->isNotEmpty(),
-                // ⚠️ Não é link: conectar acontece NESTA tela, num modal. Levar
-                // para a página onde a pessoa já está seria um link morto.
-                'url' => null,
-                'abreCatalogo' => true,
-            ],
-            [
-                // ⚠️ Enviar deixou de ser etapa própria: o arquivo entra dentro
-                // do compositor. Manter dois passos descreveria um caminho que
-                // não existe mais.
-                'titulo' => 'Publicar o primeiro vídeo',
-                'texto' => 'A gente confere o arquivo contra as regras de cada rede, publica e depois '.
-                    'relê na própria rede para guardar o link como prova.',
-                'feito' => Publicacao::query()
-                    ->where('grupo_id', GrupoCorrente::id())
-                    ->whereNotNull('enviada_em')
-                    ->exists(),
-                'url' => route('publicar'),
-                'abreCatalogo' => false,
-            ],
-        ];
     }
 }

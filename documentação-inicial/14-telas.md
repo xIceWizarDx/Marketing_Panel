@@ -161,7 +161,10 @@ enquanto eu não estava olhando*, e cada seção responde uma parte disso:
 2. **Como está** — os três lados do mesmo fato: `no ar` · `a caminho` · `não subiram`. A falha do
    lado do acerto, no mesmo tamanho. "A caminho" e "não subiram" só aparecem quando existem.
 3. **Suas redes** — a grade da seção 3, com o semáforo do token à vista.
-4. **Primeiros passos** — só enquanto houver passo por fazer; some sozinho quando tudo está feito.
+
+🔜 **Falta:** um caminho para quem chega e não sabe por onde começar. A lista de "primeiros passos"
+existiu e saiu (DEC-86) — ela ensinava o que a tela já mostrava, e ocupava a porta de entrada de
+quem usa o painel todo dia.
 
 ⛔ **Publicação não aparece aqui** (DEC-68). Uma prévia das últimas era a lista de Publicações com
 outra moldura — e lista duplicada envelhece: um dia uma mostra o que a outra não mostra, e nenhuma

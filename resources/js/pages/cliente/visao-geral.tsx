@@ -1,5 +1,5 @@
 import { Head, Link, usePage } from '@inertiajs/react';
-import { AlertTriangle, ArrowRight, Check } from 'lucide-react';
+import { AlertTriangle, ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 
 import CabecalhoDePagina from '@/components/cabecalho-de-pagina';
@@ -20,19 +20,9 @@ interface Pendencia {
     rede: string | null;
 }
 
-interface Passo {
-    titulo: string;
-    texto: string;
-    feito: boolean;
-    url: string | null;
-    /** Conectar acontece nesta tela, num modal — não é link. */
-    abreCatalogo: boolean;
-}
-
 interface Props {
     numeros: { noAr: number; andando: number; falharam: number };
     pendencias: Pendencia[];
-    primeirosPassos: Passo[];
     /** ⭐ Conexões deixou de ser tela (DEC-63): as redes moram aqui. */
     redes: Rede[];
     totalConectado: number;
@@ -56,7 +46,7 @@ interface Props {
  * dentro desperdiça a linha inteira e faz o olho varrer da esquerda à direita
  * para ler três dígitos.
  */
-export default function VisaoGeral({ numeros, pendencias, primeirosPassos, redes, totalConectado }: Props) {
+export default function VisaoGeral({ numeros, pendencias, redes, totalConectado }: Props) {
     const { auth } = usePage<DadosCompartilhados>().props;
     const primeiroNome = auth.usuario?.nome.split(' ')[0] ?? '';
 
@@ -65,9 +55,6 @@ export default function VisaoGeral({ numeros, pendencias, primeirosPassos, redes
         ativo: numeros.andando > 0,
         propriedades: ['numeros', 'pendencias', 'redes'],
     });
-
-    // Enquanto a pessoa não tiver publicado, ensinar vale mais que resumir.
-    const comecando = primeirosPassos.some((passo) => !passo.feito);
 
     /*
      * ⛔ O que está aberto na grade de redes mora AQUI, não lá dentro.
@@ -180,51 +167,6 @@ export default function VisaoGeral({ numeros, pendencias, primeirosPassos, redes
                     escolhendo={escolhendoRede}
                     aoEscolher={setEscolhendoRede}
                 />
-
-                {/* ─── PRIMEIROS PASSOS ─────────────────────────────────────── */}
-                {/* Some sozinho quando tudo está feito: uma lista que completa
-                    mostra progresso; um cartaz fixo mostra que ninguém olha.
-
-                    Retângulo de novo pela mesma razão: é texto explicando. */}
-                {comecando && (
-                    <section>
-                        <TituloDeSecao titulo="Primeiros passos" />
-
-                        <ol className="border-border bg-card divide-border divide-y rounded-xl border">
-                            {primeirosPassos.map((passo) => (
-                                <li key={passo.titulo} className="flex gap-3 p-4">
-                                    <span
-                                        aria-hidden="true"
-                                        className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-sm border"
-                                        style={passo.feito ? { background: 'var(--saude-ok)', borderColor: 'var(--saude-ok)' } : undefined}
-                                    >
-                                        {passo.feito && <Check className="size-3 text-white" />}
-                                    </span>
-
-                                    <span className={`text-sm ${passo.feito ? 'text-muted-foreground line-through' : ''}`}>
-                                        {passo.feito ? (
-                                            <strong className="font-medium">{passo.titulo}</strong>
-                                        ) : passo.abreCatalogo ? (
-                                            /* Conectar acontece aqui, num modal. */
-                                            <button
-                                                type="button"
-                                                onClick={() => setEscolhendoRede(true)}
-                                                className="font-medium text-[color:var(--accent)] hover:underline"
-                                            >
-                                                {passo.titulo}
-                                            </button>
-                                        ) : (
-                                            <Link href={passo.url ?? ''} className="font-medium text-[color:var(--accent)] hover:underline">
-                                                {passo.titulo}
-                                            </Link>
-                                        )}
-                                        <span className="text-muted-foreground block text-xs">{passo.texto}</span>
-                                    </span>
-                                </li>
-                            ))}
-                        </ol>
-                    </section>
-                )}
             </div>
         </LayoutPainel>
     );

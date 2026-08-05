@@ -127,24 +127,6 @@ describe('⛔ o aviso de vencimento (o que NÃO pode virar ruído)', function ()
     });
 });
 
-it('os primeiros passos vão sendo marcados', function () {
-    // ⚠️ São DOIS passos agora: enviar deixou de ser etapa própria, porque o
-    // arquivo entra dentro do compositor. Manter três descreveria um caminho
-    // que não existe mais.
-    $dono = cliente();
-    ContextoDoUsuario::definir($dono);
-    ContaSocial::factory()->doUsuario($dono)->comCredencial()->create();
-    ContextoDoUsuario::limpar();
-
-    $this->actingAs($dono)
-        ->get('/painel')
-        ->assertInertia(fn ($p) => $p
-            ->has('primeirosPassos', 2)
-            ->where('primeirosPassos.0.feito', true)
-            // Ainda não publicou: o passo continua aberto, com o caminho.
-            ->where('primeirosPassos.1.feito', false));
-});
-
 it('⛔ não soma o número de outro cliente', function () {
     $ana = cliente();
     $bruno = cliente();
