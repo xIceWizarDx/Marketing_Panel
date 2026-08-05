@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Enums\Papel;
+use App\Enums\StatusConta;
 use App\Models\Grupo;
 use App\Services\ImpersonacaoService;
 use App\Support\GrupoCorrente;
@@ -67,14 +68,20 @@ class HandleInertiaRequests extends Middleware
                  *
                  * As contagens vêm porque a janela de gerenciar abre por cima
                  * de qualquer tela, sem pedir nada ao servidor — e são elas que
-                 * dizem POR QUE um grupo não pode ser arquivado. Sumir com o
+                 * dizem POR QUE um grupo não pode ser excluído. Sumir com o
                  * botão deixaria a pessoa sem saber o que fazer.
                  */
                 'lista' => Grupo::query()
-                    ->withCount(['contasSociais as canais', 'publicacoes as publicacoes'])
+                    ->withCount([
+                        // ⚠️ Só rede CONECTADA. A desconectada não aparece na
+                        // grade, então contá-la aqui faria a tela dizer "1 rede"
+                        // num grupo que a pessoa vê vazio.
+                        'contasSociais as redes' => fn ($q) => $q->where('status', '!=', StatusConta::Desconectada->value),
+                        'publicacoes as publicacoes',
+                    ])
                     ->oldest('id')
                     ->get(['id', 'ulid', 'nome'])
-                    ->map->only(['ulid', 'nome', 'canais', 'publicacoes'])
+                    ->map->only(['ulid', 'nome', 'redes', 'publicacoes'])
                     ->all(),
             ] : null,
 

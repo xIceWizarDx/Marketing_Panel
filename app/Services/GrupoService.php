@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Tudo que cria, muda e arquiva grupo — **e o escritor único de
+ * Tudo que cria, muda e exclui grupo — **e o escritor único de
  * `contas_sociais.grupo_id`**.
  *
  * ⚠️ Escritor único porque mover um canal de grupo é a operação que mais
@@ -79,25 +79,25 @@ class GrupoService
     }
 
     /**
-     * ⛔ Arquiva só grupo **sem canal**, e nunca o último (DEC-76).
+     * ⛔ Só exclui grupo **sem rede conectada**, e nunca o último (DEC-76).
      *
-     * ⚠️ Canal desconectado também segura: a linha dele sobrevive porque o
-     * histórico aponta para ela, e arquivar por baixo deixaria esse histórico
-     * pendurado num grupo que ninguém mais enxerga.
+     * ⚠️ Por baixo é *soft delete*, e isso é **assunto do banco** — serve para
+     * auditoria, não para a pessoa. A tela diz "excluir" e não promete volta:
+     * prometer recuperação criaria uma expectativa que nenhuma tela cumpre.
      *
      * @throws ValidationException
      */
-    public function arquivar(Grupo $grupo): void
+    public function excluir(Grupo $grupo): void
     {
-        if ($grupo->temCanal()) {
+        if ($grupo->temRedeConectada()) {
             throw ValidationException::withMessages([
-                'grupo' => 'Este grupo ainda tem canais. Mova ou desconecte os canais antes de arquivá-lo.',
+                'grupo' => 'Este grupo ainda tem redes conectadas. Desconecte ou mova as redes antes de excluí-lo.',
             ]);
         }
 
         if (Grupo::count() <= 1) {
             throw ValidationException::withMessages([
-                'grupo' => 'Você precisa de pelo menos um grupo — é onde seus canais ficam.',
+                'grupo' => 'Você precisa de pelo menos um grupo — é onde suas redes ficam.',
             ]);
         }
 

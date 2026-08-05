@@ -13,7 +13,7 @@ import { type DadosCompartilhados, type Grupo } from '@/types';
  * Onde os grupos se administram — **por cima da tela em que a pessoa já estava**.
  *
  * ⭐ Não é tela, e nem precisa ser: criar e renomear são gestos de um campo só,
- * e arquivar é uma confirmação. Uma página inteira para isso obrigaria a sair
+ * e excluir é uma confirmação. Uma página inteira para isso obrigaria a sair
  * de onde se está e voltar depois, para uma tarefa de quinze segundos.
  *
  * ⚠️ Abre do **seletor**, que vive na barra do topo de toda tela. Enterrar isto
@@ -21,15 +21,15 @@ import { type DadosCompartilhados, type Grupo } from '@/types';
  * ela tem na frente dos olhos o tempo todo.
  *
  * ⛔ Os números de canais e publicações não são enfeite: são o **motivo** de o
- * botão de arquivar estar apagado. Sumir com o botão deixaria a pessoa sem
- * saber o que fazer para conseguir arquivar.
+ * botão de excluir estar apagado. Sumir com o botão deixaria a pessoa sem
+ * saber o que fazer para conseguir excluir.
  */
 export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean; aoFechar: () => void }) {
     const { grupos } = usePage<DadosCompartilhados>().props;
 
     const [criando, setCriando] = useState(false);
     const [aRenomear, setARenomear] = useState<Grupo | null>(null);
-    const [aArquivar, setAArquivar] = useState<Grupo | null>(null);
+    const [aExcluir, setAExcluir] = useState<Grupo | null>(null);
 
     if (!grupos?.atual) {
         return null;
@@ -49,9 +49,12 @@ export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean;
 
                     <ul className="border-border divide-border divide-y rounded-lg border">
                         {lista.map((grupo) => {
-                            const porQueNaoArquiva =
-                                grupo.canais > 0
-                                    ? 'Mova ou desconecte os canais antes de arquivar'
+                            // ⚠️ O motivo aparece no `title` em vez de o botão
+                            // sumir: sumir deixaria a pessoa sem saber o que
+                            // fazer para conseguir excluir.
+                            const porQueNaoExclui =
+                                grupo.redes > 0
+                                    ? 'Desconecte ou mova as redes antes de excluir'
                                     : lista.length === 1
                                       ? 'Você precisa de pelo menos um grupo'
                                       : null;
@@ -71,7 +74,7 @@ export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean;
                                             )}
                                         </p>
                                         <p className="text-muted-foreground text-xs">
-                                            {contar(grupo.canais, 'canal', 'canais')} · {contar(grupo.publicacoes, 'publicação', 'publicações')}
+                                            {contar(grupo.redes, 'rede', 'redes')} · {contar(grupo.publicacoes, 'publicação', 'publicações')}
                                         </p>
                                     </div>
 
@@ -87,10 +90,10 @@ export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean;
 
                                         <button
                                             type="button"
-                                            disabled={!!porQueNaoArquiva}
-                                            title={porQueNaoArquiva ?? `Arquivar ${grupo.nome}`}
-                                            onClick={() => setAArquivar(grupo)}
-                                            aria-label={`Arquivar ${grupo.nome}`}
+                                            disabled={!!porQueNaoExclui}
+                                            title={porQueNaoExclui ?? `Excluir ${grupo.nome}`}
+                                            onClick={() => setAExcluir(grupo)}
+                                            aria-label={`Excluir ${grupo.nome}`}
                                             className="text-muted-foreground focus-visible:ring-ring rounded-md p-1.5 transition-colors hover:text-[color:var(--destructive)] focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-current"
                                         >
                                             <Trash2 className="size-3.5" aria-hidden="true" />
@@ -137,14 +140,17 @@ export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean;
                 destino={aRenomear ? route('grupos.renomear', aRenomear.ulid) : ''}
             />
 
-            <Dialog open={!!aArquivar} onOpenChange={(estado) => !estado && setAArquivar(null)}>
+            {/* ⛔ Não diz que dá para recuperar. Por baixo é *soft delete*,
+                mas isso é assunto do banco — existe para auditoria, não para a
+                pessoa. Prometer volta criaria uma expectativa que tela nenhuma
+                cumpre, e "excluí sem querer, dá pra voltar?" vira suporte. */}
+            <Dialog open={!!aExcluir} onOpenChange={(estado) => !estado && setAExcluir(null)}>
                 <DialogContent>
-                    <DialogTitle>Arquivar «{aArquivar?.nome}»?</DialogTitle>
+                    <DialogTitle>Excluir «{aExcluir?.nome}»?</DialogTitle>
                     <DialogDescription>
-                        Ele sai do seletor e você deixa de publicar por ele.{' '}
-                        {(aArquivar?.publicacoes ?? 0) > 0
-                            ? 'As publicações que já saíram continuam no histórico.'
-                            : 'Ele está vazio, então nada se perde.'}
+                        {(aExcluir?.publicacoes ?? 0) > 0
+                            ? `Ele sai do seletor, e as ${aExcluir?.publicacoes} publicações feitas por ele saem do painel.`
+                            : 'Ele sai do seletor. Está vazio, então nada mais sai junto.'}
                     </DialogDescription>
                     <DialogFooter>
                         <DialogClose asChild>
@@ -153,14 +159,14 @@ export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean;
                         <Button
                             variant="destructive"
                             onClick={() =>
-                                aArquivar &&
-                                router.delete(route('grupos.arquivar', aArquivar.ulid), {
+                                aExcluir &&
+                                router.delete(route('grupos.excluir', aExcluir.ulid), {
                                     preserveScroll: true,
-                                    onFinish: () => setAArquivar(null),
+                                    onFinish: () => setAExcluir(null),
                                 })
                             }
                         >
-                            Arquivar
+                            Excluir
                         </Button>
                     </DialogFooter>
                 </DialogContent>

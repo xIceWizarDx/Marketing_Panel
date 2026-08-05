@@ -142,7 +142,7 @@ class EnvioDePublicacao
      * novela no canal de notícias — e publicação não tem desfazer.
      *
      * ⚠️ Compara a **coluna** `grupo_id`, nunca `$conta->grupo?->id`: grupo
-     * arquivado faz a relação devolver `null`, e dois `null` passariam por "o
+     * excluído faz a relação devolver `null`, e dois `null` passariam por "o
      * mesmo grupo".
      *
      * @param  Collection<int, ContaSocial>  $contas

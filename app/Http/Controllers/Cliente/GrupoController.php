@@ -13,7 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Criar, renomear, arquivar e trocar de grupo — **só ações**.
+ * Criar, renomear, excluir e trocar de grupo — **só ações**.
  *
  * ⛔ Grupo não tem tela (DEC-71): ele é modo, e modo se mostra onde a pessoa
  * está. Tudo aqui acontece por diálogo em cima da tela em que ela já estava.
@@ -52,18 +52,18 @@ class GrupoController extends Controller
         return back()->with('sucesso', "Agora ele se chama «{$grupo->nome}».");
     }
 
-    public function arquivar(string $ulid): RedirectResponse
+    public function excluir(string $ulid): RedirectResponse
     {
         $grupo = Grupo::where('ulid', $ulid)->firstOrFail();
         $nome = $grupo->nome;
 
-        $this->grupos->arquivar($grupo);
+        $this->grupos->excluir($grupo);
 
-        // Arquivou o que estava em foco: o resolvedor elege outro sozinho na
+        // Excluiu o que estava em foco: o resolvedor elege outro sozinho na
         // próxima leitura, em vez de deixar a tela apontando para o nada.
         GrupoCorrente::esquecer();
 
-        return back()->with('sucesso', "Grupo «{$nome}» arquivado.");
+        return back()->with('sucesso', "Grupo «{$nome}» excluído.");
     }
 
     /** ⛔ POST, nunca GET: com GET o prefetch do navegador trocaria o modo sozinho. */

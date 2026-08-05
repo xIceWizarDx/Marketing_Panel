@@ -67,7 +67,7 @@ class ExclusaoDeConta
                 Midia::query()->delete();
 
                 // O grupo é o último: tudo o mais apontava para ele. `withTrashed`
-                // porque grupo arquivado continua sendo linha no banco.
+                // porque grupo já excluído continua sendo linha no banco.
                 Grupo::withoutGlobalScope(EscopoDoUsuario::class)
                     ->withTrashed()
                     ->where('usuario_id', $usuario->id)

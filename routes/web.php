@@ -30,7 +30,7 @@ Route::middleware(['auth', 'papel:cliente'])->group(function () {
      */
     Route::post('grupos', [GrupoController::class, 'criar'])->name('grupos.criar');
     Route::patch('grupos/{ulid}', [GrupoController::class, 'renomear'])->name('grupos.renomear');
-    Route::delete('grupos/{ulid}', [GrupoController::class, 'arquivar'])->name('grupos.arquivar');
+    Route::delete('grupos/{ulid}', [GrupoController::class, 'excluir'])->name('grupos.excluir');
     Route::post('grupos/{ulid}/usar', [GrupoController::class, 'usar'])->name('grupos.usar');
     Route::patch('conexoes/{ulid}/grupo', [GrupoController::class, 'moverCanal'])->name('conexoes.grupo');
 

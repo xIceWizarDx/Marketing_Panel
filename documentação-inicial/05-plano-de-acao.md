@@ -1791,3 +1791,18 @@ Etiqueta de status, chip de conta e selo sobre miniatura viraram retângulos de 
 ⚠️ Saíram junto **dez primitivos de UI sem nenhum importador** (`badge`, `avatar`, `select`,
 `sheet`, `collapsible`, `tooltip`, `skeleton`, `alert`, `card`, `separator`). Cada um carregava um
 raio próprio, e código morto com estilo próprio é o caminho mais curto para o drift voltar.
+
+**DEC-84 — a tela diz EXCLUIR, e o *soft delete* é assunto do banco.** A linha sobrevive para
+auditoria, e só para isso. ⛔ **A interface nunca promete que dá para recuperar:** prometer criaria
+uma expectativa que tela nenhuma cumpre, e *"excluí sem querer, dá para voltar?"* vira chamado de
+suporte para uma coisa que só existe no banco.
+
+⚠️ Revoga o "arquivar" da DEC-76 como **palavra** — o mecanismo continua o mesmo.
+
+**DEC-85 — só rede CONECTADA segura a exclusão de um grupo.** Rede desconectada não segura mais.
+
+⭐ **O motivo é o que a pessoa vê:** conta desconectada não aparece na grade de redes. Um grupo
+onde só restaram contas desconectadas parece **vazio** para ela — e ficava impossível de excluir,
+sem nada em tela explicando o quê. Ela ficava presa num grupo que não enxerga.
+
+⚠️ A linha da conta continua sobrevivendo: o histórico aponta para ela.

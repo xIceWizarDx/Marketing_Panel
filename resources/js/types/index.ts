@@ -36,9 +36,14 @@ export interface Impersonacao {
 export interface Grupo {
     ulid: string;
     nome: string;
-    /** ⚠️ Sao o MOTIVO de arquivar estar bloqueado, nao enfeite. */
-    canais: number;
-    publicacoes: number;
+    /**
+      * ⚠️ Sao o MOTIVO de excluir estar bloqueado, nao enfeite.
+      *
+      * `redes` conta so o que esta CONECTADO — o mesmo recorte da grade, senao
+      * a tela diria "1 rede" num grupo que a pessoa ve vazio.
+      */
+     redes: number;
+     publicacoes: number;
 }
 
 /** ⭐ Em qual grupo a pessoa esta, e para onde ela pode ir. */

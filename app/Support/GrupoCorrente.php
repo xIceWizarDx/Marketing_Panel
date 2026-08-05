@@ -54,7 +54,7 @@ class GrupoCorrente
 
         $grupo = $ulid ? Grupo::where('ulid', $ulid)->first() : null;
 
-        // Sessão apontando para grupo arquivado ou alheio: reescreve em vez de
+        // Sessão apontando para grupo excluído ou alheio: reescreve em vez de
         // deixar a tela vazia sem explicação.
         $grupo ??= Grupo::oldest('id')->first() ?? app(GrupoService::class)->garantirPrincipal($usuario);
 

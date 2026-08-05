@@ -22,7 +22,7 @@ import { type DadosCompartilhados } from '@/types';
  * existe para evitar é publicar no lugar errado, saber onde se está tem que ser
  * gratuito — daí ele viver na barra do topo, visível em toda tela.
  *
- * ⛔ **Criar, renomear e arquivar não moram aqui:** abrem numa janela por cima
+ * ⛔ **Criar, renomear e excluir não moram aqui:** abrem numa janela por cima
  * da tela em que a pessoa já estava. Trocar de grupo é o gesto de todo dia;
  * administrar é o de uma vez por mês — juntos, o raro atrapalha o frequente e a
  * lista de grupos some no meio de botões.

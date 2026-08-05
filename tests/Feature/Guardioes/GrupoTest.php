@@ -185,59 +185,64 @@ describe('⭐ o histórico não se mexe (DEC-75)', function () {
     });
 });
 
-describe('⛔ arquivar (DEC-76)', function () {
-    it('não arquiva grupo que ainda tem canal', function () {
+describe('⛔ excluir (DEC-76)', function () {
+    it('não exclui grupo com rede conectada', function () {
         $ana = cliente();
         $noticias = grupoCom($ana, 'Notícias');
 
         ContextoDoUsuario::definir($ana);
 
-        expect(fn () => app(GrupoService::class)->arquivar($noticias))
+        expect(fn () => app(GrupoService::class)->excluir($noticias))
             ->toThrow(ValidationException::class);
     });
 
-    it('⚠️ canal DESCONECTADO também segura', function () {
-        // A linha da conta desconectada sobrevive porque o histórico aponta
-        // para ela; arquivar por baixo deixaria esse histórico pendurado num
-        // grupo que ninguém mais enxerga.
+    it('⭐ rede DESCONECTADA não segura', function () {
+        // Ela não aparece na grade — para a pessoa, o grupo está vazio. Segurar
+        // a exclusão por causa dela a deixaria presa num grupo que ela não vê,
+        // sem nada em tela explicando o que fazer.
         $ana = cliente();
         $noticias = grupoCom($ana, 'Notícias');
 
         ContextoDoUsuario::definir($ana);
         app(ContaSocialService::class)->desconectar($noticias->contasSociais()->first());
 
-        expect(fn () => app(GrupoService::class)->arquivar($noticias))
-            ->toThrow(ValidationException::class);
+        app(GrupoService::class)->excluir($noticias->fresh());
+
+        expect(Grupo::whereKey($noticias->id)->exists())->toBeFalse()
+            // ⛔ A linha da conta FICA: o histórico aponta para ela.
+            ->and(ContaSocial::count())->toBe(1);
     });
 
-    it('não arquiva o ÚLTIMO grupo', function () {
+    it('não exclui o ÚLTIMO grupo', function () {
         $ana = cliente();
         ContextoDoUsuario::definir($ana);
 
-        expect(fn () => app(GrupoService::class)->arquivar(Grupo::firstOrFail()))
+        expect(fn () => app(GrupoService::class)->excluir(Grupo::firstOrFail()))
             ->toThrow(ValidationException::class);
     });
 
-    it('arquiva grupo vazio quando há outro', function () {
+    it('exclui grupo vazio quando há outro', function () {
         $ana = cliente();
         ContextoDoUsuario::definir($ana);
 
         $vazio = app(GrupoService::class)->criar('Vazio');
-        app(GrupoService::class)->arquivar($vazio);
+        app(GrupoService::class)->excluir($vazio);
 
         expect(Grupo::count())->toBe(1)
+            // ⚠️ A linha sobrevive no banco — mas isso é para AUDITORIA, e a
+            // tela nunca promete que dá para recuperar.
             ->and(Grupo::withTrashed()->count())->toBe(2);
     });
 
-    it('⭐ grupo arquivado nunca volta a ser eleito o principal', function () {
-        // `withoutGlobalScopes()` derrubaria o escopo de dono E o de arquivado
-        // de uma vez, e o grupo que a pessoa arquivou voltaria por baixo.
+    it('⭐ grupo excluído nunca volta a ser eleito o principal', function () {
+        // `withoutGlobalScopes()` derrubaria o escopo de dono E o de excluído
+        // de uma vez, e o grupo que a pessoa excluiu voltaria por baixo.
         $ana = cliente();
         ContextoDoUsuario::definir($ana);
 
         $primeiro = Grupo::firstOrFail();
         app(GrupoService::class)->criar('Novelas');
-        app(GrupoService::class)->arquivar($primeiro);
+        app(GrupoService::class)->excluir($primeiro);
 
         expect(app(GrupoService::class)->garantirPrincipal($ana)->nome)->toBe('Novelas');
     });
@@ -343,7 +348,7 @@ describe('gerenciar grupos', function () {
     it('⛔ não é tela: as contagens vêm nas props de toda página', function () {
         // A janela de gerenciar abre por cima de onde a pessoa está, sem pedir
         // nada ao servidor — e os números de canais e publicações sao o MOTIVO
-        // de arquivar estar bloqueado, nao enfeite.
+        // de excluir estar bloqueado, nao enfeite.
         $ana = cliente();
         grupoCom($ana, 'Notícias');
 
@@ -352,7 +357,7 @@ describe('gerenciar grupos', function () {
         $this->actingAs($ana)
             ->get(route('painel'))
             ->assertInertia(fn ($p) => $p->has('grupos.lista', 2)
-                ->where('grupos.lista.1.canais', 1)
+                ->where('grupos.lista.1.redes', 1)
                 ->where('grupos.lista.1.publicacoes', 0));
     });
 });

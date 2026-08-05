@@ -26,15 +26,21 @@ return new class extends Migration
              * ⛔ SEM unique.
              *
              * Indice unico + soft delete e a armadilha classica: a pessoa
-             * arquiva "Noticias", tenta criar "Noticias" de novo e leva um erro
+             * exclui "Noticias", tenta criar "Noticias" de novo e leva um erro
              * sobre um grupo que ela nao enxerga mais em lugar nenhum.
              *
              * Dois grupos com o mesmo nome sao problema dela; o ULID distingue.
              */
             $tabela->string('nome');
 
-            // `deleted_at` e nome do framework: o SoftDeletes procura por ele.
-            // Renomear para `arquivado_em` desligaria o recurso em silencio.
+            /*
+             * ⛔ `deleted_at` e nome do framework: o SoftDeletes procura por ele.
+             * Renomear desligaria o recurso em silencio.
+             *
+             * ⚠️ A linha sobreviver e assunto do BANCO, para auditoria. Na tela
+             * a acao se chama "excluir" e nao promete volta — prometer criaria
+             * uma expectativa que tela nenhuma cumpre.
+             */
             $tabela->softDeletes();
             $tabela->timestamps();
 
