@@ -66,14 +66,27 @@ class GrupoController extends Controller
         return back()->with('sucesso', "Grupo «{$nome}» excluído.");
     }
 
-    /** ⛔ POST, nunca GET: com GET o prefetch do navegador trocaria o modo sozinho. */
-    public function usar(string $ulid): RedirectResponse
+    /**
+     * Troca o grupo em foco.
+     *
+     * ⛔ POST, nunca GET: com GET o prefetch do navegador trocaria o modo
+     * sozinho, e a próxima publicação sairia no lugar errado.
+     *
+     * ⭐ **`conectar` leva junto para o catálogo de redes.** É o que permite
+     * "conectar uma rede neste grupo" a partir da janela de gerenciar: o modo
+     * segue a intenção, em vez de a conta nascer num grupo que a pessoa não
+     * está olhando — que é o mesmo acidente que o grupo existe para evitar,
+     * só que na hora de conectar em vez de na hora de publicar.
+     */
+    public function usar(Request $request, string $ulid): RedirectResponse
     {
         $grupo = Grupo::where('ulid', $ulid)->firstOrFail();
 
         GrupoCorrente::definir($grupo);
 
-        return back();
+        return $request->boolean('conectar')
+            ? to_route('painel', ['conectar' => 1])
+            : back();
     }
 
     /**

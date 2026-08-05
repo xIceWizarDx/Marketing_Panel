@@ -37,13 +37,15 @@ export interface Grupo {
     ulid: string;
     nome: string;
     /**
-      * ⚠️ Sao o MOTIVO de excluir estar bloqueado, nao enfeite.
-      *
-      * `redes` conta so o que esta CONECTADO — o mesmo recorte da grade, senao
-      * a tela diria "1 rede" num grupo que a pessoa ve vazio.
-      */
-     redes: number;
-     publicacoes: number;
+     * ⚠️ Sao o MOTIVO de excluir estar bloqueado, nao enfeite.
+     *
+     * `redes` conta so o que esta CONECTADO — o mesmo recorte da grade, senao
+     * a tela diria "1 rede" num grupo que a pessoa ve vazio.
+     */
+    redes: number;
+    publicacoes: number;
+    /** As marcas do que ha dentro — reconhece o grupo antes de ler o nome. */
+    plataformas: string[];
 }
 
 /** ⭐ Em qual grupo a pessoa esta, e para onde ela pode ir. */

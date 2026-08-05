@@ -3,7 +3,9 @@
 namespace App\Http\Middleware;
 
 use App\Enums\Papel;
+use App\Enums\Plataforma;
 use App\Enums\StatusConta;
+use App\Models\ContaSocial;
 use App\Models\Grupo;
 use App\Services\ImpersonacaoService;
 use App\Support\GrupoCorrente;
@@ -61,29 +63,7 @@ class HandleInertiaRequests extends Middleware
              * Vem `null` para visitante e para o admin — que não publica, e para
              * quem um seletor de grupo seria enfeite sem função.
              */
-            'grupos' => $usuario?->papel === Papel::Cliente ? fn () => [
-                'atual' => GrupoCorrente::grupo()?->only(['ulid', 'nome']),
-                /*
-                 * ⚠️ `withCount` numa consulta só, e não duas por grupo.
-                 *
-                 * As contagens vêm porque a janela de gerenciar abre por cima
-                 * de qualquer tela, sem pedir nada ao servidor — e são elas que
-                 * dizem POR QUE um grupo não pode ser excluído. Sumir com o
-                 * botão deixaria a pessoa sem saber o que fazer.
-                 */
-                'lista' => Grupo::query()
-                    ->withCount([
-                        // ⚠️ Só rede CONECTADA. A desconectada não aparece na
-                        // grade, então contá-la aqui faria a tela dizer "1 rede"
-                        // num grupo que a pessoa vê vazio.
-                        'contasSociais as redes' => fn ($q) => $q->where('status', '!=', StatusConta::Desconectada->value),
-                        'publicacoes as publicacoes',
-                    ])
-                    ->oldest('id')
-                    ->get(['id', 'ulid', 'nome'])
-                    ->map->only(['ulid', 'nome', 'redes', 'publicacoes'])
-                    ->all(),
-            ] : null,
+            'grupos' => $usuario?->papel === Papel::Cliente ? fn () => $this->grupos() : null,
 
             // Alimenta a tarja fixa de "modo impersonação". Enquanto tiver
             // conteudo, a tela inteira mostra que aquilo nao e a conta de quem
@@ -98,6 +78,52 @@ class HandleInertiaRequests extends Middleware
                 'erro' => fn () => $request->session()->get('erro'),
                 'aviso' => fn () => $request->session()->get('aviso'),
             ],
+        ];
+    }
+
+    /**
+     * ⭐ O grupo em foco e o que existe dentro de cada um.
+     *
+     * ⚠️ **Duas consultas, não uma por grupo.** A janela de gerenciar abre por
+     * cima de qualquer tela sem pedir nada ao servidor, então tudo o que ela
+     * mostra precisa já estar aqui — e isto roda em TODA requisição.
+     *
+     * @return array{atual: ?array<string, mixed>, lista: list<array<string, mixed>>}
+     */
+    private function grupos(): array
+    {
+        /*
+         * ⚠️ Só rede CONECTADA. A desconectada não aparece na grade, então
+         * contá-la aqui faria a tela dizer "1 rede" num grupo que a pessoa vê
+         * vazio — e ainda seguraria a exclusão sem nada explicando (DEC-85).
+         */
+        $porGrupo = ContaSocial::query()
+            ->where('status', '!=', StatusConta::Desconectada)
+            ->get(['grupo_id', 'plataforma'])
+            ->groupBy('grupo_id');
+
+        return [
+            'atual' => GrupoCorrente::grupo()?->only(['ulid', 'nome']),
+            'lista' => Grupo::query()
+                ->withCount('publicacoes as publicacoes')
+                ->oldest('id')
+                ->get(['id', 'ulid', 'nome'])
+                ->map(function (Grupo $grupo) use ($porGrupo) {
+                    $contas = $porGrupo->get($grupo->id, collect());
+
+                    return [
+                        'ulid' => $grupo->ulid,
+                        'nome' => $grupo->nome,
+                        // As marcas das redes que ele tem — é o que faz um
+                        // grupo ser reconhecido sem ler o nome.
+                        'plataformas' => $contas->pluck('plataforma')
+                            ->map(fn (Plataforma $p) => $p->value)
+                            ->unique()->values()->all(),
+                        'redes' => $contas->count(),
+                        'publicacoes' => $grupo->publicacoes,
+                    ];
+                })
+                ->all(),
         ];
     }
 }

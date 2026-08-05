@@ -1820,3 +1820,23 @@ primeira-vez, e não como bloco permanente.
 
 ⭐ **Saneamento radical:** saiu a seção, a prop, o método do controller, a interface do front e o
 teste. Meia remoção deixaria um payload calculado a cada requisição para ninguém.
+
+**DEC-87 — conectar rede é configuração DO GRUPO, e o modo segue a intenção.** A janela de
+gerenciar passou a mostrar, em cada grupo, as marcas das redes que ele tem — e a oferecer o
+conectar ali.
+
+⭐ **Coerente com a DEC-69:** o grupo *é* seus canais, então dizer quais canais são dele é
+exatamente o que se configura. Antes isso estava partido: renomear num lugar, escolher os canais
+em outro.
+
+⚠️ **A armadilha, e como ela foi fechada.** Conectar para um grupo em que a pessoa não está faria
+a conta nascer onde ela não está olhando — o mesmo acidente que o grupo existe para evitar, só que
+na hora de conectar em vez de na hora de publicar. Por isso **conectar dali troca o grupo em foco
+antes de abrir o catálogo**, pela mesma regra do publicar (DEC-79): o modo segue a intenção.
+
+A alternativa seria carregar o grupo de destino pela ida e volta do OAuth — mais código, mais
+estado atravessando um site de terceiro, e um jeito a mais de errar.
+
+⛔ **A grade de "Suas redes" na Visão geral fica onde está.** Ela não é configuração: é o semáforo
+diário, o que avisa que uma conexão vai quebrar **antes** de quebrar (DEC-32). Dentro de um modal
+de configuração, o aviso viraria algo que só se vê quando se vai procurar.

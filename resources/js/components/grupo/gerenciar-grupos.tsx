@@ -1,12 +1,14 @@
 import { router, useForm, usePage } from '@inertiajs/react';
-import { Check, Layers, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
+import MarcaDaRede from '@/components/conexao/marca-da-rede';
 import ErroDeCampo from '@/components/erro-de-campo';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 import { type DadosCompartilhados, type Grupo } from '@/types';
 
 /**
@@ -20,9 +22,12 @@ import { type DadosCompartilhados, type Grupo } from '@/types';
  * dentro de Minha conta faria a pessoa procurar em configurações uma coisa que
  * ela tem na frente dos olhos o tempo todo.
  *
- * ⛔ Os números de canais e publicações não são enfeite: são o **motivo** de o
- * botão de excluir estar apagado. Sumir com o botão deixaria a pessoa sem
- * saber o que fazer para conseguir excluir.
+ * ⭐ **Cada grupo mostra as redes que tem dentro** — o grupo É seus canais
+ * (DEC-69), então é isso que se configura aqui. As marcas fazem um grupo ser
+ * reconhecido antes de o nome ser lido.
+ *
+ * ⛔ Os números não são enfeite: são o **motivo** de o botão de excluir estar
+ * apagado. Sumir com o botão deixaria a pessoa sem saber o que fazer.
  */
 export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean; aoFechar: () => void }) {
     const { grupos } = usePage<DadosCompartilhados>().props;
@@ -41,17 +46,17 @@ export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean;
         <>
             <Dialog open={aberta} onOpenChange={(estado) => !estado && aoFechar()}>
                 <DialogContent className="max-h-[85svh] overflow-y-auto sm:max-w-lg">
-                    <DialogTitle>Seus grupos</DialogTitle>
+                    <DialogTitle>Grupos</DialogTitle>
                     <DialogDescription>
-                        Um grupo é uma linha de conteúdo com seus próprios canais — notícias e novelas, por exemplo. Uma publicação sai de um grupo
-                        só.
+                        Cada grupo é uma linha de conteúdo com seus próprios canais. Uma publicação sai de um grupo só.
                     </DialogDescription>
 
-                    <ul className="border-border divide-border divide-y rounded-lg border">
+                    <ul className="-mx-1">
                         {lista.map((grupo) => {
-                            // ⚠️ O motivo aparece no `title` em vez de o botão
-                            // sumir: sumir deixaria a pessoa sem saber o que
-                            // fazer para conseguir excluir.
+                            const emFoco = grupo.ulid === atual.ulid;
+
+                            // ⚠️ O motivo vai no `title` em vez de o botão sumir:
+                            // sumir deixaria a pessoa sem saber o que fazer.
                             const porQueNaoExclui =
                                 grupo.redes > 0
                                     ? 'Desconecte ou mova as redes antes de excluir'
@@ -60,54 +65,74 @@ export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean;
                                       : null;
 
                             return (
-                                <li key={grupo.ulid} className="flex flex-wrap items-center gap-x-3 gap-y-2 p-3">
-                                    <Layers className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
-
+                                <li
+                                    key={grupo.ulid}
+                                    /* O grupo em foco se marca por uma barra fina,
+                                       não por mais uma palavra na linha. */
+                                    className={cn(
+                                        'flex items-center gap-3 border-l-2 py-3 pr-1 pl-3',
+                                        emFoco ? 'border-[color:var(--accent)]' : 'border-transparent',
+                                    )}
+                                >
                                     <div className="min-w-0 flex-1">
-                                        <p className="flex items-center gap-2 text-sm font-medium">
-                                            <span className="truncate">{grupo.nome}</span>
-                                            {grupo.ulid === atual.ulid && (
-                                                <span className="text-muted-foreground inline-flex shrink-0 items-center gap-1 text-xs font-normal">
-                                                    <Check className="size-3" aria-hidden="true" />
-                                                    em uso
+                                        <p className="truncate text-sm font-medium">{grupo.nome}</p>
+
+                                        <div className="mt-1 flex items-center gap-2">
+                                            {/* As marcas do que ele tem dentro. */}
+                                            {grupo.plataformas.length > 0 && (
+                                                <span className="flex items-center gap-1">
+                                                    {grupo.plataformas.map((rede) => (
+                                                        <MarcaDaRede key={rede} rede={rede} className="size-4 rounded-sm" />
+                                                    ))}
                                                 </span>
                                             )}
-                                        </p>
-                                        <p className="text-muted-foreground text-xs">
-                                            {contar(grupo.redes, 'rede', 'redes')} · {contar(grupo.publicacoes, 'publicação', 'publicações')}
-                                        </p>
+
+                                            <span className="text-muted-foreground text-xs">
+                                                {grupo.redes === 0 ? 'sem rede conectada' : contar(grupo.publicacoes, 'publicação', 'publicações')}
+                                            </span>
+                                        </div>
                                     </div>
 
                                     <div className="flex shrink-0 items-center gap-0.5">
-                                        <button
-                                            type="button"
-                                            onClick={() => setARenomear(grupo)}
-                                            aria-label={`Renomear ${grupo.nome}`}
-                                            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-md p-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                                        {/* ⭐ Conectar aqui LEVA o modo junto: o painel
+                                            entra neste grupo antes de abrir o catálogo.
+                                            Sem isso a conta nasceria num grupo que a
+                                            pessoa não está olhando — o mesmo acidente
+                                            que o grupo existe para evitar, só que na
+                                            hora de conectar. */}
+                                        <AcaoDaLinha
+                                            rotulo={`Conectar uma rede em ${grupo.nome}`}
+                                            aoClicar={() => router.post(route('grupos.usar', grupo.ulid), { conectar: true })}
                                         >
-                                            <Pencil className="size-3.5" aria-hidden="true" />
-                                        </button>
+                                            <Plus className="size-3.5" aria-hidden="true" />
+                                        </AcaoDaLinha>
 
-                                        <button
-                                            type="button"
-                                            disabled={!!porQueNaoExclui}
-                                            title={porQueNaoExclui ?? `Excluir ${grupo.nome}`}
-                                            onClick={() => setAExcluir(grupo)}
-                                            aria-label={`Excluir ${grupo.nome}`}
-                                            className="text-muted-foreground focus-visible:ring-ring rounded-md p-1.5 transition-colors hover:text-[color:var(--destructive)] focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-current"
+                                        <AcaoDaLinha rotulo={`Renomear ${grupo.nome}`} aoClicar={() => setARenomear(grupo)}>
+                                            <Pencil className="size-3.5" aria-hidden="true" />
+                                        </AcaoDaLinha>
+
+                                        <AcaoDaLinha
+                                            rotulo={porQueNaoExclui ?? `Excluir ${grupo.nome}`}
+                                            desabilitada={!!porQueNaoExclui}
+                                            perigosa
+                                            aoClicar={() => setAExcluir(grupo)}
                                         >
                                             <Trash2 className="size-3.5" aria-hidden="true" />
-                                        </button>
+                                        </AcaoDaLinha>
                                     </div>
                                 </li>
                             );
                         })}
                     </ul>
 
-                    <Button variant="secondary" onClick={() => setCriando(true)}>
-                        <Plus className="mr-1.5 size-4" aria-hidden="true" />
-                        Criar um grupo
-                    </Button>
+                    <button
+                        type="button"
+                        onClick={() => setCriando(true)}
+                        className="text-muted-foreground hover:text-foreground focus-visible:ring-ring -mb-1 flex items-center gap-1.5 self-start rounded-md px-1 py-1 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                    >
+                        <Plus className="size-4" aria-hidden="true" />
+                        Criar grupo
+                    </button>
                 </DialogContent>
             </Dialog>
 
@@ -175,7 +200,45 @@ export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean;
     );
 }
 
-/** "1 canal" / "3 canais" — plural sem gambiarra de `(s)`. */
+/**
+ * Uma ação de linha — ícone só, e o texto vive no `title` e no leitor de tela.
+ *
+ * ⚠️ Três rótulos escritos por linha encheriam a janela de palavra repetida; o
+ * ícone sozinho, com o nome do grupo no `title`, diz o mesmo em um terço do
+ * espaço.
+ */
+function AcaoDaLinha({
+    rotulo,
+    aoClicar,
+    desabilitada = false,
+    perigosa = false,
+    children,
+}: {
+    rotulo: string;
+    aoClicar: () => void;
+    desabilitada?: boolean;
+    perigosa?: boolean;
+    children: React.ReactNode;
+}) {
+    return (
+        <button
+            type="button"
+            title={rotulo}
+            aria-label={rotulo}
+            disabled={desabilitada}
+            onClick={aoClicar}
+            className={cn(
+                'text-muted-foreground focus-visible:ring-ring rounded-md p-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none',
+                'disabled:cursor-not-allowed disabled:opacity-40',
+                perigosa ? 'enabled:hover:text-[color:var(--destructive)]' : 'enabled:hover:text-foreground',
+            )}
+        >
+            {children}
+        </button>
+    );
+}
+
+/** "1 publicação" / "3 publicações" — plural sem gambiarra de `(s)`. */
 function contar(quantos: number, singular: string, plural: string): string {
     return `${quantos} ${quantos === 1 ? singular : plural}`;
 }

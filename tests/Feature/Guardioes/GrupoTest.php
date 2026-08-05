@@ -361,3 +361,44 @@ describe('gerenciar grupos', function () {
                 ->where('grupos.lista.1.publicacoes', 0));
     });
 });
+
+describe('⭐ conectar por dentro do grupo', function () {
+    it('o modo SEGUE a intenção: troca de grupo e leva ao catálogo', function () {
+        // Sem isso a conta nasceria num grupo que a pessoa não está olhando —
+        // o mesmo acidente que o grupo existe para evitar, só que na hora de
+        // conectar em vez de na hora de publicar.
+        $ana = cliente();
+        $novelas = grupoCom($ana, 'Novelas');
+
+        $this->actingAs($ana)
+            ->post(route('grupos.usar', $novelas->ulid), ['conectar' => true])
+            ->assertRedirect(route('painel', ['conectar' => 1]));
+
+        $this->actingAs($ana)
+            ->get(route('painel'))
+            ->assertInertia(fn ($p) => $p->where('grupos.atual.ulid', $novelas->ulid));
+    });
+
+    it('trocar de grupo SEM conectar volta para onde a pessoa estava', function () {
+        $ana = cliente();
+        $novelas = grupoCom($ana, 'Novelas');
+
+        $this->actingAs($ana)
+            ->from(route('publicacoes'))
+            ->post(route('grupos.usar', $novelas->ulid))
+            ->assertRedirect(route('publicacoes'));
+    });
+
+    it('cada grupo leva as marcas do que tem dentro', function () {
+        // É o que faz um grupo ser reconhecido antes de o nome ser lido.
+        $ana = cliente();
+        grupoCom($ana, 'Notícias');
+
+        $this->actingAs($ana)
+            ->get(route('painel'))
+            ->assertInertia(fn ($p) => $p
+                ->where('grupos.lista.1.plataformas', ['bluesky'])
+                // O grupo que nasceu com a conta não tem rede nenhuma.
+                ->where('grupos.lista.0.plataformas', []));
+    });
+});

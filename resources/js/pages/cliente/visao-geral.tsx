@@ -64,7 +64,29 @@ export default function VisaoGeral({ numeros, pendencias, redes, totalConectado 
      * resolve aqui não pode virar link para cá.
      */
     const [redeAberta, setRedeAberta] = useState<string | null>(null);
-    const [escolhendoRede, setEscolhendoRede] = useState(false);
+
+    /*
+     * ⭐ `?conectar` abre o catálogo assim que a tela monta.
+     *
+     * É como "conectar uma rede neste grupo", lá da janela de gerenciar, chega
+     * até aqui: o servidor troca o grupo e manda para cá com a intenção na URL.
+     * O modo segue a intenção, então a conta nasce no grupo certo.
+     *
+     * ⚠️ O parâmetro é apagado da barra de endereço no mesmo instante: ele é um
+     * recado de uma vez só, e recarregar a página não pode reabrir uma janela
+     * que a pessoa já fechou.
+     */
+    const [escolhendoRede, setEscolhendoRede] = useState(() => {
+        if (typeof window === 'undefined') return false;
+
+        const url = new URL(window.location.href);
+        if (!url.searchParams.has('conectar')) return false;
+
+        url.searchParams.delete('conectar');
+        window.history.replaceState({}, '', url.pathname + url.search);
+
+        return true;
+    });
 
     return (
         <LayoutPainel migalhas={[{ titulo: 'Visão geral', url: '/painel' }]}>
