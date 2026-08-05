@@ -117,8 +117,14 @@ export interface ItemDeMenu {
     titulo: string;
     url: string;
     icone?: LucideIcon | null;
-    /** Nome da rota Ziggy usado pra marcar o item como ativo. */
-    rota?: string;
+    /**
+     * Outros caminhos que acendem este item.
+     *
+     * ⚠️ Existe porque nem toda tela mora na propria URL do item: o compositor
+     * abre em `/publicar`, por cima da lista de publicacoes, e sem isto a
+     * navegacao inteira apagava enquanto ele estava aberto.
+     */
+    ativoEm?: string[];
     /** Tela ainda não construída: aparece apagada, não leva a 404. */
     emBreve?: boolean;
 }

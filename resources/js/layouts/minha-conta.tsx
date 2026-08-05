@@ -2,7 +2,7 @@ import { Link, usePage } from '@inertiajs/react';
 
 import CabecalhoDePagina from '@/components/cabecalho-de-pagina';
 import LayoutPainel from '@/layouts/painel';
-import { menuDaConta } from '@/lib/menu';
+import { itemAtivo, menuDaConta } from '@/lib/menu';
 import { cn } from '@/lib/utils';
 
 /**
@@ -21,7 +21,7 @@ export default function LayoutMinhaConta({ children }: { children: React.ReactNo
             <div className="border-border -mx-4 mb-6 overflow-x-auto border-b px-4 sm:mx-0 sm:px-0">
                 <nav aria-label="Seções da conta" className="flex min-w-max gap-1">
                     {menuDaConta.map((item) => {
-                        const ativo = url.startsWith(item.url);
+                        const ativo = itemAtivo(item, url);
 
                         return (
                             <Link

@@ -1,4 +1,4 @@
-import { menuDeToque } from '@/lib/menu';
+import { itemAtivo, menuDeToque } from '@/lib/menu';
 import { cn } from '@/lib/utils';
 import { type DadosCompartilhados } from '@/types';
 import { Link, usePage } from '@inertiajs/react';
@@ -23,7 +23,7 @@ export default function BarraInferior() {
         >
             <ul className="flex items-stretch">
                 {itens.map((item) => {
-                    const ativo = url === item.url || url.startsWith(`${item.url}/`);
+                    const ativo = itemAtivo(item, url);
 
                     return (
                         <li key={item.url} className="flex-1">

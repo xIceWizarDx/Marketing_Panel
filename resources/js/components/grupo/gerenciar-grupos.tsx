@@ -79,10 +79,21 @@ export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean;
 
                                         <div className="mt-1 flex items-center gap-2">
                                             {/* As marcas do que ele tem dentro. */}
+                                            {/* ⭐ As marcas SOBREPOSTAS, uma por cima da
+                                                lateral da outra.
+
+                                                O anel na cor do fundo e o que separa uma
+                                                da outra sem linha nenhuma — sem ele, dois
+                                                logos escuros encostados viram uma mancha
+                                                so. Encostadas, elas leem como UM conjunto:
+                                                "as redes deste grupo", e nao quatro coisas
+                                                soltas disputando atencao com o nome. */}
                                             {grupo.plataformas.length > 0 && (
-                                                <span className="flex items-center gap-1">
+                                                <span className="flex items-center -space-x-1.5">
                                                     {grupo.plataformas.map((rede) => (
-                                                        <MarcaDaRede key={rede} rede={rede} className="size-4 rounded-sm" />
+                                                        <span key={rede} className="ring-background rounded-md ring-2">
+                                                            <MarcaDaRede rede={rede} className="size-5 rounded-md" />
+                                                        </span>
                                                     ))}
                                                 </span>
                                             )}
@@ -102,14 +113,12 @@ export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean;
                                             hora de conectar. */}
                                         <AcaoDaLinha
                                             rotulo={`Conectar uma rede em ${grupo.nome}`}
-                                            aoClicar={() => {
-                                                // ⚠️ Fecha ANTES de navegar: esta janela
-                                                // sobrevive à visita e ficaria por cima do
-                                                // catálogo — dando a impressão de que o
-                                                // clique não fez nada.
-                                                aoFechar();
-                                                router.post(route('grupos.usar', grupo.ulid), { conectar: true });
-                                            }}
+                                            /* ⚠️ Esta janela FICA aberta, por baixo.
+                                               O catálogo monta depois e pinta por cima —
+                                               então fechar o catálogo devolve a pessoa
+                                               para cá, em vez de largá-la no painel sem
+                                               nenhum caminho de volta. */
+                                            aoClicar={() => router.post(route('grupos.usar', grupo.ulid), { conectar: true })}
                                         >
                                             {/* ⚠️ Engrenagem, não `+`. O `+` diz "acrescentar
                                                 mais um" — e o que esta ação faz é configurar

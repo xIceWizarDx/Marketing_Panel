@@ -3,7 +3,7 @@ import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 import Marca from '@/components/marca';
 import MenuDoUsuario from '@/components/menu-do-usuario';
-import { menuPara } from '@/lib/menu';
+import { itemAtivo, menuPara } from '@/lib/menu';
 import { cn } from '@/lib/utils';
 import { type DadosCompartilhados } from '@/types';
 
@@ -43,7 +43,7 @@ export default function BarraLateral({ recolhida, aoAlternar }: Props) {
             <nav className="flex-1 overflow-y-auto p-2" aria-label="Menu principal">
                 <ul className="space-y-0.5">
                     {itens.map((item) => {
-                        const ativo = url === item.url || url.startsWith(`${item.url}/`);
+                        const ativo = itemAtivo(item, url);
 
                         const conteudo = (
                             <>
