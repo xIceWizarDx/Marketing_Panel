@@ -13,6 +13,10 @@ interface Props extends Omit<ComponentPropsWithoutRef<'button'>, 'children'> {
      *
      * ⚠️ Sem isto, um catálogo de catorze redes viraria cinco linhas de rolagem
      * — e escolher exige ver as opções juntas, não uma de cada vez.
+     *
+     * ⚠️ Pequeno **não é apertado**: ele ainda precisa caber logo, nome e
+     * situação sem os três se encostarem. Espremer o quadro para ganhar uma
+     * coluna a mais troca uma linha de rolagem por três linhas ilegíveis.
      */
     tamanho?: 'normal' | 'pequeno';
 }
@@ -29,8 +33,8 @@ interface Props extends Omit<ComponentPropsWithoutRef<'button'>, 'children'> {
  */
 export default function Quadro({ children, como = 'div', tracejado = false, tamanho = 'normal', className, ...resto }: Props) {
     const aparencia = cn(
-        'relative flex shrink-0 flex-col items-center justify-center rounded-xl p-2 text-center',
-        tamanho === 'pequeno' ? 'size-[5.5rem]' : 'size-[6.5rem] sm:size-[7.75rem]',
+        'relative flex shrink-0 flex-col items-center justify-center rounded-xl p-2.5 text-center',
+        tamanho === 'pequeno' ? 'size-[6.5rem]' : 'size-[6.5rem] sm:size-[7.75rem]',
         tracejado ? 'border-border border-2 border-dashed' : 'border-border bg-card border',
         className,
     );

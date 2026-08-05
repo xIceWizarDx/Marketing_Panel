@@ -219,11 +219,11 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
 
             {/* Escolher qual rede conectar — o catálogo */}
             <Dialog open={escolhendo} onOpenChange={aoEscolher}>
-                <DialogContent className="max-h-[85svh] overflow-y-auto sm:max-w-xl">
+                <DialogContent className="max-h-[85svh] overflow-y-auto sm:max-w-2xl">
                     <DialogTitle>Conectar uma rede</DialogTitle>
                     <DialogDescription>Você autoriza no site da própria rede — sua senha nunca passa por aqui.</DialogDescription>
 
-                    <ul className="flex flex-wrap gap-2.5">
+                    <ul className="flex flex-wrap gap-3">
                         {redes.map((rede) => {
                             const clicavel = rede.disponivel;
 
@@ -237,15 +237,15 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
                                             aoEscolher(false);
                                             abrirConexao(rede);
                                         }}
-                                        className="gap-1"
+                                        className="gap-1.5"
                                     >
-                                        <MarcaDaRede rede={rede.valor} className="size-8" />
+                                        <MarcaDaRede rede={rede.valor} className="size-9" />
 
                                         <span className="w-full truncate text-center text-xs leading-tight font-medium">{rede.rotulo}</span>
 
                                         {/* ⚠️ "Aguardando aprovação" e "em estudo" são coisas
                                             diferentes: uma tem caminho, a outra é ideia. */}
-                                        <span className="text-muted-foreground text-center text-[0.6rem] leading-tight">
+                                        <span className="text-muted-foreground text-center text-[0.65rem] leading-tight">
                                             {rede.contas.some((c) => c.status !== 'desconectada')
                                                 ? 'já conectada'
                                                 : rede.disponivel
