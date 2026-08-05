@@ -223,7 +223,10 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
                     <DialogTitle>Conectar uma rede</DialogTitle>
                     <DialogDescription>Você autoriza no site da própria rede — sua senha nunca passa por aqui.</DialogDescription>
 
-                    <ul className="flex flex-wrap gap-3">
+                    {/* ⚠️ Respiro maior entre as LINHAS que entre as colunas. Com
+                        o mesmo valor nos dois eixos, quatro fileiras de quadrados
+                        viram uma malha — e o olho perde onde uma linha acaba. */}
+                    <ul className="flex flex-wrap gap-x-3 gap-y-4">
                         {redes.map((rede) => {
                             const clicavel = rede.disponivel;
 
@@ -237,7 +240,7 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
                                             aoEscolher(false);
                                             abrirConexao(rede);
                                         }}
-                                        className="gap-1.5"
+                                        className="gap-2"
                                     >
                                         <MarcaDaRede rede={rede.valor} className="size-9" />
 
