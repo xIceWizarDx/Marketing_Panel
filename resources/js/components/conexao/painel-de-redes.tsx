@@ -266,10 +266,31 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
             {/* Detalhe de uma rede — contas, saúde e ações */}
             <Dialog open={!!aberta} onOpenChange={(estado) => !estado && setAberta(null)}>
                 <DialogContent className="max-h-[85svh] overflow-y-auto">
-                    <DialogTitle className="flex items-center gap-2.5">
-                        <MarcaDaRede rede={aberta?.valor ?? ''} className="size-8" />
-                        {aberta?.rotulo}
-                    </DialogTitle>
+                    {/* ⚠️ `pr-8` reserva o canto para o X do próprio modal, que
+                        e posicionado em `right-4`. Sem a folga, os dois se
+                        sobrepoem — e o que fica por cima e o de fechar. */}
+                    <div className="flex items-center gap-3 pr-8">
+                        <DialogTitle className="flex flex-1 items-center gap-2.5">
+                            <MarcaDaRede rede={aberta?.valor ?? ''} className="size-8" />
+                            {aberta?.rotulo}
+                        </DialogTitle>
+
+                        {aberta?.disponivel && (
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                className="shrink-0"
+                                onClick={() => {
+                                    const rede = aberta;
+                                    setAberta(null);
+                                    if (rede) abrirConexao(rede);
+                                }}
+                            >
+                                <Plus className="mr-1.5 size-4" aria-hidden="true" />
+                                Conectar outra conta
+                            </Button>
+                        )}
+                    </div>
                     <DialogDescription>
                         {aberta?.publicados === 1
                             ? '1 post confirmado no ar nesta rede.'
@@ -337,20 +358,6 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
                             </li>
                         ))}
                     </ul>
-
-                    {aberta?.disponivel && (
-                        <Button
-                            variant="secondary"
-                            onClick={() => {
-                                const rede = aberta;
-                                setAberta(null);
-                                if (rede) abrirConexao(rede);
-                            }}
-                        >
-                            <Plus className="mr-1.5 size-4" aria-hidden="true" />
-                            Conectar outra conta
-                        </Button>
-                    )}
                 </DialogContent>
             </Dialog>
 
