@@ -174,8 +174,13 @@ verdade.
 
 ## 5. ⚙️ Minha conta
 
-`Perfil · Senha · Aparência (claro/escuro) · Notificações (e-mail · sininho · WhatsApp) ·
-Meus dados e privacidade` *(baixar dados · excluir conta — regras BR-01/02)*
+`Perfil · Senha · Aparência (claro/escuro) · **Grupos**`
+🔜 Falta: Notificações (e-mail · sininho · WhatsApp) e Meus dados e privacidade *(baixar dados —
+regras BR-01/02; excluir conta já existe)*.
+
+⭐ **Grupos** é onde se cria, renomeia e arquiva (DEC-81). O seletor do topo faz uma coisa só:
+trocar. Trocar é o gesto de todo dia; administrar é o de uma vez por mês, e juntos o raro atrapalha
+o frequente. ⚠️ A aba só aparece para o cliente.
 
 ---
 

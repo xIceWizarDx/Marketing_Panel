@@ -1757,3 +1757,13 @@ grupo.
 ⛔ **Fora de escopo, de propósito:** cobrança/limite por grupo (é coluna, não estrutura) e o
 dashboard de métricas por grupo — este bloqueado por fora, porque enquanto o aplicativo do YouTube
 estiver em modo de Testes todo vídeo sobe privado, e vídeo privado não tem métrica pública.
+
+**DEC-81 — o seletor TROCA; quem administra é Minha conta › Grupos.** Criar, renomear e arquivar
+saíram do menu suspenso e viraram uma aba de configuração, ao lado de Perfil, Senha e Aparência.
+
+⭐ **Trocar de grupo é o gesto de todo dia; administrar é o de uma vez por mês.** Juntos, o raro
+atrapalha o frequente: a lista de grupos — a única coisa que a pessoa abriu o seletor para ver —
+ficava espremida no topo de três botões que ela quase nunca usa.
+
+⚠️ A aba **só existe para o cliente**: o admin não publica, e para ele seria uma tela vazia com um
+botão que não leva a nada.

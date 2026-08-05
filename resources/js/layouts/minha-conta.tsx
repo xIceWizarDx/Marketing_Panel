@@ -2,8 +2,9 @@ import { Link, usePage } from '@inertiajs/react';
 
 import CabecalhoDePagina from '@/components/cabecalho-de-pagina';
 import LayoutPainel from '@/layouts/painel';
-import { cn } from '@/lib/utils';
 import { menuDaConta } from '@/lib/menu';
+import { cn } from '@/lib/utils';
+import { type DadosCompartilhados } from '@/types';
 
 /**
  * Abas da area "Minha conta".
@@ -12,7 +13,8 @@ import { menuDaConta } from '@/lib/menu';
  * lista rola na horizontal em vez de empilhar e empurrar o conteudo pra baixo.
  */
 export default function LayoutMinhaConta({ children }: { children: React.ReactNode }) {
-    const { url } = usePage();
+    const { url, props } = usePage<DadosCompartilhados>();
+    const abas = menuDaConta(props.auth.usuario!.papel);
 
     return (
         <LayoutPainel migalhas={[{ titulo: 'Minha conta', url: '/minha-conta/perfil' }]}>
@@ -20,7 +22,7 @@ export default function LayoutMinhaConta({ children }: { children: React.ReactNo
 
             <div className="border-border -mx-4 mb-6 overflow-x-auto border-b px-4 sm:mx-0 sm:px-0">
                 <nav aria-label="Seções da conta" className="flex min-w-max gap-1">
-                    {menuDaConta.map((item) => {
+                    {abas.map((item) => {
                         const ativo = url.startsWith(item.url);
 
                         return (
@@ -31,7 +33,7 @@ export default function LayoutMinhaConta({ children }: { children: React.ReactNo
                                 className={cn(
                                     'focus-visible:ring-ring -mb-px rounded-t-md border-b-2 px-3 py-2 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none',
                                     ativo
-                                        ? 'border-[color:var(--accent)] text-foreground font-medium'
+                                        ? 'text-foreground border-[color:var(--accent)] font-medium'
                                         : 'text-muted-foreground hover:text-foreground border-transparent',
                                 )}
                             >

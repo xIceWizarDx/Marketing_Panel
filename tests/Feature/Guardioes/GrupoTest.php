@@ -337,3 +337,24 @@ describe('o motor não conhece grupo (DEC-74)', function () {
         expect(Destino::withoutGlobalScopes()->find($destino->id))->not->toBeNull();
     });
 });
+
+describe('a tela de configuração', function () {
+    it('lista os grupos com o que impede arquivar cada um', function () {
+        $ana = cliente();
+        grupoCom($ana, 'Notícias');
+
+        $this->actingAs($ana)
+            ->get(route('grupos'))
+            ->assertOk()
+            ->assertInertia(fn ($p) => $p->component('minha-conta/grupos')
+                // Principal (do nascimento) + Notícias.
+                ->has('grupos', 2)
+                // ⚠️ A tela precisa do número de canais para dizer POR QUE não
+                // dá para arquivar, em vez de sumir com o botão sem explicação.
+                ->where('grupos.1.canais', 1));
+    });
+
+    it('⛔ barra o admin: quem não publica não tem grupo', function () {
+        $this->actingAs(admin())->get(route('grupos'))->assertNotFound();
+    });
+});

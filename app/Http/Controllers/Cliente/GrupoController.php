@@ -11,6 +11,8 @@ use App\Support\GrupoCorrente;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use Inertia\Inertia;
+use Inertia\Response;
 
 /**
  * Criar, renomear, arquivar e trocar de grupo — **só ações**.
@@ -23,6 +25,28 @@ class GrupoController extends Controller
     public function __construct(
         private readonly GrupoService $grupos,
     ) {}
+
+    /**
+     * A tela de configuração dos grupos, dentro de Minha conta.
+     *
+     * ⭐ Criar, renomear e arquivar são **configuração**, não navegação — por
+     * isso ficam aqui e não no seletor do topo. O seletor faz uma coisa só:
+     * trocar de grupo, que é o gesto de todo dia. Misturar nele o que se faz
+     * uma vez por mês faria os dois disputarem o mesmo espaço.
+     */
+    public function configurar(): Response
+    {
+        return Inertia::render('minha-conta/grupos', [
+            'grupos' => Grupo::query()->oldest('id')->get()->map(fn (Grupo $grupo) => [
+                'ulid' => $grupo->ulid,
+                'nome' => $grupo->nome,
+                // ⚠️ A tela precisa saber POR QUE não dá para arquivar, senão
+                // ela some com o botão e a pessoa não descobre o que fazer.
+                'canais' => $grupo->contasSociais()->count(),
+                'publicacoes' => $grupo->publicacoes()->count(),
+            ]),
+        ]);
+    }
 
     public function criar(GuardarGrupoRequest $request): RedirectResponse
     {

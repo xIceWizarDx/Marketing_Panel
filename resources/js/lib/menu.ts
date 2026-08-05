@@ -1,4 +1,4 @@
-import { Building2, Compass, FileVideo, ScrollText, Settings2, Users } from 'lucide-react';
+import { Building2, Compass, FileVideo, Layers, ScrollText, Settings2, Users } from 'lucide-react';
 
 import { type ItemDeMenu, type Papel } from '@/types';
 
@@ -51,8 +51,17 @@ export function menuDeToque(papel: Papel): ItemDeMenu[] {
     return menuPara(papel).filter((item) => !item.emBreve);
 }
 
-export const menuDaConta: ItemDeMenu[] = [
-    { titulo: 'Perfil', url: '/minha-conta/perfil', rota: 'minha-conta.perfil.editar', icone: Settings2 },
-    { titulo: 'Senha', url: '/minha-conta/senha', rota: 'minha-conta.senha.editar', icone: Settings2 },
-    { titulo: 'Aparência', url: '/minha-conta/aparencia', rota: 'minha-conta.aparencia', icone: Settings2 },
-];
+/**
+ * Abas de "Minha conta".
+ *
+ * ⚠️ **Grupos so aparece para o cliente.** O admin nao publica, entao para ele
+ * a aba seria uma tela vazia com um botao que nao leva a nada.
+ */
+export function menuDaConta(papel: Papel): ItemDeMenu[] {
+    return [
+        { titulo: 'Perfil', url: '/minha-conta/perfil', rota: 'minha-conta.perfil.editar', icone: Settings2 },
+        { titulo: 'Senha', url: '/minha-conta/senha', rota: 'minha-conta.senha.editar', icone: Settings2 },
+        { titulo: 'Aparência', url: '/minha-conta/aparencia', rota: 'minha-conta.aparencia', icone: Settings2 },
+        ...(papel === 'cliente' ? [{ titulo: 'Grupos', url: '/minha-conta/grupos', rota: 'grupos', icone: Layers }] : []),
+    ];
+}

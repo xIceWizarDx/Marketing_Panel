@@ -28,6 +28,12 @@ Route::middleware(['auth', 'papel:cliente'])->group(function () {
      * ⛔ Trocar de grupo e POST: com GET, o prefetch do navegador trocaria o
      * modo sozinho — e a proxima publicacao sairia no lugar errado.
      */
+    // ⚠️ A TELA de grupos mora em Minha conta, junto de perfil e senha: criar,
+    // renomear e arquivar sao configuracao, nao navegacao. O seletor do topo
+    // so TROCA de grupo — misturar troca com administracao numa lista so faz o
+    // gesto de todo dia dividir espaco com o gesto de uma vez por mes.
+    Route::get('minha-conta/grupos', [GrupoController::class, 'configurar'])->name('grupos');
+
     Route::post('grupos', [GrupoController::class, 'criar'])->name('grupos.criar');
     Route::patch('grupos/{ulid}', [GrupoController::class, 'renomear'])->name('grupos.renomear');
     Route::delete('grupos/{ulid}', [GrupoController::class, 'arquivar'])->name('grupos.arquivar');
