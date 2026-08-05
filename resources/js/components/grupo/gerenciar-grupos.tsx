@@ -1,5 +1,5 @@
 import { router, useForm, usePage } from '@inertiajs/react';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Settings2, Trash2 } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 import MarcaDaRede from '@/components/conexao/marca-da-rede';
@@ -104,7 +104,10 @@ export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean;
                                             rotulo={`Conectar uma rede em ${grupo.nome}`}
                                             aoClicar={() => router.post(route('grupos.usar', grupo.ulid), { conectar: true })}
                                         >
-                                            <Plus className="size-3.5" aria-hidden="true" />
+                                            {/* ⚠️ Engrenagem, não `+`. O `+` diz "acrescentar
+                                                mais um" — e o que esta ação faz é configurar
+                                                de que redes este grupo é feito. */}
+                                            <Settings2 className="size-3.5" aria-hidden="true" />
                                         </AcaoDaLinha>
 
                                         <AcaoDaLinha rotulo={`Renomear ${grupo.nome}`} aoClicar={() => setARenomear(grupo)}>
