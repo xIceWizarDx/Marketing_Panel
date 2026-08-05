@@ -195,7 +195,7 @@ export default function VisaoGeral({ numeros, pendencias, primeirosPassos, redes
                                 <li key={passo.titulo} className="flex gap-3 p-4">
                                     <span
                                         aria-hidden="true"
-                                        className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full border"
+                                        className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-sm border"
                                         style={passo.feito ? { background: 'var(--saude-ok)', borderColor: 'var(--saude-ok)' } : undefined}
                                     >
                                         {passo.feito && <Check className="size-3 text-white" />}

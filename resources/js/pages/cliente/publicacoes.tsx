@@ -215,7 +215,7 @@ export default function Publicacoes({
                                             title="Ver o post na rede"
                                             className="focus-visible:ring-ring absolute inset-0 focus-visible:ring-2 focus-visible:outline-none"
                                         >
-                                            <span className="absolute top-2 right-2 rounded-full bg-black/55 p-1.5 backdrop-blur-sm">
+                                            <span className="absolute top-2 right-2 rounded bg-black/55 p-1.5 backdrop-blur-sm">
                                                 <ExternalLink className="size-3 text-white" aria-hidden="true" />
                                             </span>
                                             <span className="sr-only">
@@ -227,7 +227,7 @@ export default function Publicacoes({
                                     {/* ⭐ A rede admitindo que degradou o vídeo. */}
                                     {baixa && (
                                         <span
-                                            className="pointer-events-none absolute top-2 left-2 rounded-full px-1.5 py-0.5 text-[0.5625rem] font-medium text-white backdrop-blur-sm"
+                                            className="pointer-events-none absolute top-2 left-2 rounded px-1.5 py-0.5 text-[0.5625rem] font-medium text-white backdrop-blur-sm"
                                             style={{ background: 'color-mix(in oklab, var(--saude-atencao) 75%, transparent)' }}
                                             title="Enviamos em alta. A rede informou que a versão publicada está em baixa qualidade."
                                         >

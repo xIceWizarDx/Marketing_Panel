@@ -10,9 +10,22 @@
     --font-sans:
         'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
+    /*
+     * ⭐ TODO canto sai daqui — inclusive `xl` e `2xl`.
+     *
+     * ⚠️ Sem estas duas linhas, `rounded-xl` e `rounded-2xl` continuam na
+     * escala embutida do Tailwind (0,75rem e 1rem) e IGNORAM o token. Era o que
+     * fazia os quadrados do painel parecerem bolhas ao lado de um botão: dois
+     * sistemas de canto convivendo na mesma tela sem ninguém decidir.
+     *
+     * ⛔ Não usar `rounded-full` em nada que não seja círculo de verdade
+     * (avatar, ponto do semáforo, selo).
+     */
+    --radius-2xl: calc(var(--radius) + 2px);
+    --radius-xl: calc(var(--radius) + 1px);
     --radius-lg: var(--radius);
-    --radius-md: calc(var(--radius) - 2px);
-    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 1px);
+    --radius-sm: calc(var(--radius) - 2px);
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -113,7 +126,14 @@
     --chart-4: #f59e0b;
     --chart-5: #ec4899;
 
-    --radius: 0.5rem;
+    /*
+     * ⭐ Quadrado com o canto QUEBRADO, não arredondado.
+     *
+     * 4px tira o serrilhado da quina sem transformar o cartão em pastilha. A
+     * escala inteira (`sm` a `2xl`) deriva daqui, então mudar esta linha muda o
+     * painel todo — e é o único lugar que decide.
+     */
+    --radius: 0.25rem;
 
     --sidebar-background: #ffffff;
     --sidebar-foreground: #1e293b;
@@ -169,7 +189,7 @@
 }
 
 /* =============================================================
-   SISTEMA FLUIDO (DEC-37) — mesmas proporções do EmpiresCloud
+   SISTEMA FLUIDO (DEC-37)
    Fórmula: clamp(mín, intercepto + inclinação·100vw, máx)
 
    Fonte base:  13px @1280 → 15px @1920

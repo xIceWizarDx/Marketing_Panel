@@ -71,7 +71,7 @@ export default function Impersonacoes({ registros, emAndamento }: { registros: P
                                 </div>
 
                                 {registro.emAndamento && (
-                                    <span className="shrink-0 self-start rounded-full bg-[color:var(--saude-atencao)]/10 px-2 py-0.5 text-xs text-[color:var(--saude-atencao)]">
+                                    <span className="shrink-0 self-start rounded bg-[color:var(--saude-atencao)]/10 px-2 py-0.5 text-xs text-[color:var(--saude-atencao)]">
                                         em andamento
                                     </span>
                                 )}

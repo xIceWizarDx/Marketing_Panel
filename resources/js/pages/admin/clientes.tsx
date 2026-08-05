@@ -73,12 +73,12 @@ export default function Clientes({ clientes, busca }: { clientes: Paginado<Clien
                                     <p className="flex items-center gap-2 font-medium">
                                         <span className="truncate">{cliente.nome}</span>
                                         {!cliente.ativo && (
-                                            <span className="shrink-0 rounded-full bg-[color:var(--saude-erro)]/10 px-2 py-0.5 text-xs font-normal text-[color:var(--saude-erro)]">
+                                            <span className="shrink-0 rounded bg-[color:var(--saude-erro)]/10 px-2 py-0.5 text-xs font-normal text-[color:var(--saude-erro)]">
                                                 Sem acesso
                                             </span>
                                         )}
                                         {cliente.ativo && !cliente.emailVerificado && (
-                                            <span className="shrink-0 rounded-full bg-[color:var(--saude-atencao)]/10 px-2 py-0.5 text-xs font-normal text-[color:var(--saude-atencao)]">
+                                            <span className="shrink-0 rounded bg-[color:var(--saude-atencao)]/10 px-2 py-0.5 text-xs font-normal text-[color:var(--saude-atencao)]">
                                                 E-mail não confirmado
                                             </span>
                                         )}

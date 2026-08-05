@@ -52,7 +52,7 @@ export default function BarraLateral({ recolhida, aoAlternar }: Props) {
                                     <span className="flex min-w-0 flex-1 items-center gap-2">
                                         <span className="truncate">{item.titulo}</span>
                                         {item.emBreve && (
-                                            <span className="bg-muted text-muted-foreground shrink-0 rounded-full px-1.5 py-0.5 text-[0.65rem] leading-none">
+                                            <span className="bg-muted text-muted-foreground shrink-0 rounded px-1.5 py-0.5 text-[0.65rem] leading-none">
                                                 em breve
                                             </span>
                                         )}

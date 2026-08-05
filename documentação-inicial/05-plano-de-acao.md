@@ -1767,3 +1767,27 @@ ficava espremida no topo de três botões que ela quase nunca usa.
 
 ⚠️ A aba **só existe para o cliente**: o admin não publica, e para ele seria uma tela vazia com um
 botão que não leva a nada.
+
+**DEC-82 — gerenciar grupo é janela, não tela.** Criar e renomear são gestos de um campo só, e
+arquivar é uma confirmação. Uma página inteira obrigava a sair de onde se está e voltar depois,
+para uma tarefa de quinze segundos. A janela abre do próprio seletor, que vive na barra do topo de
+toda tela — enterrar em Minha conta faria a pessoa procurar em configurações uma coisa que ela tem
+na frente dos olhos o tempo todo.
+
+⚠️ As contagens de canais e publicações passaram para as props compartilhadas, num `withCount` de
+uma consulta só: elas são o **motivo** de o botão de arquivar estar apagado, e a janela abre sem
+pedir nada ao servidor.
+
+**DEC-83 — o painel é quadrado com a quina quebrada, e o canto sai de um lugar só.** Estava tudo
+arredondado demais, e por um motivo concreto: metade dos componentes usava `rounded-xl`/`rounded-2xl`,
+que **ignoravam** o token de raio e ficavam na escala embutida do Tailwind. Eram dois sistemas de
+canto na mesma tela, sem ninguém ter decidido.
+
+Agora `--radius` (4px) governa de `sm` a `2xl`. Mudar aquela linha muda o painel inteiro.
+
+⛔ **`rounded-full` só em círculo de verdade** — avatar, ponto do semáforo, barra de progresso.
+Etiqueta de status, chip de conta e selo sobre miniatura viraram retângulos de quina quebrada.
+
+⚠️ Saíram junto **dez primitivos de UI sem nenhum importador** (`badge`, `avatar`, `select`,
+`sheet`, `collapsible`, `tooltip`, `skeleton`, `alert`, `card`, `separator`). Cada um carregava um
+raio próprio, e código morto com estilo próprio é o caminho mais curto para o drift voltar.

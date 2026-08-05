@@ -314,7 +314,7 @@ export default function Compositor({
                                             onClick={() => alternarConta(conta.ulid)}
                                             aria-pressed={marcada}
                                             className={cn(
-                                                'flex items-center gap-2 rounded-full border py-1.5 pr-3 pl-1.5 text-left transition-colors',
+                                                'flex items-center gap-2 rounded-md border py-1.5 pr-3 pl-1.5 text-left transition-colors',
                                                 'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none',
                                                 marcada
                                                     ? 'border-[color:var(--accent)] bg-[color:var(--accent)]/8'
@@ -322,7 +322,7 @@ export default function Compositor({
                                                 !conta.podePublicar && 'cursor-not-allowed opacity-45',
                                             )}
                                         >
-                                            <MarcaDaRede rede={conta.plataforma} className="size-6 rounded-full" />
+                                            <MarcaDaRede rede={conta.plataforma} className="size-6 rounded" />
 
                                             <span className="min-w-0">
                                                 <span className="block max-w-[10rem] truncate text-xs font-medium">{conta.nome}</span>
@@ -499,7 +499,7 @@ function Janela({
             aria-label={titulo}
             className="fixed inset-0 z-40 flex items-center justify-center bg-black/55 backdrop-blur-[2px] sm:p-6 md:p-8"
         >
-            <div className="bg-background flex max-h-full w-full flex-col overflow-hidden shadow-2xl sm:max-w-4xl sm:rounded-2xl">
+            <div className="bg-background flex max-h-full w-full flex-col overflow-hidden shadow-2xl sm:max-w-4xl sm:rounded-lg">
                 <header className="border-border flex shrink-0 items-start gap-3 border-b px-5 py-4 lg:px-6">
                     <div className="min-w-0 flex-1">
                         <h1 className="text-base leading-tight font-semibold">{titulo}</h1>
