@@ -1840,3 +1840,10 @@ estado atravessando um site de terceiro, e um jeito a mais de errar.
 ⛔ **A grade de "Suas redes" na Visão geral fica onde está.** Ela não é configuração: é o semáforo
 diário, o que avisa que uma conexão vai quebrar **antes** de quebrar (DEC-32). Dentro de um modal
 de configuração, o aviso viraria algo que só se vê quando se vai procurar.
+
+⚠️ **Complemento da DEC-87:** o quadro de "conectar uma rede" saiu da grade da Visão geral. Com o
+conectar morando na configuração do grupo, deixá-lo ali seria uma **segunda porta para a mesma
+coisa** — e duas portas para a mesma coisa é exatamente como nasce o *"conectei e não apareceu"*:
+uma delas conecta no grupo em foco, a outra na intenção da pessoa, e elas divergem.
+
+Grupo sem rede passa a dizer onde se resolve isso, em vez de mostrar um retângulo tracejado vazio.

@@ -165,7 +165,7 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
 
             {/* Quadrados de tamanho fixo: uma grade que estica transformaria
                 duas redes conectadas em dois retângulos enormes. */}
-            <ul className="flex flex-wrap gap-2.5">
+            <ul className="flex flex-wrap gap-2.5 empty:hidden">
                 {minhas.map((rede) => {
                     const problemas = rede.contas.filter((c) => c.podePublicar === false && c.status !== 'desconectada');
 
@@ -205,18 +205,17 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
                         </li>
                     );
                 })}
-
-                {/* ⭐ O catálogo inteiro vive AQUI, atrás de um clique. Escolher
-                    rede acontece uma vez; olhar as suas, todo dia. */}
-                <li>
-                    <Quadro como="button" onClick={() => aoEscolher(true)} tracejado className="gap-2">
-                        <Plus className="text-muted-foreground size-6" aria-hidden="true" />
-                        <span className="text-muted-foreground text-xs leading-tight font-medium">
-                            {minhas.length === 0 ? 'Conectar uma rede' : 'Conectar outra'}
-                        </span>
-                    </Quadro>
-                </li>
             </ul>
+
+            {/* ⛔ Grupo sem rede não fica com um retângulo vazio: diz onde a
+                pessoa resolve isso. Conectar é configuração do grupo (DEC-87),
+                e não pode ter uma segunda porta aqui — duas portas para a mesma
+                coisa é como o "conectei e não apareceu" nasce. */}
+            {minhas.length === 0 && (
+                <p className="text-muted-foreground text-sm">
+                    Este grupo ainda não tem rede. Conecte uma pelo seletor de grupos, lá em cima — a engrenagem ao lado do nome dele.
+                </p>
+            )}
 
             {/* Escolher qual rede conectar — o catálogo */}
             <Dialog open={escolhendo} onOpenChange={aoEscolher}>
