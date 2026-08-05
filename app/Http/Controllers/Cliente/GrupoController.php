@@ -84,8 +84,16 @@ class GrupoController extends Controller
 
         GrupoCorrente::definir($grupo);
 
+        /*
+          * ⚠️ FLASH, e não parâmetro na URL.
+          *
+          * Com `?conectar=1` o pedido ficava grudado no endereço, e a
+          * atualização automática da tela (que recarrega de poucos em poucos
+          * segundos, na mesma URL) reabria o catálogo sem parar. Flash existe
+          * por uma requisição só — é exatamente a duração de um recado.
+          */
         return $request->boolean('conectar')
-            ? to_route('painel', ['conectar' => 1])
+            ? to_route('painel')->with('abrirCatalogo', true)
             : back();
     }
 

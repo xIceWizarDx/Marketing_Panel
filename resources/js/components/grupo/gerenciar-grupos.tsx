@@ -102,7 +102,14 @@ export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean;
                                             hora de conectar. */}
                                         <AcaoDaLinha
                                             rotulo={`Conectar uma rede em ${grupo.nome}`}
-                                            aoClicar={() => router.post(route('grupos.usar', grupo.ulid), { conectar: true })}
+                                            aoClicar={() => {
+                                                // ⚠️ Fecha ANTES de navegar: esta janela
+                                                // sobrevive à visita e ficaria por cima do
+                                                // catálogo — dando a impressão de que o
+                                                // clique não fez nada.
+                                                aoFechar();
+                                                router.post(route('grupos.usar', grupo.ulid), { conectar: true });
+                                            }}
                                         >
                                             {/* ⚠️ Engrenagem, não `+`. O `+` diz "acrescentar
                                                 mais um" — e o que esta ação faz é configurar

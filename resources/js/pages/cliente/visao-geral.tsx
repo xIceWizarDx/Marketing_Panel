@@ -1,6 +1,6 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import { AlertTriangle, ArrowRight } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import CabecalhoDePagina from '@/components/cabecalho-de-pagina';
 import PainelDeRedes, { type Rede } from '@/components/conexao/painel-de-redes';
@@ -47,6 +47,7 @@ interface Props {
  * para ler três dígitos.
  */
 export default function VisaoGeral({ numeros, pendencias, redes, totalConectado }: Props) {
+    const { abrirCatalogo } = usePage<DadosCompartilhados>().props;
     const { auth } = usePage<DadosCompartilhados>().props;
     const primeiroNome = auth.usuario?.nome.split(' ')[0] ?? '';
 
@@ -65,28 +66,22 @@ export default function VisaoGeral({ numeros, pendencias, redes, totalConectado 
      */
     const [redeAberta, setRedeAberta] = useState<string | null>(null);
 
+    const [escolhendoRede, setEscolhendoRede] = useState(false);
+
     /*
-     * ⭐ `?conectar` abre o catálogo assim que a tela monta.
+     * ⭐ É assim que "conectar uma rede neste grupo" chega aqui.
      *
-     * É como "conectar uma rede neste grupo", lá da janela de gerenciar, chega
-     * até aqui: o servidor troca o grupo e manda para cá com a intenção na URL.
-     * O modo segue a intenção, então a conta nasce no grupo certo.
+     * A engrenagem de um grupo troca o modo no servidor e manda para cá com um
+     * recado. O modo segue a intenção, então a conta nasce no grupo certo.
      *
-     * ⚠️ O parâmetro é apagado da barra de endereço no mesmo instante: ele é um
-     * recado de uma vez só, e recarregar a página não pode reabrir uma janela
-     * que a pessoa já fechou.
+     * ⚠️ **`useEffect`, não valor inicial de `useState`.** O valor inicial roda
+     * uma vez só; quem já estava nesta tela clicava na engrenagem, o servidor
+     * respondia — e nada abria, porque o componente não remonta numa visita
+     * para a mesma página.
      */
-    const [escolhendoRede, setEscolhendoRede] = useState(() => {
-        if (typeof window === 'undefined') return false;
-
-        const url = new URL(window.location.href);
-        if (!url.searchParams.has('conectar')) return false;
-
-        url.searchParams.delete('conectar');
-        window.history.replaceState({}, '', url.pathname + url.search);
-
-        return true;
-    });
+    useEffect(() => {
+        if (abrirCatalogo) setEscolhendoRede(true);
+    }, [abrirCatalogo]);
 
     return (
         <LayoutPainel migalhas={[{ titulo: 'Visão geral', url: '/painel' }]}>

@@ -62,6 +62,8 @@ export interface DadosCompartilhados {
     impersonacao: Impersonacao | null;
     /** `null` para visitante e para admin — quem nao publica nao tem grupo. */
     grupos: Grupos | null;
+    /** Recado de uma requisicao so: abrir o catalogo de redes ao montar. */
+    abrirCatalogo?: boolean;
     [key: string]: unknown;
 }
 

@@ -372,7 +372,10 @@ describe('⭐ conectar por dentro do grupo', function () {
 
         $this->actingAs($ana)
             ->post(route('grupos.usar', $novelas->ulid), ['conectar' => true])
-            ->assertRedirect(route('painel', ['conectar' => 1]));
+            ->assertRedirect(route('painel'))
+            // ⚠️ Flash, nao parametro na URL: com o pedido grudado no endereco,
+            // a atualizacao automatica da tela reabriria o catalogo sem parar.
+            ->assertSessionHas('abrirCatalogo', true);
 
         $this->actingAs($ana)
             ->get(route('painel'))

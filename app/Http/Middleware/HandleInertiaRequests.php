@@ -65,6 +65,10 @@ class HandleInertiaRequests extends Middleware
              */
             'grupos' => $usuario?->papel === Papel::Cliente ? fn () => $this->grupos() : null,
 
+            // Recado de uma requisição só: "abra o catálogo de redes assim que
+            // a tela montar". Vem de quem clicou na engrenagem de um grupo.
+            'abrirCatalogo' => fn () => (bool) $request->session()->get('abrirCatalogo'),
+
             // Alimenta a tarja fixa de "modo impersonação". Enquanto tiver
             // conteudo, a tela inteira mostra que aquilo nao e a conta de quem
             // esta olhando — e o que impede o admin de agir achando que e o dono.
