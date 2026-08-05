@@ -2,8 +2,8 @@ import { Head, useForm } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import { FormEventHandler } from 'react';
 
-import ErroDeCampo from '@/components/erro-de-campo';
 import CampoSenha from '@/components/campo-senha';
+import ErroDeCampo from '@/components/erro-de-campo';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import LayoutAcesso from '@/layouts/acesso';
@@ -17,10 +17,7 @@ export default function ConfirmarSenha() {
     };
 
     return (
-        <LayoutAcesso
-            titulo="Confirme sua senha"
-            descricao="Esta parte do sistema é protegida. Digite sua senha de novo para continuar."
-        >
+        <LayoutAcesso titulo="Confirme sua senha" descricao="Esta parte do sistema é protegida. Digite sua senha de novo para continuar.">
             <Head title="Confirmar senha" />
 
             <form className="flex flex-col gap-5" onSubmit={enviar}>

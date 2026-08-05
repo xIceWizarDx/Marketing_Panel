@@ -2,11 +2,11 @@ import { Head, Link, router } from '@inertiajs/react';
 import { ExternalLink, Plus, RotateCw, Send } from 'lucide-react';
 
 import CabecalhoDePagina from '@/components/cabecalho-de-pagina';
-import { Button } from '@/components/ui/button';
-import { useAtualizacaoViva } from '@/hooks/use-atualizacao-viva';
 import MarcaDaRede from '@/components/conexao/marca-da-rede';
 import Miniatura from '@/components/midia/miniatura';
 import Compositor, { type DadosDoCompositor } from '@/components/publicacao/compositor';
+import { Button } from '@/components/ui/button';
+import { useAtualizacaoViva } from '@/hooks/use-atualizacao-viva';
 import LayoutPainel from '@/layouts/painel';
 import { type Paginado } from '@/types';
 
@@ -39,10 +39,8 @@ interface PublicacaoDaLista {
     destinos: DestinoDaLista[];
 }
 
-
 /** Curto de propósito: no cartão quadrado não cabe data por extenso. */
-const quando = (iso: string | null) =>
-    iso ? new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '';
+const quando = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '');
 
 /**
  * Um destino que ainda não terminou: nem publicado, nem falhado.
@@ -81,8 +79,7 @@ export default function Publicacoes({
 
     // Fechar é NAVEGAR de volta: o compositor tem endereço próprio, então
     // fechá-lo por estado local deixaria a URL mentindo sobre a tela.
-    const fecharCompositor = () =>
-        router.get(route('publicacoes', aba === 'tudo' ? {} : { aba }), {}, { preserveScroll: true });
+    const fecharCompositor = () => router.get(route('publicacoes', aba === 'tudo' ? {} : { aba }), {}, { preserveScroll: true });
 
     return (
         <LayoutPainel migalhas={[{ titulo: 'Publicações', url: '/publicacoes' }]}>
@@ -124,9 +121,7 @@ export default function Publicacoes({
                             aria-selected={ativa}
                             preserveScroll
                             className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-sm transition-colors ${
-                                ativa
-                                    ? 'border-[color:var(--accent)] font-medium'
-                                    : 'text-muted-foreground hover:text-foreground border-transparent'
+                                ativa ? 'border-[color:var(--accent)] font-medium' : 'text-muted-foreground hover:text-foreground border-transparent'
                             }`}
                         >
                             {rotulo}
@@ -175,20 +170,14 @@ export default function Publicacoes({
                                         e cobrir a imagem inteira apagaria justamente o que
                                         faz reconhecer o vídeo. */}
                                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/55 to-transparent p-2.5 pt-8">
-                                        <p
-                                            className="truncate text-xs font-medium text-white"
-                                            title={publicacao.titulo || publicacao.midia}
-                                        >
+                                        <p className="truncate text-xs font-medium text-white" title={publicacao.titulo || publicacao.midia}>
                                             {publicacao.titulo || publicacao.midia}
                                         </p>
 
                                         <div className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1">
                                             {publicacao.destinos.map((destino) => (
-                                                <span
-                                                    key={destino.ulid}
-                                                    title={`${destino.plataformaRotulo} · ${destino.statusRotulo}`}
-                                                >
-                                                    <MarcaDaRede rede={destino.plataforma} className="size-4 rounded" />
+                                                <span key={destino.ulid} title={`${destino.plataformaRotulo} · ${destino.statusRotulo}`}>
+                                                    <MarcaDaRede rede={destino.plataforma} className="size-4 rounded-md" />
                                                 </span>
                                             ))}
 
@@ -199,9 +188,7 @@ export default function Publicacoes({
                                                 {publicacao.destinos[0]?.statusRotulo}
                                             </span>
 
-                                            <span className="ml-auto text-[0.625rem] text-white/65">
-                                                {quando(publicacao.criadaEm)}
-                                            </span>
+                                            <span className="ml-auto text-[0.625rem] text-white/65">{quando(publicacao.criadaEm)}</span>
                                         </div>
                                     </div>
 
@@ -215,19 +202,17 @@ export default function Publicacoes({
                                             title="Ver o post na rede"
                                             className="focus-visible:ring-ring absolute inset-0 focus-visible:ring-2 focus-visible:outline-none"
                                         >
-                                            <span className="absolute top-2 right-2 rounded bg-black/55 p-1.5 backdrop-blur-sm">
+                                            <span className="absolute top-2 right-2 rounded-md bg-black/55 p-1.5 backdrop-blur-sm">
                                                 <ExternalLink className="size-3 text-white" aria-hidden="true" />
                                             </span>
-                                            <span className="sr-only">
-                                                Ver o post de {publicacao.titulo || publicacao.midia}
-                                            </span>
+                                            <span className="sr-only">Ver o post de {publicacao.titulo || publicacao.midia}</span>
                                         </a>
                                     )}
 
                                     {/* ⭐ A rede admitindo que degradou o vídeo. */}
                                     {baixa && (
                                         <span
-                                            className="pointer-events-none absolute top-2 left-2 rounded px-1.5 py-0.5 text-[0.5625rem] font-medium text-white backdrop-blur-sm"
+                                            className="pointer-events-none absolute top-2 left-2 rounded-md px-1.5 py-0.5 text-[0.5625rem] font-medium text-white backdrop-blur-sm"
                                             style={{ background: 'color-mix(in oklab, var(--saude-atencao) 75%, transparent)' }}
                                             title="Enviamos em alta. A rede informou que a versão publicada está em baixa qualidade."
                                         >
@@ -258,24 +243,14 @@ export default function Publicacoes({
                                             variant="ghost"
                                             size="sm"
                                             className="mt-1 h-7 w-full px-2 text-xs"
-                                            onClick={() =>
-                                                router.post(
-                                                    route('publicacoes.reprocessar', destino.ulid),
-                                                    {},
-                                                    { preserveScroll: true },
-                                                )
-                                            }
+                                            onClick={() => router.post(route('publicacoes.reprocessar', destino.ulid), {}, { preserveScroll: true })}
                                         >
                                             <RotateCw className="mr-1 size-3" aria-hidden="true" />
                                             Tentar de novo
                                         </Button>
                                     ))}
 
-                                {comErro && (
-                                    <p className="text-muted-foreground mt-1 line-clamp-2 text-[0.6875rem] leading-snug">
-                                        {comErro.erro}
-                                    </p>
-                                )}
+                                {comErro && <p className="text-muted-foreground mt-1 line-clamp-2 text-[0.6875rem] leading-snug">{comErro.erro}</p>}
                             </li>
                         );
                     })}

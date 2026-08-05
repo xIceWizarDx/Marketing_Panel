@@ -1,5 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
-import { ChevronsUpDown, LogOut, Palette, KeyRound, UserCog } from 'lucide-react';
+import { ChevronsUpDown, KeyRound, LogOut, Palette, UserCog } from 'lucide-react';
 
 import {
     DropdownMenu,
@@ -41,7 +41,7 @@ export default function MenuDoUsuario({ recolhida = false, somenteAvatar = false
             >
                 <span
                     aria-hidden="true"
-                    className="bg-[color:var(--accent)] text-[color:var(--accent-foreground)] flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--accent)] text-xs font-semibold text-[color:var(--accent-foreground)]"
                 >
                     {iniciaisDe(usuario.nome)}
                 </span>

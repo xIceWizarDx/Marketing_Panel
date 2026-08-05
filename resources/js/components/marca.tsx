@@ -1,7 +1,7 @@
 import { usePage } from '@inertiajs/react';
 
-import { type DadosCompartilhados } from '@/types';
 import { cn } from '@/lib/utils';
+import { type DadosCompartilhados } from '@/types';
 
 /**
  * Nome e simbolo do produto.
@@ -16,7 +16,7 @@ export default function Marca({ compacta = false, className }: { compacta?: bool
         <span className={cn('flex items-center gap-2', className)}>
             <span
                 aria-hidden="true"
-                className="bg-[var(--accent)] text-[color:var(--accent-foreground)] flex size-8 shrink-0 items-center justify-center rounded-md text-sm font-bold"
+                className="flex size-8 shrink-0 items-center justify-center rounded-md bg-[var(--accent)] text-sm font-bold text-[color:var(--accent-foreground)]"
             >
                 M
             </span>

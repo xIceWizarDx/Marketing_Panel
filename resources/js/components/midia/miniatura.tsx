@@ -32,10 +32,7 @@ export default function Miniatura({
 
     return (
         <span
-            className={cn(
-                'bg-muted text-muted-foreground relative flex shrink-0 items-center justify-center overflow-hidden rounded-md',
-                className,
-            )}
+            className={cn('bg-muted text-muted-foreground relative flex shrink-0 items-center justify-center overflow-hidden rounded-md', className)}
         >
             {url ? (
                 <img

@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { Eye, Search, ShieldOff, ShieldCheck } from 'lucide-react';
+import { Eye, Search, ShieldCheck, ShieldOff } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 import CabecalhoDePagina from '@/components/cabecalho-de-pagina';
@@ -41,7 +41,10 @@ export default function Clientes({ clientes, busca }: { clientes: Paginado<Clien
 
             <form onSubmit={buscar} className="mb-5 flex gap-2">
                 <div className="relative flex-1 sm:max-w-xs">
-                    <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" aria-hidden="true" />
+                    <Search
+                        className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2"
+                        aria-hidden="true"
+                    />
                     <Input
                         value={termo}
                         onChange={(e) => setTermo(e.target.value)}
@@ -73,12 +76,12 @@ export default function Clientes({ clientes, busca }: { clientes: Paginado<Clien
                                     <p className="flex items-center gap-2 font-medium">
                                         <span className="truncate">{cliente.nome}</span>
                                         {!cliente.ativo && (
-                                            <span className="shrink-0 rounded bg-[color:var(--saude-erro)]/10 px-2 py-0.5 text-xs font-normal text-[color:var(--saude-erro)]">
+                                            <span className="shrink-0 rounded-md bg-[color:var(--saude-erro)]/10 px-2 py-0.5 text-xs font-normal text-[color:var(--saude-erro)]">
                                                 Sem acesso
                                             </span>
                                         )}
                                         {cliente.ativo && !cliente.emailVerificado && (
-                                            <span className="shrink-0 rounded bg-[color:var(--saude-atencao)]/10 px-2 py-0.5 text-xs font-normal text-[color:var(--saude-atencao)]">
+                                            <span className="shrink-0 rounded-md bg-[color:var(--saude-atencao)]/10 px-2 py-0.5 text-xs font-normal text-[color:var(--saude-atencao)]">
                                                 E-mail não confirmado
                                             </span>
                                         )}
@@ -93,9 +96,7 @@ export default function Clientes({ clientes, busca }: { clientes: Paginado<Clien
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() =>
-                                            router.patch(route('admin.clientes.acesso', cliente.ulid), {}, { preserveScroll: true })
-                                        }
+                                        onClick={() => router.patch(route('admin.clientes.acesso', cliente.ulid), {}, { preserveScroll: true })}
                                     >
                                         {cliente.ativo ? (
                                             <ShieldOff className="mr-1.5 size-4" aria-hidden="true" />
@@ -136,20 +137,14 @@ export default function Clientes({ clientes, busca }: { clientes: Paginado<Clien
                 <DialogContent>
                     <DialogTitle>Entrar na conta de {aImpersonar?.nome}?</DialogTitle>
                     <DialogDescription>
-                        Você vai ver exatamente o que essa pessoa vê, e tudo o que fizer conta como ação dela. O acesso fica registrado. Vamos
-                        pedir sua senha antes de continuar.
+                        Você vai ver exatamente o que essa pessoa vê, e tudo o que fizer conta como ação dela. O acesso fica registrado. Vamos pedir
+                        sua senha antes de continuar.
                     </DialogDescription>
                     <DialogFooter>
                         <DialogClose asChild>
                             <Button variant="secondary">Cancelar</Button>
                         </DialogClose>
-                        <Button
-                            onClick={() =>
-                                aImpersonar && router.post(route('admin.impersonar', aImpersonar.ulid))
-                            }
-                        >
-                            Entrar na conta
-                        </Button>
+                        <Button onClick={() => aImpersonar && router.post(route('admin.impersonar', aImpersonar.ulid))}>Entrar na conta</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

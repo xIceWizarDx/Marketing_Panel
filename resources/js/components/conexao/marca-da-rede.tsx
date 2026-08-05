@@ -80,12 +80,7 @@ export default function MarcaDaRede({ rede, className }: { rede: string; classNa
             className={cn('flex size-10 shrink-0 items-center justify-center rounded-xl', className)}
             style={{ backgroundColor: `#${marca.hex}` }}
         >
-            <svg
-                viewBox={marca.caixa ?? '0 0 24 24'}
-                className="size-5"
-                fill={glifoEscuro.has(rede) ? '#000' : '#fff'}
-                role="presentation"
-            >
+            <svg viewBox={marca.caixa ?? '0 0 24 24'} className="size-5" fill={glifoEscuro.has(rede) ? '#000' : '#fff'} role="presentation">
                 <path d={marca.path} />
             </svg>
         </span>

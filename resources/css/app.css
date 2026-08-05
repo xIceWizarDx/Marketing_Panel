@@ -11,21 +11,25 @@
         'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
 
     /*
-     * ⭐ TODO canto sai daqui — inclusive `xl` e `2xl`.
+     * ⭐ A ESCALA DE CANTO — quadrado com a quina quebrada, e nada além disso.
      *
-     * ⚠️ Sem estas duas linhas, `rounded-xl` e `rounded-2xl` continuam na
-     * escala embutida do Tailwind (0,75rem e 1rem) e IGNORAM o token. Era o que
-     * fazia os quadrados do painel parecerem bolhas ao lado de um botão: dois
-     * sistemas de canto convivendo na mesma tela sem ninguém decidir.
+     * ⚠️ Escrita em pixel, não em `calc()` sobre um token: com deslocamento, o
+     * valor real de cada degrau fica escondido atrás de uma conta, e mexer no
+     * meio da escala vira tentativa e erro. Aqui dá para ver o painel inteiro
+     * numa olhada — e é o único lugar que decide.
      *
-     * ⛔ Não usar `rounded-full` em nada que não seja círculo de verdade
-     * (avatar, ponto do semáforo, selo).
+     * ⚠️ `xl` e `2xl` PRECISAM estar aqui. Fora desta lista eles voltam para a
+     * escala embutida do Tailwind (12px e 16px) e ignoram tudo — era isso que
+     * fazia os quadrados parecerem bolhas ao lado de um botão.
+     *
+     * ⛔ `rounded-full` só em círculo de verdade: avatar, ponto do semáforo,
+     * barra de progresso.
      */
-    --radius-2xl: calc(var(--radius) + 2px);
-    --radius-xl: calc(var(--radius) + 1px);
-    --radius-lg: var(--radius);
-    --radius-md: calc(var(--radius) - 1px);
-    --radius-sm: calc(var(--radius) - 2px);
+    --radius-sm: 2px;
+    --radius-md: 2px; /* campo e botão — o que mais aparece na tela */
+    --radius-lg: 3px;
+    --radius-xl: 4px; /* quadros e cartões */
+    --radius-2xl: 4px;
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -127,13 +131,12 @@
     --chart-5: #ec4899;
 
     /*
-     * ⭐ Quadrado com o canto QUEBRADO, não arredondado.
+     * O `rounded` sem sufixo do Tailwind ainda olha para cá.
      *
-     * 4px tira o serrilhado da quina sem transformar o cartão em pastilha. A
-     * escala inteira (`sm` a `2xl`) deriva daqui, então mudar esta linha muda o
-     * painel todo — e é o único lugar que decide.
+     * ⚠️ A escala de verdade vive no bloco `@theme`, lá em cima. Esta linha
+     * existe só para o degrau sem nome não destoar dos outros.
      */
-    --radius: 0.25rem;
+    --radius: 2px;
 
     --sidebar-background: #ffffff;
     --sidebar-foreground: #1e293b;

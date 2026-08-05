@@ -1,7 +1,7 @@
-import { Link, usePage } from '@inertiajs/react';
 import { menuDeToque } from '@/lib/menu';
 import { cn } from '@/lib/utils';
 import { type DadosCompartilhados } from '@/types';
+import { Link, usePage } from '@inertiajs/react';
 
 /**
  * Navegacao do celular (< 768px).
@@ -33,7 +33,7 @@ export default function BarraInferior() {
                                 className={cn(
                                     // min-h-14: alvo de toque de 56px, acima do minimo recomendado de 44px
                                     'flex min-h-14 flex-col items-center justify-center gap-1 px-1 py-2 transition-colors',
-                                    'focus-visible:ring-ring focus-visible:ring-inset focus-visible:ring-2 focus-visible:outline-none',
+                                    'focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset',
                                     ativo ? 'text-[color:var(--accent)]' : 'text-sidebar-foreground/60',
                                 )}
                             >

@@ -2,9 +2,9 @@ import { Head, useForm } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
 import { FormEventHandler } from 'react';
 
+import CampoSenha from '@/components/campo-senha';
 import ErroDeCampo from '@/components/erro-de-campo';
 import LinkTexto from '@/components/link-texto';
-import CampoSenha from '@/components/campo-senha';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';

@@ -11,15 +11,7 @@ import { useEffect } from 'react';
  * ⚠️ O arquivo só é pedido quando esta janela abre. Deixar um `<video>` em cada
  * card da grade faria o navegador baixar todos os vídeos para desenhar a tela.
  */
-export default function Previa({
-    url,
-    nome,
-    aoFechar,
-}: {
-    url: string;
-    nome: string;
-    aoFechar: () => void;
-}) {
+export default function Previa({ url, nome, aoFechar }: { url: string; nome: string; aoFechar: () => void }) {
     // `Esc` fecha, como em qualquer janela: quem já usa computador espera isso, e
     // procurar o botão de fechar é fricção à toa.
     useEffect(() => {
@@ -49,7 +41,7 @@ export default function Previa({
                     type="button"
                     onClick={aoFechar}
                     aria-label="Fechar prévia"
-                    className="absolute -top-9 right-0 rounded p-1 text-white/80 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
+                    className="absolute -top-9 right-0 rounded-md p-1 text-white/80 transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
                 >
                     <X className="size-5" aria-hidden="true" />
                 </button>

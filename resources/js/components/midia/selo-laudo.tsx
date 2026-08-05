@@ -36,10 +36,7 @@ export default function SeloLaudo({ laudo }: { laudo: Laudo | null }) {
     const todas = aceitam.length === redes.length;
 
     return (
-        <span
-            className="inline-flex items-center gap-1.5 text-xs font-medium"
-            style={{ color: todas ? 'var(--saude-ok)' : 'var(--saude-atencao)' }}
-        >
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium" style={{ color: todas ? 'var(--saude-ok)' : 'var(--saude-atencao)' }}>
             <IconeDoNivel nivel={todas ? 'ok' : 'atencao'} className="size-3.5" />
             {todas ? 'Publica nas 4 redes' : `Publica em ${aceitam.length} de ${redes.length}`}
         </span>

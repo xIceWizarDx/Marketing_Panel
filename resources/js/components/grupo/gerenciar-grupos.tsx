@@ -43,8 +43,8 @@ export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean;
                 <DialogContent className="max-h-[85svh] overflow-y-auto sm:max-w-lg">
                     <DialogTitle>Seus grupos</DialogTitle>
                     <DialogDescription>
-                        Um grupo é uma linha de conteúdo com seus próprios canais — notícias e novelas, por exemplo. Uma
-                        publicação sai de um grupo só.
+                        Um grupo é uma linha de conteúdo com seus próprios canais — notícias e novelas, por exemplo. Uma publicação sai de um grupo
+                        só.
                     </DialogDescription>
 
                     <ul className="border-border divide-border divide-y rounded-lg border">
@@ -71,8 +71,7 @@ export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean;
                                             )}
                                         </p>
                                         <p className="text-muted-foreground text-xs">
-                                            {contar(grupo.canais, 'canal', 'canais')} ·{' '}
-                                            {contar(grupo.publicacoes, 'publicação', 'publicações')}
+                                            {contar(grupo.canais, 'canal', 'canais')} · {contar(grupo.publicacoes, 'publicação', 'publicações')}
                                         </p>
                                     </div>
 
@@ -81,7 +80,7 @@ export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean;
                                             type="button"
                                             onClick={() => setARenomear(grupo)}
                                             aria-label={`Renomear ${grupo.nome}`}
-                                            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded p-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                                            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-md p-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                                         >
                                             <Pencil className="size-3.5" aria-hidden="true" />
                                         </button>
@@ -92,7 +91,7 @@ export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean;
                                             title={porQueNaoArquiva ?? `Arquivar ${grupo.nome}`}
                                             onClick={() => setAArquivar(grupo)}
                                             aria-label={`Arquivar ${grupo.nome}`}
-                                            className="text-muted-foreground focus-visible:ring-ring rounded p-1.5 transition-colors hover:text-[color:var(--destructive)] focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-current"
+                                            className="text-muted-foreground focus-visible:ring-ring rounded-md p-1.5 transition-colors hover:text-[color:var(--destructive)] focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-current"
                                         >
                                             <Trash2 className="size-3.5" aria-hidden="true" />
                                         </button>

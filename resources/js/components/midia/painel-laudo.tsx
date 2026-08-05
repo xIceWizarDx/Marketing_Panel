@@ -18,11 +18,7 @@ const nomeDaRede: Record<string, string> = {
  */
 export default function PainelLaudo({ laudo }: { laudo: Laudo | null }) {
     if (!laudo || !laudo.disponivel) {
-        return (
-            <p className="text-muted-foreground text-sm">
-                {laudo?.indisponivel_porque ?? 'Este arquivo ainda não foi analisado.'}
-            </p>
-        );
+        return <p className="text-muted-foreground text-sm">{laudo?.indisponivel_porque ?? 'Este arquivo ainda não foi analisado.'}</p>;
     }
 
     const { ficha } = laudo;
@@ -64,10 +60,7 @@ export default function PainelLaudo({ laudo }: { laudo: Laudo | null }) {
                         <section key={rede}>
                             <h4 className="mb-1.5 flex items-center gap-2 text-sm font-medium">
                                 {nomeDaRede[rede] ?? rede}
-                                <span
-                                    className="text-xs font-normal"
-                                    style={{ color: recusado ? 'var(--saude-erro)' : 'var(--saude-ok)' }}
-                                >
+                                <span className="text-xs font-normal" style={{ color: recusado ? 'var(--saude-erro)' : 'var(--saude-ok)' }}>
                                     {recusado ? 'não publica' : 'publica'}
                                 </span>
                             </h4>
@@ -78,11 +71,7 @@ export default function PainelLaudo({ laudo }: { laudo: Laudo | null }) {
                                         <IconeDoNivel nivel={achado.nivel} className="mt-0.5" />
                                         <span className="min-w-0">
                                             {achado.mensagem}
-                                            {achado.providencia && (
-                                                <span className="text-muted-foreground block text-xs">
-                                                    {achado.providencia}
-                                                </span>
-                                            )}
+                                            {achado.providencia && <span className="text-muted-foreground block text-xs">{achado.providencia}</span>}
                                         </span>
                                     </li>
                                 ))}

@@ -315,7 +315,7 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
                                                     setAMover(conta);
                                                 }}
                                                 aria-label={`Mover ${conta.nome} de grupo`}
-                                                className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded p-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                                                className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-md p-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
                                             >
                                                 <FolderInput className="size-3.5" aria-hidden="true" />
                                             </button>
@@ -328,7 +328,7 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
                                                 setADesconectar(conta);
                                             }}
                                             aria-label={`Desconectar ${conta.nome}`}
-                                            className="text-muted-foreground focus-visible:ring-ring rounded p-1 transition-colors hover:text-[color:var(--destructive)] focus-visible:ring-2 focus-visible:outline-none"
+                                            className="text-muted-foreground focus-visible:ring-ring rounded-md p-1 transition-colors hover:text-[color:var(--destructive)] focus-visible:ring-2 focus-visible:outline-none"
                                         >
                                             <Unplug className="size-3.5" aria-hidden="true" />
                                         </button>

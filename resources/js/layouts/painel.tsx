@@ -1,10 +1,10 @@
 import { useCallback, useState } from 'react';
 
+import Avisos from '@/components/avisos';
 import BarraInferior from '@/components/barra-inferior';
 import BarraLateral from '@/components/barra-lateral';
 import BarraSuperior from '@/components/barra-superior';
 import TarjaImpersonacao from '@/components/tarja-impersonacao';
-import Avisos from '@/components/avisos';
 import { type Migalha } from '@/types';
 
 interface Props {

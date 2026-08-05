@@ -28,8 +28,8 @@ export default function TarjaImpersonacao() {
             </span>
 
             <span className="min-w-0 flex-1">
-                Você ({impersonacao.adminNome}) está vendo o painel de <strong>{impersonacao.usuarioNome}</strong>. Tudo o que fizer aqui vale
-                como ação dessa pessoa.
+                Você ({impersonacao.adminNome}) está vendo o painel de <strong>{impersonacao.usuarioNome}</strong>. Tudo o que fizer aqui vale como
+                ação dessa pessoa.
             </span>
 
             <Link

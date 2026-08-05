@@ -60,8 +60,8 @@ export default function TermosDaRede({ rede }: { rede: string }) {
             </p>
 
             <p>
-                <strong>O que guardamos:</strong> o nome e o identificador da conta, e a autorização de publicar — criptografada. Atualizamos
-                esses dados a cada 30 dias enquanto a conta estiver conectada. Ao desconectar, eles são apagados na hora.
+                <strong>O que guardamos:</strong> o nome e o identificador da conta, e a autorização de publicar — criptografada. Atualizamos esses
+                dados a cada 30 dias enquanto a conta estiver conectada. Ao desconectar, eles são apagados na hora.
             </p>
         </div>
     );

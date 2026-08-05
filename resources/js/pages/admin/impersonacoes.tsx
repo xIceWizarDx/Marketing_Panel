@@ -17,8 +17,7 @@ interface Registro {
     ip: string | null;
 }
 
-const quando = (iso: string | null) =>
-    iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—';
+const quando = (iso: string | null) => (iso ? new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : '—');
 
 export default function Impersonacoes({ registros, emAndamento }: { registros: Paginado<Registro>; emAndamento: number }) {
     return (
@@ -71,7 +70,7 @@ export default function Impersonacoes({ registros, emAndamento }: { registros: P
                                 </div>
 
                                 {registro.emAndamento && (
-                                    <span className="shrink-0 self-start rounded bg-[color:var(--saude-atencao)]/10 px-2 py-0.5 text-xs text-[color:var(--saude-atencao)]">
+                                    <span className="shrink-0 self-start rounded-md bg-[color:var(--saude-atencao)]/10 px-2 py-0.5 text-xs text-[color:var(--saude-atencao)]">
                                         em andamento
                                     </span>
                                 )}

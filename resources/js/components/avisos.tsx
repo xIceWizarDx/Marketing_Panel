@@ -94,7 +94,7 @@ function Toast({ recado, aoFechar }: { recado: Recado; aoFechar: () => void }) {
                 type="button"
                 onClick={aoFechar}
                 aria-label="Fechar aviso"
-                className="text-muted-foreground hover:text-foreground focus-visible:ring-ring -mt-0.5 -mr-0.5 rounded p-0.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                className="text-muted-foreground hover:text-foreground focus-visible:ring-ring -mt-0.5 -mr-0.5 rounded-md p-0.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
             >
                 <X className="size-3.5" aria-hidden="true" />
             </button>

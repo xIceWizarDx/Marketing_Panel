@@ -40,8 +40,8 @@ export default function BoasVindas() {
                     </h1>
 
                     <p className="text-muted-foreground mt-5 max-w-prose text-base">
-                        As redes aceitam o envio e só depois decidem se o vídeo entra. Por isso a gente confere o post na rede e guarda o link.
-                        Se falhar, você fica sabendo — não semanas depois.
+                        As redes aceitam o envio e só depois decidem se o vídeo entra. Por isso a gente confere o post na rede e guarda o link. Se
+                        falhar, você fica sabendo — não semanas depois.
                     </p>
 
                     <dl className="mt-12 grid gap-6 sm:grid-cols-3">
@@ -53,9 +53,7 @@ export default function BoasVindas() {
                         </div>
                         <div>
                             <dt className="font-medium">Aviso antes de quebrar</dt>
-                            <dd className="text-muted-foreground mt-1 text-sm">
-                                Conexão vencendo avisa com antecedência, em vez de falhar calada.
-                            </dd>
+                            <dd className="text-muted-foreground mt-1 text-sm">Conexão vencendo avisa com antecedência, em vez de falhar calada.</dd>
                         </div>
                         <div>
                             <dt className="font-medium">Laudo do vídeo</dt>

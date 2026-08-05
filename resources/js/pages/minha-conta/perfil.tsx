@@ -1,5 +1,5 @@
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { Transition } from '@headlessui/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 
 import ApagarConta from '@/components/apagar-conta';
@@ -66,12 +66,7 @@ export default function Perfil({ precisaVerificarEmail }: { precisaVerificarEmai
                     {precisaVerificarEmail && !auth.usuario?.emailVerificado && (
                         <div className="rounded-md border border-[color:var(--saude-atencao)]/30 bg-[color:var(--saude-atencao)]/10 px-3 py-2.5 text-sm">
                             Seu e-mail ainda não foi confirmado.{' '}
-                            <Link
-                                href={route('verificacao.reenviar')}
-                                method="post"
-                                as="button"
-                                className="font-medium underline underline-offset-4"
-                            >
+                            <Link href={route('verificacao.reenviar')} method="post" as="button" className="font-medium underline underline-offset-4">
                                 Reenviar o link de confirmação
                             </Link>
                         </div>

@@ -1,10 +1,10 @@
-import { Head, useForm } from '@inertiajs/react';
 import { Transition } from '@headlessui/react';
+import { Head, useForm } from '@inertiajs/react';
 import { FormEventHandler, useRef } from 'react';
 
+import CampoSenha from '@/components/campo-senha';
 import ErroDeCampo from '@/components/erro-de-campo';
 import TituloDeSecao from '@/components/titulo-de-secao';
-import CampoSenha from '@/components/campo-senha';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import LayoutMinhaConta from '@/layouts/minha-conta';

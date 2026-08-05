@@ -322,7 +322,7 @@ export default function Compositor({
                                                 !conta.podePublicar && 'cursor-not-allowed opacity-45',
                                             )}
                                         >
-                                            <MarcaDaRede rede={conta.plataforma} className="size-6 rounded" />
+                                            <MarcaDaRede rede={conta.plataforma} className="size-6 rounded-md" />
 
                                             <span className="min-w-0">
                                                 <span className="block max-w-[10rem] truncate text-xs font-medium">{conta.nome}</span>

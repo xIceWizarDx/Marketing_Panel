@@ -3,8 +3,8 @@ import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 import Marca from '@/components/marca';
 import MenuDoUsuario from '@/components/menu-do-usuario';
-import { cn } from '@/lib/utils';
 import { menuPara } from '@/lib/menu';
+import { cn } from '@/lib/utils';
 import { type DadosCompartilhados } from '@/types';
 
 interface Props {
@@ -52,7 +52,7 @@ export default function BarraLateral({ recolhida, aoAlternar }: Props) {
                                     <span className="flex min-w-0 flex-1 items-center gap-2">
                                         <span className="truncate">{item.titulo}</span>
                                         {item.emBreve && (
-                                            <span className="bg-muted text-muted-foreground shrink-0 rounded px-1.5 py-0.5 text-[0.65rem] leading-none">
+                                            <span className="bg-muted text-muted-foreground shrink-0 rounded-md px-1.5 py-0.5 text-[0.65rem] leading-none">
                                                 em breve
                                             </span>
                                         )}
@@ -116,11 +116,7 @@ export default function BarraLateral({ recolhida, aoAlternar }: Props) {
                         recolhida ? 'justify-center py-2.5' : 'px-2.5 py-2',
                     )}
                 >
-                    {recolhida ? (
-                        <PanelLeftOpen className="size-4" aria-hidden="true" />
-                    ) : (
-                        <PanelLeftClose className="size-4" aria-hidden="true" />
-                    )}
+                    {recolhida ? <PanelLeftOpen className="size-4" aria-hidden="true" /> : <PanelLeftClose className="size-4" aria-hidden="true" />}
                     <span className={recolhida ? 'sr-only' : ''}>Recolher menu</span>
                 </button>
 
