@@ -1,107 +1,113 @@
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { router, useForm, usePage } from '@inertiajs/react';
 import { Check, Layers, Pencil, Plus, Trash2 } from 'lucide-react';
 import { FormEventHandler, useState } from 'react';
 
 import ErroDeCampo from '@/components/erro-de-campo';
-import TituloDeSecao from '@/components/titulo-de-secao';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import LayoutMinhaConta from '@/layouts/minha-conta';
-import { type DadosCompartilhados } from '@/types';
-
-interface GrupoDaTela {
-    ulid: string;
-    nome: string;
-    canais: number;
-    publicacoes: number;
-}
+import { type DadosCompartilhados, type Grupo } from '@/types';
 
 /**
- * Onde os grupos se administram.
+ * Onde os grupos se administram — **por cima da tela em que a pessoa já estava**.
  *
- * ⭐ **Criar, renomear e arquivar são configuração, não navegação.** O seletor
- * do topo faz uma coisa só — trocar de grupo, que é o gesto de todo dia.
- * Misturar nele o que se faz uma vez por mês faria os dois disputarem o mesmo
- * espaço, e o gesto raro é sempre o que atrapalha o frequente.
+ * ⭐ Não é tela, e nem precisa ser: criar e renomear são gestos de um campo só,
+ * e arquivar é uma confirmação. Uma página inteira para isso obrigaria a sair
+ * de onde se está e voltar depois, para uma tarefa de quinze segundos.
+ *
+ * ⚠️ Abre do **seletor**, que vive na barra do topo de toda tela. Enterrar isto
+ * dentro de Minha conta faria a pessoa procurar em configurações uma coisa que
+ * ela tem na frente dos olhos o tempo todo.
+ *
+ * ⛔ Os números de canais e publicações não são enfeite: são o **motivo** de o
+ * botão de arquivar estar apagado. Sumir com o botão deixaria a pessoa sem
+ * saber o que fazer para conseguir arquivar.
  */
-export default function Grupos({ grupos }: { grupos: GrupoDaTela[] }) {
-    const atual = usePage<DadosCompartilhados>().props.grupos?.atual;
+export default function GerenciarGrupos({ aberta, aoFechar }: { aberta: boolean; aoFechar: () => void }) {
+    const { grupos } = usePage<DadosCompartilhados>().props;
 
     const [criando, setCriando] = useState(false);
-    const [aRenomear, setARenomear] = useState<GrupoDaTela | null>(null);
-    const [aArquivar, setAArquivar] = useState<GrupoDaTela | null>(null);
+    const [aRenomear, setARenomear] = useState<Grupo | null>(null);
+    const [aArquivar, setAArquivar] = useState<Grupo | null>(null);
+
+    if (!grupos?.atual) {
+        return null;
+    }
+
+    const { atual, lista } = grupos;
 
     return (
-        <LayoutMinhaConta>
-            <Head title="Grupos" />
+        <>
+            <Dialog open={aberta} onOpenChange={(estado) => !estado && aoFechar()}>
+                <DialogContent className="max-h-[85svh] overflow-y-auto sm:max-w-lg">
+                    <DialogTitle>Seus grupos</DialogTitle>
+                    <DialogDescription>
+                        Um grupo é uma linha de conteúdo com seus próprios canais — notícias e novelas, por exemplo. Uma
+                        publicação sai de um grupo só.
+                    </DialogDescription>
 
-            <section>
-                <TituloDeSecao
-                    titulo="Grupos"
-                    descricao="Um grupo é uma linha de conteúdo com seus próprios canais — notícias e novelas, por exemplo. Uma publicação sai de um grupo só."
-                />
+                    <ul className="border-border divide-border divide-y rounded-lg border">
+                        {lista.map((grupo) => {
+                            const porQueNaoArquiva =
+                                grupo.canais > 0
+                                    ? 'Mova ou desconecte os canais antes de arquivar'
+                                    : lista.length === 1
+                                      ? 'Você precisa de pelo menos um grupo'
+                                      : null;
 
-                <ul className="border-border bg-card divide-border divide-y rounded-xl border">
-                    {grupos.map((grupo) => {
-                        const emFoco = grupo.ulid === atual?.ulid;
-                        // ⛔ Não dá para arquivar grupo com canal nem o último.
-                        // A tela diz o motivo em vez de sumir com o botão.
-                        const porQueNaoArquiva =
-                            grupo.canais > 0
-                                ? 'Mova ou desconecte os canais antes de arquivar'
-                                : grupos.length === 1
-                                  ? 'Você precisa de pelo menos um grupo'
-                                  : null;
+                            return (
+                                <li key={grupo.ulid} className="flex flex-wrap items-center gap-x-3 gap-y-2 p-3">
+                                    <Layers className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
 
-                        return (
-                            <li key={grupo.ulid} className="flex flex-wrap items-center gap-x-3 gap-y-2 p-4">
-                                <Layers className="text-muted-foreground size-4 shrink-0" aria-hidden="true" />
+                                    <div className="min-w-0 flex-1">
+                                        <p className="flex items-center gap-2 text-sm font-medium">
+                                            <span className="truncate">{grupo.nome}</span>
+                                            {grupo.ulid === atual.ulid && (
+                                                <span className="text-muted-foreground inline-flex shrink-0 items-center gap-1 text-xs font-normal">
+                                                    <Check className="size-3" aria-hidden="true" />
+                                                    em uso
+                                                </span>
+                                            )}
+                                        </p>
+                                        <p className="text-muted-foreground text-xs">
+                                            {contar(grupo.canais, 'canal', 'canais')} ·{' '}
+                                            {contar(grupo.publicacoes, 'publicação', 'publicações')}
+                                        </p>
+                                    </div>
 
-                                <div className="min-w-0 flex-1">
-                                    <p className="flex items-center gap-2 text-sm font-medium">
-                                        <span className="truncate">{grupo.nome}</span>
-                                        {emFoco && (
-                                            <span className="text-muted-foreground inline-flex shrink-0 items-center gap-1 text-xs font-normal">
-                                                <Check className="size-3" aria-hidden="true" />
-                                                em uso
-                                            </span>
-                                        )}
-                                    </p>
-                                    <p className="text-muted-foreground text-xs">
-                                        {contar(grupo.canais, 'canal', 'canais')} · {contar(grupo.publicacoes, 'publicação', 'publicações')}
-                                    </p>
-                                </div>
+                                    <div className="flex shrink-0 items-center gap-0.5">
+                                        <button
+                                            type="button"
+                                            onClick={() => setARenomear(grupo)}
+                                            aria-label={`Renomear ${grupo.nome}`}
+                                            className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded p-1.5 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                                        >
+                                            <Pencil className="size-3.5" aria-hidden="true" />
+                                        </button>
 
-                                <div className="flex shrink-0 items-center gap-1">
-                                    <Button variant="ghost" size="sm" className="h-8 px-2" onClick={() => setARenomear(grupo)}>
-                                        <Pencil className="mr-1 size-3.5" aria-hidden="true" />
-                                        Renomear
-                                    </Button>
+                                        <button
+                                            type="button"
+                                            disabled={!!porQueNaoArquiva}
+                                            title={porQueNaoArquiva ?? `Arquivar ${grupo.nome}`}
+                                            onClick={() => setAArquivar(grupo)}
+                                            aria-label={`Arquivar ${grupo.nome}`}
+                                            className="text-muted-foreground focus-visible:ring-ring rounded p-1.5 transition-colors hover:text-[color:var(--destructive)] focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:text-current"
+                                        >
+                                            <Trash2 className="size-3.5" aria-hidden="true" />
+                                        </button>
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ul>
 
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-8 px-2"
-                                        disabled={!!porQueNaoArquiva}
-                                        title={porQueNaoArquiva ?? undefined}
-                                        onClick={() => setAArquivar(grupo)}
-                                    >
-                                        <Trash2 className="mr-1 size-3.5" aria-hidden="true" />
-                                        Arquivar
-                                    </Button>
-                                </div>
-                            </li>
-                        );
-                    })}
-                </ul>
-
-                <Button variant="secondary" className="mt-4" onClick={() => setCriando(true)}>
-                    <Plus className="mr-1.5 size-4" aria-hidden="true" />
-                    Criar um grupo
-                </Button>
-            </section>
+                    <Button variant="secondary" onClick={() => setCriando(true)}>
+                        <Plus className="mr-1.5 size-4" aria-hidden="true" />
+                        Criar um grupo
+                    </Button>
+                </DialogContent>
+            </Dialog>
 
             <JanelaDeNome
                 aberta={criando}
@@ -160,7 +166,7 @@ export default function Grupos({ grupos }: { grupos: GrupoDaTela[] }) {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </LayoutMinhaConta>
+        </>
     );
 }
 

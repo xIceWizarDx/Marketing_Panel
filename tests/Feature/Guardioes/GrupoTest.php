@@ -13,6 +13,7 @@ use App\Services\GrupoService;
 use App\Support\ContextoDoUsuario;
 use App\Support\GrupoCorrente;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
@@ -338,23 +339,20 @@ describe('o motor não conhece grupo (DEC-74)', function () {
     });
 });
 
-describe('a tela de configuração', function () {
-    it('lista os grupos com o que impede arquivar cada um', function () {
+describe('gerenciar grupos', function () {
+    it('⛔ não é tela: as contagens vêm nas props de toda página', function () {
+        // A janela de gerenciar abre por cima de onde a pessoa está, sem pedir
+        // nada ao servidor — e os números de canais e publicações sao o MOTIVO
+        // de arquivar estar bloqueado, nao enfeite.
         $ana = cliente();
         grupoCom($ana, 'Notícias');
 
-        $this->actingAs($ana)
-            ->get(route('grupos'))
-            ->assertOk()
-            ->assertInertia(fn ($p) => $p->component('minha-conta/grupos')
-                // Principal (do nascimento) + Notícias.
-                ->has('grupos', 2)
-                // ⚠️ A tela precisa do número de canais para dizer POR QUE não
-                // dá para arquivar, em vez de sumir com o botão sem explicação.
-                ->where('grupos.1.canais', 1));
-    });
+        expect(Route::has('grupos'))->toBeFalse();
 
-    it('⛔ barra o admin: quem não publica não tem grupo', function () {
-        $this->actingAs(admin())->get(route('grupos'))->assertNotFound();
+        $this->actingAs($ana)
+            ->get(route('painel'))
+            ->assertInertia(fn ($p) => $p->has('grupos.lista', 2)
+                ->where('grupos.lista.1.canais', 1)
+                ->where('grupos.lista.1.publicacoes', 0));
     });
 });

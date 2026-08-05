@@ -62,8 +62,20 @@ class HandleInertiaRequests extends Middleware
              */
             'grupos' => $usuario?->papel === Papel::Cliente ? fn () => [
                 'atual' => GrupoCorrente::grupo()?->only(['ulid', 'nome']),
-                'lista' => Grupo::query()->oldest('id')->get(['ulid', 'nome'])
-                    ->map->only(['ulid', 'nome'])->all(),
+                /*
+                 * ⚠️ `withCount` numa consulta só, e não duas por grupo.
+                 *
+                 * As contagens vêm porque a janela de gerenciar abre por cima
+                 * de qualquer tela, sem pedir nada ao servidor — e são elas que
+                 * dizem POR QUE um grupo não pode ser arquivado. Sumir com o
+                 * botão deixaria a pessoa sem saber o que fazer.
+                 */
+                'lista' => Grupo::query()
+                    ->withCount(['contasSociais as canais', 'publicacoes as publicacoes'])
+                    ->oldest('id')
+                    ->get(['id', 'ulid', 'nome'])
+                    ->map->only(['ulid', 'nome', 'canais', 'publicacoes'])
+                    ->all(),
             ] : null,
 
             // Alimenta a tarja fixa de "modo impersonação". Enquanto tiver

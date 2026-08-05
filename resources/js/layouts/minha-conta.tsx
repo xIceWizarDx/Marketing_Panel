@@ -4,7 +4,6 @@ import CabecalhoDePagina from '@/components/cabecalho-de-pagina';
 import LayoutPainel from '@/layouts/painel';
 import { menuDaConta } from '@/lib/menu';
 import { cn } from '@/lib/utils';
-import { type DadosCompartilhados } from '@/types';
 
 /**
  * Abas da area "Minha conta".
@@ -13,8 +12,7 @@ import { type DadosCompartilhados } from '@/types';
  * lista rola na horizontal em vez de empilhar e empurrar o conteudo pra baixo.
  */
 export default function LayoutMinhaConta({ children }: { children: React.ReactNode }) {
-    const { url, props } = usePage<DadosCompartilhados>();
-    const abas = menuDaConta(props.auth.usuario!.papel);
+    const { url } = usePage();
 
     return (
         <LayoutPainel migalhas={[{ titulo: 'Minha conta', url: '/minha-conta/perfil' }]}>
@@ -22,7 +20,7 @@ export default function LayoutMinhaConta({ children }: { children: React.ReactNo
 
             <div className="border-border -mx-4 mb-6 overflow-x-auto border-b px-4 sm:mx-0 sm:px-0">
                 <nav aria-label="Seções da conta" className="flex min-w-max gap-1">
-                    {abas.map((item) => {
+                    {menuDaConta.map((item) => {
                         const ativo = url.startsWith(item.url);
 
                         return (

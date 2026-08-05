@@ -36,6 +36,9 @@ export interface Impersonacao {
 export interface Grupo {
     ulid: string;
     nome: string;
+    /** ⚠️ Sao o MOTIVO de arquivar estar bloqueado, nao enfeite. */
+    canais: number;
+    publicacoes: number;
 }
 
 /** ⭐ Em qual grupo a pessoa esta, e para onde ela pode ir. */
