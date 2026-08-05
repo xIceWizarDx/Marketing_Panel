@@ -2,12 +2,15 @@
 
 namespace App\Http\Controllers\Cliente;
 
-use App\Enums\StatusDestino;
+use App\Enums\StatusConta;
 use App\Http\Controllers\Controller;
 use App\Models\ContaSocial;
-use App\Models\Destino;
+use App\Models\Grupo;
+use App\Models\Publicacao;
 use App\Support\Conexao\ResumoDasRedes;
 use App\Support\GrupoCorrente;
+use App\Support\ResumoDoPainel;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -33,6 +36,7 @@ class VisaoGeralController extends Controller
 {
     public function __construct(
         private readonly ResumoDasRedes $redes,
+        private readonly ResumoDoPainel $resumo,
     ) {}
 
     public function __invoke(): Response
@@ -43,54 +47,30 @@ class VisaoGeralController extends Controller
         // ⚠️ TODAS as contas, de todos os grupos: o aviso de saúde ignora o
         // filtro (DEC-80). Conta da outra ponta não pode morrer calada só
         // porque a pessoa está olhando outro grupo.
-        $contas = ContaSocial::with(['credencial:id,conta_social_id,expira_em,refresh_token', 'grupo:id,nome'])->get();
-        $numeros = $this->numeros();
+        $contas = ContaSocial::with(['credencial:id,conta_social_id,expira_em,refresh_token', 'grupo:id,ulid,nome'])->get();
+        // ⭐ O total soma TODOS os grupos: esta é a única tela que vê tudo
+        // (DEC-88). Antes ela contava só o grupo em foco — com um nome que
+        // dizia "geral".
+        $numeros = $this->resumo->total();
 
         return Inertia::render('cliente/visao-geral', [
             'numeros' => $numeros,
             // ⭐ O bloco que justifica abrir o painel: o que está esperando VOCÊ.
             'pendencias' => $this->pendencias($contas, $numeros),
+            /*
+             * ⭐ Uma entrada por grupo, SEMPRE — inclusive zerada, e na mesma
+             * ordem de `grupos.lista`, que é por onde a tela casa nome e marcas.
+             *
+             * ⛔ Nome, marcas e contagem de redes NÃO vêm aqui: eles já viajam
+             * em `grupos.lista` a cada requisição. Mandar de novo é o começo do
+             * número diferente para o mesmo fato.
+             */
+            'resumoDosGrupos' => $this->resumoDosGrupos($contas),
             // ⭐ Conexões deixou de ser tela (DEC-63): o estado das redes mora
             // aqui, com o semáforo à vista. Escondido atrás de um clique, ele
             // vira algo que se descobre depois de já ter perdido a publicação.
             ...$this->redes->montar(),
         ]);
-    }
-
-    /**
-     * Os três lados do mesmo fato.
-     *
-     * ⭐ Mostrar só o que deu certo é o que os concorrentes fazem, e é por isso
-     * que o painel deles mente. A falha aparece do lado do acerto.
-     *
-     * @return array{noAr: int, andando: int, falharam: int}
-     */
-    private function numeros(): array
-    {
-        $contagem = Destino::query()
-            ->join('contas_sociais', 'contas_sociais.id', '=', 'destinos.conta_social_id')
-            ->join('publicacoes', 'publicacoes.id', '=', 'destinos.publicacao_id')
-            // ⛔ Não sai daqui: é o que aplica o escopo do dono num `join` cru.
-            // O filtro de grupo abaixo SOMA a ele, nunca substitui (DEC-74).
-            ->whereIn('contas_sociais.id', ContaSocial::query()->select('id'))
-            // ⭐ Pelo grupo da PUBLICAÇÃO, não pelo da conta (DEC-75).
-            ->where('publicacoes.grupo_id', GrupoCorrente::id())
-            ->groupBy('destinos.status')
-            ->pluck(DB::raw('count(*)'), 'destinos.status');
-
-        $de = fn (StatusDestino ...$status) => collect($status)
-            ->sum(fn (StatusDestino $s) => (int) $contagem->get($s->value, 0));
-
-        return [
-            'noAr' => $de(StatusDestino::Publicado),
-            'andando' => $de(
-                StatusDestino::Pendente,
-                StatusDestino::Enviando,
-                StatusDestino::Processando,
-                StatusDestino::AguardandoJanela,
-            ),
-            'falharam' => $de(StatusDestino::Falhou),
-        ];
     }
 
     /**
@@ -113,19 +93,7 @@ class VisaoGeralController extends Controller
     {
         $pendencias = [];
 
-        if ($numeros['falharam'] > 0) {
-            $quantas = $numeros['falharam'];
-
-            $pendencias[] = [
-                'tom' => 'erro',
-                'texto' => $quantas === 1
-                    ? 'Uma publicação não subiu.'
-                    : "{$quantas} publicações não subiram.",
-                'acao' => 'Ver o que houve',
-                'url' => route('publicacoes'),
-                'rede' => null,
-            ];
-        }
+        $pendencias = array_merge($pendencias, $this->avisoDoQueNaoSubiu());
 
         $vencendo = $contas->filter(fn (ContaSocial $c) => (bool) $c->credencial?->venceEmBreve());
 
@@ -140,6 +108,7 @@ class VisaoGeralController extends Controller
                     : "{$vencendo->count()} autorizações estão para vencer. Quando vencerem, essas contas param de publicar.",
                 'acao' => 'Reconectar',
                 'url' => null,
+                'grupo' => $this->grupoParaEntrar($vencendo),
                 'rede' => $this->redeEmComum($vencendo),
             ];
         }
@@ -154,13 +123,145 @@ class VisaoGeralController extends Controller
                 'texto' => $quebradas->count() === 1
                     ? "«{$conta->nome_exibicao}»{$this->ondeEsta($conta)} parou de publicar no {$conta->plataforma->rotulo()}."
                     : "{$quebradas->count()} contas pararam de publicar.",
-                'acao' => 'Resolver',
+                // ⛔ Conta de OUTRO grupo: "Resolver" abriria a janela daquela
+                // rede VAZIA — a grade é filtrada pelo grupo em foco. Entrar no
+                // grupo primeiro é o conserto (DEC-89).
+                'acao' => $this->grupoParaEntrar($quebradas) ? 'Entrar no grupo' : 'Resolver',
                 'url' => null,
-                'rede' => $this->redeEmComum($quebradas),
+                'grupo' => $this->grupoParaEntrar($quebradas),
+                'rede' => $this->grupoParaEntrar($quebradas) ? null : $this->redeEmComum($quebradas),
             ];
         }
 
         return $pendencias;
+    }
+
+    /**
+     * ⛔ O aviso do que não subiu — e ele conta POSTS (DEC-90).
+     *
+     * ⚠️ Antes dizia "3 publicações não subiram" contando **destinos**. Uma
+     * publicação vira um post por canal, então o número não batia com a aba de
+     * Publicações, que conta publicações. Dois números para o mesmo fato.
+     *
+     * ⭐ A ação segue a intenção: falha num grupo que não está em foco leva
+     * para dentro dele. Com falha em mais de um grupo **não há ação** —
+     * escolher uma seria decidir por conta própria qual é o problema da pessoa.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function avisoDoQueNaoSubiu(): array
+    {
+        $porGrupo = collect($this->resumo->porGrupo())
+            ->filter(fn (array $n) => $n['naoSubiram'] > 0);
+
+        if ($porGrupo->isEmpty()) {
+            return [];
+        }
+
+        $quantos = $porGrupo->sum('naoSubiram');
+        $texto = $quantos === 1 ? 'Um post não subiu.' : "{$quantos} posts não subiram.";
+
+        // Tudo num grupo só: dá para levar direto até lá.
+        if ($porGrupo->count() === 1) {
+            $grupo = $this->grupoPorId((int) $porGrupo->keys()->first());
+            $noFoco = $grupo?->id === GrupoCorrente::id();
+
+            return [[
+                'tom' => 'erro',
+                'texto' => $noFoco || ! $grupo
+                    ? $texto
+                    : rtrim($texto, '.')." em «{$grupo->nome}».",
+                'acao' => $noFoco ? 'Ver o que houve' : "Entrar em «{$grupo?->nome}»",
+                'url' => $noFoco ? route('publicacoes', ['aba' => 'falharam']) : null,
+                'grupo' => $noFoco ? null : $grupo?->ulid,
+                'rede' => null,
+            ]];
+        }
+
+        return [[
+            'tom' => 'erro',
+            'texto' => "{$texto} Eles estão em {$porGrupo->count()} grupos.",
+            'acao' => '',
+            'url' => null,
+            'grupo' => null,
+            'rede' => null,
+        ]];
+    }
+
+    /**
+     * Um por grupo, sempre — a tela precisa da linha mesmo zerada.
+     *
+     * @param  Collection<int, ContaSocial>  $contas
+     * @return list<array<string, mixed>>
+     */
+    private function resumoDosGrupos($contas): array
+    {
+        $numeros = $this->resumo->porGrupo();
+        $ultimas = Publicacao::query()
+            ->whereNotNull('enviada_em')
+            ->groupBy('grupo_id')
+            ->pluck(DB::raw('max(enviada_em)'), 'grupo_id');
+
+        // Contas agrupadas em memória: elas já estão carregadas, e uma consulta
+        // por grupo aqui viraria N+1 recarregado de 4 em 4 segundos pela
+        // atualização viva.
+        $porGrupo = $contas->groupBy('grupo_id');
+
+        return Grupo::query()->oldest('id')->get(['id', 'ulid'])
+            ->map(function (Grupo $grupo) use ($numeros, $ultimas, $porGrupo) {
+                $doGrupo = $porGrupo->get($grupo->id, collect());
+
+                return [
+                    'ulid' => $grupo->ulid,
+                    ...($numeros[$grupo->id] ?? ['noAr' => 0, 'andando' => 0, 'naoSubiram' => 0]),
+                    'cadencia' => $this->cadencia($doGrupo, $ultimas->get($grupo->id)),
+                    // ⚠️ Contas que a pessoa VÊ na grade: desconectada não conta.
+                    'canaisParados' => $doGrupo
+                        ->filter(fn (ContaSocial $c) => $c->status !== StatusConta::Desconectada && ! $c->podePublicar())
+                        ->count(),
+                    'autorizacoesVencendo' => $doGrupo
+                        ->filter(fn (ContaSocial $c) => (bool) $c->credencial?->venceEmBreve())
+                        ->count(),
+                ];
+            })
+            ->all();
+    }
+
+    /**
+     * A frase pronta, em PT-BR — a tela não formata data nem recebe `Date`.
+     *
+     * ⚠️ Ancorada em `enviada_em`, jamais em `publicado_em`: o que falhou não
+     * tem data de publicação, e ancorar ali apagaria justamente as falhas.
+     *
+     * @param  Collection<int, ContaSocial>  $contas
+     */
+    private function cadencia($contas, ?string $ultima): string
+    {
+        $conectadas = $contas->filter(fn (ContaSocial $c) => $c->status !== StatusConta::Desconectada)->count();
+
+        if ($conectadas === 0) {
+            // Sozinho: acrescentar "ainda não publicou" seria dizer o óbvio.
+            return 'sem canal conectado';
+        }
+
+        $canais = $conectadas === 1 ? '1 canal' : "{$conectadas} canais";
+
+        if (! $ultima) {
+            return "{$canais} · ainda não publicou";
+        }
+
+        $dias = (int) Carbon::parse($ultima)->startOfDay()->diffInDays(now()->startOfDay());
+
+        return match (true) {
+            $dias <= 0 => "{$canais} · publicou hoje",
+            $dias === 1 => "{$canais} · publicou ontem",
+            default => "{$canais} · última publicação há {$dias} dias",
+        };
+    }
+
+    private function grupoPorId(int $id): ?Grupo
+    {
+        return Grupo::query()->find($id);
     }
 
     /**
@@ -174,6 +275,26 @@ class VisaoGeralController extends Controller
         return $conta->grupo_id === GrupoCorrente::id()
             ? ''
             : ", em {$conta->grupo->nome},";
+    }
+
+    /**
+     * O grupo em que entrar, quando o problema está fora do que está à vista.
+     *
+     * ⛔ `null` quando a conta já está no grupo em foco (aí a ação resolve ali
+     * mesmo) ou quando são grupos diferentes (aí não há para onde levar sem
+     * escolher pela pessoa).
+     *
+     * @param  Collection<int, ContaSocial>  $contas
+     */
+    private function grupoParaEntrar($contas): ?string
+    {
+        $grupos = $contas->pluck('grupo_id')->unique();
+
+        if ($grupos->count() !== 1 || $grupos->first() === GrupoCorrente::id()) {
+            return null;
+        }
+
+        return $contas->first()->grupo?->ulid;
     }
 
     /**

@@ -3,7 +3,9 @@
 use App\Enums\StatusDestino;
 use App\Models\ContaSocial;
 use App\Models\Destino;
+use App\Models\Grupo;
 use App\Models\Publicacao;
+use App\Services\GrupoService;
 use App\Support\ContextoDoUsuario;
 
 /*
@@ -38,7 +40,7 @@ it('conta os três lados, não só o que deu certo', function () {
         ->get('/painel')
         ->assertInertia(fn ($p) => $p
             ->where('numeros.noAr', 1)
-            ->where('numeros.falharam', 1)
+            ->where('numeros.naoSubiram', 1)
             ->where('numeros.andando', 1));
 });
 
@@ -147,4 +149,126 @@ it('⛔ não soma o número de outro cliente', function () {
             ->where('numeros.noAr', 0)
             // ⛔ Publicação não mora aqui (DEC-68): só o número dela.
             ->missing('ultimas'));
+});
+
+describe('⭐ a tela ve TODOS os grupos (DEC-88)', function () {
+    it('o total soma os grupos, e nao so o que esta em foco', function () {
+        // Ela se chama "geral" e mostrava um grupo so. Somar tudo e o que
+        // torna o nome verdadeiro — e o que evita uma segunda tela dizendo a
+        // mesma coisa com outro recorte.
+        $ana = cliente();
+        ContextoDoUsuario::definir($ana);
+
+        $noticias = Grupo::firstOrFail();
+        $novelas = app(GrupoService::class)->criar('Novelas');
+
+        foreach ([$noticias, $novelas] as $grupo) {
+            $conta = ContaSocial::factory()->doGrupo($grupo)->comCredencial()->create();
+            Destino::factory()->create([
+                'publicacao_id' => Publicacao::factory()->doUsuario($ana)->enviada()->create(['grupo_id' => $grupo->id])->id,
+                'conta_social_id' => $conta->id,
+                'status' => StatusDestino::Publicado,
+                'url_publicada' => 'https://bsky.app/p/x',
+            ]);
+        }
+
+        ContextoDoUsuario::limpar();
+
+        $this->actingAs($ana)
+            ->get('/painel')
+            ->assertInertia(fn ($p) => $p
+                ->where('numeros.noAr', 2)
+                // Uma entrada por grupo, SEMPRE — a tela precisa da linha
+                // mesmo quando o grupo esta zerado.
+                ->has('resumoDosGrupos', 2)
+                ->where('resumoDosGrupos.0.noAr', 1)
+                ->where('resumoDosGrupos.1.noAr', 1));
+    });
+
+    it('com UM grupo a lista vem com uma entrada — a secao e que nao renderiza', function () {
+        $ana = cliente();
+
+        $this->actingAs($ana)
+            ->get('/painel')
+            ->assertInertia(fn ($p) => $p->has('resumoDosGrupos', 1));
+    });
+
+    it('⛔ nao ve grupo de outro cliente', function () {
+        // A consulta nova ve todos os GRUPOS, e continua nao vendo os de outro
+        // dono: o escopo aplicado no join cru e a unica trava ali.
+        $ana = cliente();
+        ContextoDoUsuario::definir($ana);
+        $daAna = Grupo::firstOrFail();
+        $conta = ContaSocial::factory()->doGrupo($daAna)->comCredencial()->create();
+        Destino::factory()->create([
+            'publicacao_id' => Publicacao::factory()->doUsuario($ana)->enviada()->create(['grupo_id' => $daAna->id])->id,
+            'conta_social_id' => $conta->id,
+            'status' => StatusDestino::Publicado,
+            'url_publicada' => 'https://bsky.app/p/x',
+        ]);
+        ContextoDoUsuario::limpar();
+
+        $bruno = cliente();
+
+        $this->actingAs($bruno)
+            ->get('/painel')
+            ->assertInertia(fn ($p) => $p
+                ->where('numeros.noAr', 0)
+                ->has('resumoDosGrupos', 1)
+                ->where('resumoDosGrupos.0.noAr', 0));
+    });
+
+    it('⛔ o aviso conta POSTS, nao publicacoes (DEC-90)', function () {
+        // Uma publicacao vira um post por canal. O aviso contava destinos e
+        // escrevia "publicacoes" — dois numeros para o mesmo fato, e o da aba
+        // de Publicacoes era outro.
+        $ana = cliente();
+        ContextoDoUsuario::definir($ana);
+
+        $grupo = Grupo::firstOrFail();
+        $publicacao = Publicacao::factory()->doUsuario($ana)->enviada()->create(['grupo_id' => $grupo->id]);
+
+        foreach (range(1, 2) as $i) {
+            Destino::factory()->create([
+                'publicacao_id' => $publicacao->id,
+                'conta_social_id' => ContaSocial::factory()->doGrupo($grupo)->comCredencial()->create()->id,
+                'status' => StatusDestino::Falhou,
+            ]);
+        }
+
+        ContextoDoUsuario::limpar();
+
+        $this->actingAs($ana)
+            ->get('/painel')
+            ->assertInertia(fn ($p) => $p->where('pendencias', function ($lista) {
+                $aviso = collect($lista)->firstWhere('tom', 'erro');
+
+                // Uma publicacao, dois canais, dois posts que nao subiram.
+                expect($aviso['texto'])->toBe('2 posts não subiram.')
+                    ->and($aviso['texto'])->not->toContain('publicaç');
+
+                return true;
+            }));
+    });
+
+    it('a cadencia vem pronta do servidor — a tela nao formata data', function () {
+        $ana = cliente();
+        ContextoDoUsuario::definir($ana);
+        ContaSocial::factory()->doGrupo(Grupo::firstOrFail())->comCredencial()->create();
+        ContextoDoUsuario::limpar();
+
+        $this->actingAs($ana)
+            ->get('/painel')
+            ->assertInertia(fn ($p) => $p->where('resumoDosGrupos.0.cadencia', '1 canal · ainda não publicou'));
+    });
+
+    it('grupo sem canal diz isso, e nao "ainda nao publicou"', function () {
+        // Dizer as duas coisas seria dizer o obvio: sem canal, claro que nao
+        // publicou.
+        $ana = cliente();
+
+        $this->actingAs($ana)
+            ->get('/painel')
+            ->assertInertia(fn ($p) => $p->where('resumoDosGrupos.0.cadencia', 'sem canal conectado'));
+    });
 });

@@ -294,11 +294,17 @@ describe('as telas leem por grupo', function () {
         $this->actingAs($ana)
             ->withSession(['grupo.corrente' => $noticias->ulid])
             ->get(route('painel'))
-            ->assertInertia(fn ($p) => $p->where('pendencias', function ($lista) {
-                $aviso = collect($lista)->firstWhere('acao', 'Resolver');
+            ->assertInertia(fn ($p) => $p->where('pendencias', function ($lista) use ($novelas) {
+                // ⛔ Conta de OUTRO grupo NAO oferece "Resolver": a grade de
+                // redes e filtrada pelo grupo em foco, entao resolver dali
+                // abriria a janela daquela rede VAZIA. Entrar no grupo primeiro
+                // e o conserto (DEC-89).
+                $aviso = collect($lista)->firstWhere('acao', 'Entrar no grupo');
 
                 expect($aviso)->not->toBeNull()
-                    ->and($aviso['texto'])->toContain('Novelas');
+                    ->and($aviso['texto'])->toContain('Novelas')
+                    ->and($aviso['grupo'])->toBe($novelas->ulid)
+                    ->and($aviso['rede'])->toBeNull();
 
                 return true;
             }));

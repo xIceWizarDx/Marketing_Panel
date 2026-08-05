@@ -1847,3 +1847,52 @@ coisa** — e duas portas para a mesma coisa é exatamente como nasce o *"conect
 uma delas conecta no grupo em foco, a outra na intenção da pessoa, e elas divergem.
 
 Grupo sem rede passa a dizer onde se resolve isso, em vez de mostrar um retângulo tracejado vazio.
+
+---
+
+### 2026-08-05 — A Visão geral passa a ver tudo (DEC-88 a DEC-92)
+
+Plano completo em [`16-plano-visao-geral.md`](16-plano-visao-geral.md).
+
+⚠️ O desenho saiu de **três propostas independentes julgadas por três críticos** — pela prova, pelo
+ritmo e pela comparação entre grupos. Duas foram derrubadas por defeito estrutural, não por gosto:
+a fita de semanas escalava cada grupo por si (10 por semana e 1 por semana desenhavam a mesma
+altura), e a faixa clicável punha um alvo de 10px de altura para trocar o grupo em foco.
+
+**DEC-88 — a Visão geral soma TODOS os grupos, e por isso o total deixa de ser link.** Com mais de
+um grupo, *"ver publicações"* abriria uma lista de um grupo só que não bate com o número mostrado.
+⭐ Isto também resolve a tensão da DEC-80: o aviso de saúde furava o filtro porque a tela não via
+tudo. Agora ela vê.
+
+**DEC-89 — aviso sobre conta de OUTRO grupo entra no grupo, em vez de abrir janela vazia.**
+⛔ **Defeito que existia em produção:** os avisos carregam contas de todos os grupos, mas a grade de
+redes é filtrada pelo grupo em foco. Clicar *"Resolver"* abria a janela daquela rede com **zero
+contas dentro**. A ação virou *"Entrar no grupo"*; depois de entrar, o mesmo aviso reaparece com
+"Resolver" e a conta está lá.
+
+**DEC-90 — na Visão geral a unidade é o POST, não a publicação.** Publicação é o vídeo enviado; ela
+vira **um post por canal**. ⛔ **Segundo defeito de produção:** o aviso contava destinos e escrevia
+*"3 publicações não subiram"* — número diferente do que a aba de Publicações mostra, para o mesmo
+fato.
+
+**DEC-91 — o grupo em foco só muda por gesto rotulado com verbo.** Gráfico não troca modo, e
+segmento de barra não é botão: 10px de altura é um vinte e quatro avos do alvo mínimo de toque, e
+no celular não existe `hover` para avisar antes do clique.
+
+**DEC-92 — o gráfico mora atrás de um contrato que não sabe o que é grupo.** Recebe número
+absoluto, rótulo, cor já resolvida e a medida compartilhada. Não formata texto, não navega, não
+guarda estado, não escolhe cor, não anima. ⭐ É isso que permite trocar CSS puro por **ApacheECharts**
+mexendo em um arquivo só — e é isso que impede o gráfico de virar dono da regra de negócio.
+
+⚠️ **A medida compartilhada é o argumento inteiro da comparação:** todas as barras medidas pelo
+total do maior grupo. Sem ela, cada barra se escala por si e o grupo de 5 posts desenha do mesmo
+tamanho do de 40 — um gráfico que mente por construção.
+
+⭐ **A regra que governa o desenho:** esforço se mede por comprimento; **problema nunca**. A barra
+carrega o volume; o ponto de saúde tem o mesmo tamanho no grupo de 40 e no de 5. E quando nenhum
+post subiu de N, a coluna vira texto vermelho de tamanho fixo — é o caso em que a medida
+compartilhada mais engana, porque 5 falhas em 5 desenham menos vermelho que 3 em 44.
+
+⛔ **Fora, de propósito:** porcentagem (com 3 posts, "100%" vira "67%" e parece piora), ranking,
+meta, escala logarítmica, e métricas de rede — bloqueadas enquanto o aplicativo do YouTube estiver
+em Testes, porque todo vídeo sobe privado e a tela mostraria zero em tudo.

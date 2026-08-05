@@ -45,6 +45,11 @@ inteiro **em silêncio**, e a linha arquivada volta a aparecer); tabelas
 resource. **Motivo:** renomear coluna de auth exige override frágil — classe do bug
 `senha_hash` do EmpiresCloud (null silencioso no login). Domínio em PT-BR; andaime, não.
 
+⚠️ **Publicação ≠ post.** *Publicação* é o vídeo que a pessoa mandou; ela vira **um post por
+canal** escolhido — e post, no banco, é `destinos`. As abas da tela de Publicações contam
+**publicações**; os números da Visão geral contam **posts** (DEC-90). Trocar um pelo outro produz
+dois números para o mesmo fato, que foi exatamente o defeito do aviso *"3 publicações não subiram"*.
+
 **Derivado nunca vira coluna.** O que se calcula a partir de outra coluna não é armazenado
 (ex.: proporção = `largura/altura`). Uma fonte por fato = zero drift de dado.
 
