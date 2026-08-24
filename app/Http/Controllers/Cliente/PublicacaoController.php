@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Cliente;
 
+use App\Enums\Plataforma;
 use App\Enums\StatusDestino;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Cliente\PublicarRequest;
@@ -9,8 +10,13 @@ use App\Models\ContaSocial;
 use App\Models\Destino;
 use App\Models\Midia;
 use App\Models\Publicacao;
+use App\Publicadores\RegistroDePublicadores;
 use App\Services\EnvioDePublicacao;
+use App\Support\AlcanceSomado;
+use App\Support\CustoDaPublicacao;
+use App\Support\DataEmPalavras;
 use App\Support\GrupoCorrente;
+use App\Support\MediaPorRede;
 use App\Support\Midia\EspecificacaoDaRede;
 use App\Support\Midia\LimiteDeEnvio;
 use Illuminate\Http\RedirectResponse;
@@ -64,6 +70,14 @@ class PublicacaoController extends Controller
             'publicacoes' => $publicacoes,
             'aba' => $aba,
             'contagem' => $this->contagemPorAba(),
+            /*
+             * ⭐ O total, com as ressalvas que o tornam honesto (DEC-146).
+             *
+             * ⚠️ Ele responde "estou crescendo?" e NADA mais — a comparação
+             * entre redes é o `comparativo`, ao lado, cada uma na medida dela.
+             */
+            'alcance' => AlcanceSomado::doDono(app(RegistroDePublicadores::class))->paraTela(),
+            'comparativo' => $this->comparativo(),
             // ⭐ O compositor abre POR CIMA da lista, por uma rota de verdade.
             // Vazio aqui; preenchido quando a rota é `/publicar` (ver `compor`).
             'compositor' => null,
@@ -136,6 +150,15 @@ class PublicacaoController extends Controller
              * banco. Recarregar a página volta a mostrar só a área de envio.
              */
             'midiaEnviada' => $this->recemEnviada($request),
+
+            /*
+             * ⭐ **As hashtags que este grupo já traz escritas** (DEC-152).
+             *
+             * ⚠️ Ponto de partida, nunca carimbo: o campo continua editável, e
+             * o que sobe é o que estiver escrito na hora de publicar. Elas moram
+             * no grupo porque é ele que separa linhas de conteúdo (DEC-69).
+             */
+            'hashtagsPadrao' => GrupoCorrente::grupo()?->hashtags ?? [],
 
             'inicial' => $publicacao ? $this->paraRepublicar($publicacao) : null,
         ]);
@@ -211,7 +234,7 @@ class PublicacaoController extends Controller
     }
 
     /**
-     * @return array<string, array{titulo: ?int, legenda: ?int, medidaDaLegenda: string}>
+     * @return array<string, array{titulo: ?int, legenda: ?int, medidaDaLegenda: string, tituloEntraNaLegenda: bool, avisoDeLink: ?string}>
      */
     private function limitesPorRede(): array
     {
@@ -225,6 +248,30 @@ class PublicacaoController extends Controller
                 // grafema (emoji de família = 1); o YouTube conta byte na
                 // descrição. Contar errado recusa texto que caberia.
                 'medidaDaLegenda' => $spec->texto->medidaDaLegenda->value,
+                /*
+                 * ⛔ Rede sem campo de título soma os dois no mesmo orçamento
+                 * (Threads, TikTok). Sem isto, o contador da tela diria que
+                 * cabe e o servidor recusaria em seguida — duas verdades
+                 * diferentes para o mesmo texto.
+                 */
+                'tituloEntraNaLegenda' => $spec->texto->tituloEntraNaLegenda,
+                /*
+                 * ⛔ **Rede que EXIGE título** (DEC-166) — o botão avisa antes
+                 * do clique, em vez de a publicação falhar lá na frente.
+                 */
+                'tituloObrigatorio' => $spec->texto->tituloObrigatorio,
+                /*
+                 * ⛔ O aviso de que publicar nesta rede custa mais por causa do
+                 * link (DEC-126) — ou `null`, que é o caso de todas menos uma.
+                 *
+                 * ⚠️ A frase vem PRONTA do servidor: os preços não podem existir
+                 * escritos em dois idiomas, porque no dia em que o X mudar a
+                 * tabela uma das cópias fica errada — e é a errada que a pessoa
+                 * vai ler.
+                 */
+                'avisoDeLink' => $spec->plataforma->value === CustoDaPublicacao::REDE_QUE_COBRA
+                    ? CustoDaPublicacao::fraseDoLink()
+                    : null,
             ];
         }
 
@@ -236,11 +283,24 @@ class PublicacaoController extends Controller
     {
         return match ($aba) {
             'no_ar' => fn ($q) => $q->where('status', StatusDestino::Publicado),
-            'falharam' => fn ($q) => $q->where('status', StatusDestino::Falhou),
-            // Nem publicado, nem falhado — por exclusão, de propósito.
+            /*
+             * ⚠️ `Removido` entra aqui junto com `Falhou`: nos dois casos há algo
+             * a resolver, e é esta a aba que a pessoa abre para resolver.
+             *
+             * ⛔ O que NÃO se mistura é a frase — "falhou" é não subiu; "saiu do
+             * ar" é subiu e a rede tirou (DEC-148). A aba junta o que precisa de
+             * atenção; o cartão diz qual dos dois é.
+             */
+            'falharam' => fn ($q) => $q->whereIn('status', [
+                StatusDestino::Falhou->value,
+                StatusDestino::Removido->value,
+            ]),
+            // Nada que já terminou — por exclusão, de propósito: estado novo
+            // aparece como "andando" em vez de sumir da tela.
             default => fn ($q) => $q->whereNotIn('status', [
                 StatusDestino::Publicado->value,
                 StatusDestino::Falhou->value,
+                StatusDestino::Removido->value,
             ]),
         };
     }
@@ -253,6 +313,87 @@ class PublicacaoController extends Controller
      *
      * @return array<string, int>
      */
+    /**
+     * ⭐ **Um gráfico por REDE, e cada rede na medida dela** (DEC-94).
+     *
+     * O YouTube compara os posts por visualização; o Bluesky **não tem**
+     * visualização e compara por curtida. Uma tabela com coluna igual para as
+     * duas obrigaria a inventar um valor para a célula que não existe — e é aí
+     * que o painel começa a mentir.
+     *
+     * ⚠️ **Sai da lista inteira do grupo, não da página aberta.** Comparar só os
+     * quinze da página faria o gráfico mudar de conclusão ao virar a página.
+     *
+     * ⛔ **Comparação exige pelo menos dois.** Um post sozinho vira uma barra de
+     * 100% ao lado de nada, que não informa — informa que existe um post, e isso
+     * a lista já diz.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function comparativo(): array
+    {
+        /** @var Collection<int, Destino> $destinos */
+        $destinos = Destino::query()
+            ->whereNotNull('metricas_lidas_em')
+            ->where('status', StatusDestino::Publicado)
+            ->whereIn('publicacao_id', Publicacao::query()
+                ->where('grupo_id', GrupoCorrente::id())
+                ->select('id'))
+            ->with(['contaSocial:id,plataforma', 'publicacao:id,titulo,midia_id', 'publicacao.midia:id,nome_original'])
+            ->get();
+
+        $porRede = [];
+
+        foreach ($destinos->groupBy(fn (Destino $d) => $d->contaSocial->plataforma->value) as $rede => $daRede) {
+            $plataforma = Plataforma::from((string) $rede);
+            $medida = $plataforma->metricaDeComparacao();
+
+            if (! $medida) {
+                continue;
+            }
+
+            $barras = $daRede
+                ->filter(fn (Destino $d) => $d->{$medida} !== null)
+                ->sortByDesc(fn (Destino $d) => $d->{$medida})
+                // ⚠️ Teto de 8: acima disso a barra mais baixa vira um fio e a
+                // comparação para de ser legível. O que fica de fora é sempre o
+                // menor, e a lista completa está logo abaixo.
+                ->take(8)
+                ->map(fn (Destino $d) => [
+                    'ulid' => $d->ulid,
+                    'titulo' => $d->publicacao->titulo ?: $d->publicacao->midia?->nome_original ?: 'sem título',
+                    'valor' => (int) $d->{$medida},
+                    'url' => $d->url_publicada,
+                ])
+                ->values();
+
+            if ($barras->count() < 2) {
+                continue;
+            }
+
+            $porRede[] = [
+                'rede' => $plataforma->value,
+                'redeRotulo' => $plataforma->rotulo(),
+                'medida' => __("rotulos.metrica.{$medida}"),
+                'barras' => $barras,
+                /*
+                 * ⭐ **Zero em tudo é um estado, não um gráfico vazio.**
+                 *
+                 * No YouTube isso é o esperado hoje: enquanto a auditoria não
+                 * passa, todo vídeo sobe privado, e vídeo privado tem zero
+                 * visualização de verdade. Sem esta frase, a tela pareceria
+                 * quebrada justamente quando está certa.
+                 */
+                'tudoZerado' => $barras->max('valor') === 0,
+                'notaDeZero' => $plataforma === Plataforma::Youtube
+                    ? 'Enquanto o aplicativo não passar pela auditoria do YouTube, todo vídeo sobe privado — e vídeo privado não recebe visualização. O número enche sozinho quando a aprovação sair.'
+                    : null,
+            ];
+        }
+
+        return $porRede;
+    }
+
     private function contagemPorAba(): array
     {
         // ⚠️ MESMO filtro da lista. Contagem sem grupo faria a aba dizer 7 e a
@@ -299,6 +440,9 @@ class PublicacaoController extends Controller
 
     private function paraTela(Publicacao $publicacao): array
     {
+        // ⚠️ Uma vez por requisição, não por destino: são N posts na tela.
+        $medias = MediaPorRede::doDono();
+
         return [
             'ulid' => $publicacao->ulid,
             'titulo' => $publicacao->titulo,
@@ -335,11 +479,58 @@ class PublicacaoController extends Controller
                 'statusRotulo' => $d->status->rotulo(),
                 // ⭐ A PROVA (DEC-31): o link só existe depois que relemos o post.
                 'url' => $d->url_publicada,
+                /*
+                 * ⛔ **E quando a rede NÃO deixa reler, a tela diz isso**
+                 * (DEC-106). O LinkedIn exige `r_member_social` para ler um
+                 * post, e ela é restrita a aprovados.
+                 *
+                 * ⚠️ Mostrar o link com a mesma cara das outras redes seria
+                 * afirmar uma conferência que não aconteceu.
+                 */
+                'notaDaProva' => $d->contaSocial->plataforma->notaDaProva(),
                 // ⭐ `sd` quando enviamos vertical 1080 = a rede admitindo que
                 // degradou. Nenhum concorrente mostra isso.
                 'qualidade' => $d->qualidade_entregue,
                 'erro' => $d->erro_mensagem,
                 'podeReprocessar' => $d->status === StatusDestino::Falhou,
+                /*
+                 * ⭐ O contador ao lado da prova — e **só o que aquela rede
+                 * publica** (DEC-94).
+                 *
+                 * ⚠️ Cada campo é `int` **ou `null`**, e `null` nunca vira zero
+                 * na tela (DEC-95). No Bluesky visualização não existe no
+                 * protocolo: `0` ali diria "ninguém viu", quando o certo é
+                 * "ninguém conta". A frase que explica isso vem em `nota`.
+                 */
+                'visualizacoes' => $d->visualizacoes,
+                'curtidas' => $d->curtidas,
+                'comentarios' => $d->comentarios,
+                'compartilhamentos' => $d->compartilhamentos,
+                'metricasLidas' => DataEmPalavras::leitura($d->metricas_lidas_em),
+                /*
+                 * ⭐ **Quando conferimos pela última vez que continua no ar**
+                 * (DEC-145).
+                 *
+                 * ⚠️ "No ar" sem data é afirmação sem prazo — e afirmação sem
+                 * prazo envelhece em silêncio. Era exatamente o buraco que a
+                 * reconferência veio tapar, e sem esta linha ela ficaria
+                 * invisível para quem usa.
+                 */
+                'conferidoEm' => DataEmPalavras::leitura($d->reconferido_em),
+                /*
+                 * ⭐ **A comparação que resolve o problema das unidades**
+                 * (DEC-147): este post contra a MÉDIA da própria rede.
+                 *
+                 * ⛔ Comparar 900 visualizações do YouTube com 900 do TikTok é
+                 * comparar réguas diferentes (DEC-146). Comparar um post do
+                 * TikTok com a média dos seus posts no TikTok **não tem esse
+                 * problema** — é a mesma régua dos dois lados.
+                 *
+                 * ⚠️ `null` quando não há base suficiente, e a tela cala em vez
+                 * de afirmar tendência com dois pontos.
+                 */
+                'contraMedia' => $medias->comparar($d),
+                'notaDeMetrica' => $d->contaSocial->plataforma->notaDoPost(),
             ])->all(),
         ];
     }

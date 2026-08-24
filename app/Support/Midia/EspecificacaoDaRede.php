@@ -43,8 +43,13 @@ readonly class EspecificacaoDaRede
                 $plataforma, 1, 180, 100_000_000,
                 ['h264', 'hevc'], ['aac'],
                 aceitaImagem: true, exigeVertical: false,
-                // ⭐ O Bluesky conta GRAFEMAS: emoji de família é 1, não 7.
-                texto: new LimitesDeTexto(legenda: 300, medidaDaLegenda: Medida::Grafemas),
+                texto: new LimitesDeTexto(
+                    // ⭐ O Bluesky conta GRAFEMAS: emoji de familia e 1, nao 7.
+                    legenda: 300, medidaDaLegenda: Medida::Grafemas,
+                    // ⛔ Nao tem campo de titulo: ele sobe colado no texto, e os
+                    // 300 grafemas sao dos dois juntos.
+                    tituloEntraNaLegenda: true,
+                ),
                 contêineresAceitos: ['video/mp4'],
             ),
 
@@ -53,16 +58,47 @@ readonly class EspecificacaoDaRede
             Plataforma::Linkedin => new self(
                 $plataforma, 3, 600, 500 * 1024 * 1024,
                 ['h264'], ['aac'],
-                aceitaImagem: true, exigeVertical: false,
+                // ⛔ `false` porque o PUBLICADOR recusa imagem — e a frase do
+                // laudo diz "nao publica imagem POR AQUI", que e sobre o
+                // painel, nao sobre a plataforma. Declarar `true` fazia o laudo
+                // dar verde numa imagem que ia falhar na hora de publicar.
+                aceitaImagem: false, exigeVertical: false,
                 texto: new LimitesDeTexto(legenda: 3000),
+                /*
+                 * ⚠️ **MP4 e so.** A documentacao oficial lista um formato
+                 * unico, e mandar MOV — que o Threads e o Instagram aceitam —
+                 * falha no processamento DEPOIS do envio inteiro, com o motivo
+                 * generico de "nao conseguimos processar".
+                 *
+                 * ⚠️ Os 500 MB sao o MENOR dos dois numeros que a mesma pagina
+                 * da: a secao de especificacao diz 500 MB e a descricao do campo
+                 * `fileSizeBytes` diz 5 GB. Recusar no menor e seguro nas duas
+                 * leituras; aceitar 5 GB pode estourar no meio do envio.
+                 */
+                contêineresAceitos: ['video/mp4'],
             ),
 
-            // Doc 10: os limites mais generosos das quatro da Meta (5min / 1GB).
+            // Os limites mais generosos das quatro da Meta (5 min / 1 GB).
             Plataforma::Threads => new self(
                 $plataforma, 3, 300, 1024 * 1024 * 1024,
                 ['h264', 'hevc'], ['aac'],
                 aceitaImagem: true, exigeVertical: false,
-                texto: new LimitesDeTexto(legenda: 500),
+                /*
+                 * ⭐ **500 BYTES, não 500 caracteres** (DEC-104). A documentação
+                 * é literal: *"emojis são contados como o número de bytes
+                 * UTF-8"*.
+                 *
+                 * ⚠️ Um emoji comum ocupa 4 bytes e um com tom de pele passa de
+                 * 8 — uma legenda de 480 "caracteres" com dez emojis estoura os
+                 * 500 sem parecer que estourou. Contar caractere aqui deixaria
+                 * a rede recusar um texto que a nossa tela disse que cabia.
+                 */
+                texto: new LimitesDeTexto(
+                    legenda: 500, medidaDaLegenda: Medida::Bytes,
+                    // ⛔ O Threads nao tem titulo: ele sobe colado na legenda,
+                    // e os dois dividem os mesmos 500 bytes.
+                    tituloEntraNaLegenda: true,
+                ),
             ),
 
             // Teto de 180s no Shorts; o vídeo passa intacto (DEC-33).
@@ -78,6 +114,9 @@ readonly class EspecificacaoDaRede
                     legenda: 5000, medidaDaLegenda: Medida::Bytes,
                     // ⚠️ Orcamento TOTAL das tags juntas, contando virgulas.
                     hashtags: 500,
+                    // ⛔ O YouTube recusa video sem titulo (DEC-166). Descobrir
+                    // isso DEPOIS do envio e o defeito que esta regra apaga.
+                    tituloObrigatorio: true,
                 ),
             ),
 
@@ -89,11 +128,25 @@ readonly class EspecificacaoDaRede
             Plataforma::Instagram => new self(
                 $plataforma, 3, 180, 300 * 1024 * 1024,
                 ['h264', 'hevc'], ['aac'],
-                aceitaImagem: true,
+                /*
+                 * ⛔ `false` porque o PUBLICADOR recusa imagem, e a frase do
+                 * laudo diz "não publica imagem POR AQUI" — ela é sobre o
+                 * painel, não sobre a plataforma.
+                 *
+                 * ⚠️ Declarar `true` fazia o laudo dar VERDE numa imagem que ia
+                 * falhar na hora de publicar: a pessoa via "formato aceito" e
+                 * recebia "o X recebe vídeo por aqui" depois.
+                 */
+                aceitaImagem: false,
                 // Proporção aceita vai de 0,01:1 a 10:1 — vertical é recomendado,
                 // não exigido. Recusar horizontal aqui seria regra nossa.
                 exigeVertical: false,
-                texto: new LimitesDeTexto(legenda: 2200),
+                texto: new LimitesDeTexto(
+                    legenda: 2200,
+                    // ⛔ O Reels nao tem campo de titulo: ele vai colado na
+                    // legenda, e os dois dividem os mesmos 2200.
+                    tituloEntraNaLegenda: true,
+                ),
                 // ⚠️ Ao contrário do Bluesky, aceita `.mov` — vídeo de iPhone passa.
                 contêineresAceitos: ['video/mp4', 'video/quicktime'],
             ),
@@ -105,7 +158,16 @@ readonly class EspecificacaoDaRede
             Plataforma::Facebook => new self(
                 $plataforma, 3, 90, 300 * 1024 * 1024,
                 ['h264', 'hevc'], ['aac'],
-                aceitaImagem: true,
+                /*
+                 * ⛔ `false` porque o PUBLICADOR recusa imagem, e a frase do
+                 * laudo diz "não publica imagem POR AQUI" — ela é sobre o
+                 * painel, não sobre a plataforma.
+                 *
+                 * ⚠️ Declarar `true` fazia o laudo dar VERDE numa imagem que ia
+                 * falhar na hora de publicar: a pessoa via "formato aceito" e
+                 * recebia "o X recebe vídeo por aqui" depois.
+                 */
+                aceitaImagem: false,
                 // ⚠️ Aqui a spec lista 9:16 como REQUISITO, não recomendação —
                 // diferente do Instagram. Mínimo 540x1920.
                 exigeVertical: true,
@@ -118,7 +180,133 @@ readonly class EspecificacaoDaRede
                 $plataforma, 3, 180, 500 * 1024 * 1024,
                 ['h264', 'hevc'], ['aac'],
                 aceitaImagem: false, exigeVertical: true,
-                texto: new LimitesDeTexto(legenda: 2200),
+                /*
+                 * ⚠️ 2200 runas UTF-16, diz a documentacao. Contamos por
+                 * caractere, que e a medida mais proxima e a mais conservadora
+                 * para o texto latino do produto.
+                 */
+                texto: new LimitesDeTexto(
+                    legenda: 2200,
+                    // ⛔ O TikTok tambem nao tem titulo separado: o `title` da
+                    // API E a legenda do post.
+                    tituloEntraNaLegenda: true,
+                ),
+                /*
+                 * Os tres tipos que o envio aceita, segundo a documentacao.
+                 *
+                 * ⚠️ O teto de 500 MB e 180 s aqui e NOSSO (perfil canonico
+                 * 07 §6), nao o da rede — ela aceita ate 4 GB, e a duracao
+                 * maxima real e por CONTA, perguntada no `creator_info`
+                 * (DEC-117).
+                 */
+                contêineresAceitos: ['video/mp4', 'video/quicktime', 'video/webm'],
+            ),
+
+            /*
+             * ⚠️ **O X nao declara os limites do arquivo em lugar nenhum** da
+             * documentacao consultada: nem tamanho, nem duracao, nem proporcao,
+             * nem codecs, nem o limite de caracteres do texto (DEC-132).
+             *
+             * ⛔ Nada aqui foi inventado a partir dela. Os numeros abaixo tem
+             * procedencia declarada:
+             *
+             * - **140 s** e o teto de video de conta comum levantado na doc 10
+             *   (3 min so com Premium). Fonte de terceiro, registrada como tal.
+             * - **512 MB** e o teto do PERFIL CANONICO do produto (doc 07 §6),
+             *   nao da plataforma.
+             * - **280 caracteres** e o limite publico e notorio do post. A
+             *   pagina consultada nao o declara, e por isso ele esta aqui pelo
+             *   lado seguro: sem limite nenhum, a tela deixaria escrever 3000
+             *   caracteres para a rede recusar DEPOIS do video inteiro subir.
+             */
+            Plataforma::X => new self(
+                $plataforma, 3, 140, 512 * 1024 * 1024,
+                ['h264', 'hevc'], ['aac'],
+                /*
+                 * ⛔ `false` porque o PUBLICADOR recusa imagem, e a frase do
+                 * laudo diz "não publica imagem POR AQUI" — ela é sobre o
+                 * painel, não sobre a plataforma.
+                 *
+                 * ⚠️ Declarar `true` fazia o laudo dar VERDE numa imagem que ia
+                 * falhar na hora de publicar: a pessoa via "formato aceito" e
+                 * recebia "o X recebe vídeo por aqui" depois.
+                 */
+                aceitaImagem: false,
+                exigeVertical: false,
+                texto: new LimitesDeTexto(
+                    legenda: 280,
+                    // ⛔ O X nao tem campo de titulo: o `text` do post E a
+                    // legenda, e os dois dividem os mesmos 280 caracteres.
+                    tituloEntraNaLegenda: true,
+                ),
+                contêineresAceitos: ['video/mp4'],
+            ),
+
+            /*
+             * ⭐ Encaixe de formato melhor que o de todas: o Pinterest e
+             * nativamente vertical, e o 9:16 do painel serve sem reconversao.
+             *
+             * ⚠️ `titulo: 100` e `legenda: 800` vem da SPEC OFICIAL — sao os
+             * unicos numeros desta rede que a fonte declara. Duracao, tamanho e
+             * codecs sao do perfil canonico do produto (doc 07 §6), nao dela.
+             */
+            Plataforma::Pinterest => new self(
+                $plataforma, 3, 180, 500 * 1024 * 1024,
+                ['h264', 'hevc'], ['aac'],
+                // ⛔ O publicador recusa imagem: o laudo tem que dizer o mesmo.
+                aceitaImagem: false,
+                exigeVertical: false,
+                texto: new LimitesDeTexto(titulo: 100, legenda: 800),
+                contêineresAceitos: ['video/mp4', 'video/quicktime'],
+            ),
+
+            /*
+             * ⛔ **Aqui os limites sao de CADA SERVIDOR, nao da rede.** Um
+             * Mastodon aceita video de 40 MB, o vizinho aceita 200 MB, e nenhum
+             * numero e "do Mastodon".
+             *
+             * ⚠️ Os valores abaixo sao o perfil canonico do produto (doc 07 §6)
+             * — o mais conservador que atende a maioria dos servidores. A recusa
+             * de verdade vem do servidor, com o nome dele na frase.
+             *
+             * ⭐ 500 caracteres e o padrao do Mastodon; servidor pode aumentar,
+             * quase nenhum diminui.
+             */
+            Plataforma::Mastodon => new self(
+                $plataforma, 3, 180, 40 * 1024 * 1024,
+                ['h264', 'hevc'], ['aac'],
+                aceitaImagem: true, exigeVertical: false,
+                texto: new LimitesDeTexto(
+                    legenda: 500,
+                    // ⛔ Nao tem campo de titulo: ele sobe colado no texto.
+                    tituloEntraNaLegenda: true,
+                ),
+                contêineresAceitos: ['video/mp4', 'video/quicktime', 'video/webm'],
+            ),
+
+            /*
+             * ⚠️ **O teto de arquivo aqui e do SERVIDOR, nao do Discord**: ele
+             * sobe com o nivel de impulsionamento. 10 MB e o piso — o servidor
+             * sem impulso — e por isso e o numero que o painel confere.
+             *
+             * ⛔ Conferir pelo teto mais alto deixaria passar arquivo que a
+             * maioria dos servidores recusa, e a recusa (413) so chega depois do
+             * envio inteiro.
+             *
+             * ⭐ 2000 caracteres e o limite da mensagem, declarado na
+             * documentacao — e o Discord recusa o post inteiro se passar, nao
+             * corta.
+             */
+            Plataforma::Discord => new self(
+                $plataforma, 1, 600, 10 * 1024 * 1024,
+                ['h264', 'hevc'], ['aac'],
+                aceitaImagem: true, exigeVertical: false,
+                texto: new LimitesDeTexto(
+                    legenda: 2000,
+                    // ⛔ Nao tem campo de titulo: ele sobe colado na mensagem.
+                    tituloEntraNaLegenda: true,
+                ),
+                contêineresAceitos: ['video/mp4', 'video/quicktime', 'video/webm'],
             ),
 
             // Rede em estudo nao tem regra pesquisada. Chutar limite seria
@@ -142,15 +330,61 @@ readonly class EspecificacaoDaRede
     {
         $l = $this->texto;
 
-        $achados = [
-            $l->conferir((string) $titulo, $l->titulo, $l->medidaDoTitulo, 'Título'),
-            $l->conferir((string) $legenda, $l->legenda, $l->medidaDaLegenda, 'Legenda'),
-            // O orçamento das hashtags é do conjunto, com os separadores — é
-            // assim que o YouTube conta.
-            $l->conferir($this->juntarHashtags($hashtags), $l->hashtags, $l->medidaDasHashtags, 'Hashtags'),
-        ];
+        /*
+         * ⛔ **A legenda medida é a que SOBE — hashtags incluídas, sempre.**
+         *
+         * ⚠️ Nenhuma rede do painel tem campo separado para hashtag: elas viajam
+         * **dentro** do texto, é assim que `Destino::textoFinal()` monta e é
+         * assim que o publicador manda. Medir só a legenda deixava passar o que
+         * a rede ia recusar — e a recusa chega **depois** do vídeo inteiro ter
+         * subido.
+         *
+         * ⚠️ O título entra junto **só** nas redes sem campo próprio para ele
+         * (Threads, TikTok, X, Bluesky, Instagram, Mastodon, Discord); nas
+         * outras ele tem orçamento separado.
+         */
+        $comoSobe = trim(implode(' ', array_filter([
+            $l->tituloEntraNaLegenda ? $titulo : null,
+            $legenda,
+            ...array_map(fn (string $t) => '#'.ltrim($t, '#'), array_filter($hashtags)),
+        ])));
 
-        return array_values(array_filter($achados));
+        return array_values(array_filter([
+            /*
+             * ⛔ **Título obrigatório, conferido ANTES do envio** (DEC-166).
+             *
+             * ⚠️ Isto já foi recusa do publicador, lá na frente: o vídeo subia
+             * na fila, a rede recusava, e o painel virava "não foi" em vermelho
+             * — por uma coisa que dava para saber antes de clicar.
+             *
+             * ⭐ Contar falha é placar. Impedir é produto.
+             */
+            $l->tituloObrigatorio && trim((string) $titulo) === ''
+                ? Achado::erro(
+                    'Esta rede exige um título, e ele está vazio.',
+                    'Escreva um título antes de publicar aqui.'
+                )
+                : null,
+
+            // Título só é conferido sozinho quando tem campo próprio.
+            $l->tituloEntraNaLegenda
+                ? null
+                : $l->conferir((string) $titulo, $l->titulo, $l->medidaDoTitulo, 'Título'),
+
+            $l->conferir(
+                $comoSobe,
+                $l->legenda,
+                $l->medidaDaLegenda,
+                $l->tituloEntraNaLegenda ? 'Título, legenda e hashtags juntos' : 'Legenda e hashtags juntas'
+            ),
+
+            /*
+             * ⚠️ E o orçamento PRÓPRIO das hashtags, quando a rede tem um: o
+             * YouTube manda as tags num campo separado **além** de elas irem na
+             * descrição. Dois limites, duas conferências.
+             */
+            $l->conferir($this->juntarHashtags($hashtags), $l->hashtags, $l->medidaDasHashtags, 'Hashtags'),
+        ]));
     }
 
     /** O contêiner do arquivo serve para esta rede? */

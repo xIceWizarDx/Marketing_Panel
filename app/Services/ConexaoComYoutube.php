@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\Plataforma;
 use App\Enums\StatusConta;
 use App\Models\ContaSocial;
+use App\Support\Conexao\CanalDeUmGrupoSo;
 use App\Support\FalhaDeConexao;
 use App\Support\RegistroDeSeguranca;
 use Illuminate\Http\Client\ConnectionException;
@@ -74,6 +75,11 @@ class ConexaoComYoutube
         $canal = $this->buscarCanal($token['access_token']);
 
         return DB::transaction(function () use ($token, $canal) {
+            // ⛔ Antes de gravar: o canal já pode viver em outro grupo, e aí
+            // gravar aqui atualizaria o registro de lá e responderia "conectado"
+            // sem nada aparecer neste grupo.
+            CanalDeUmGrupoSo::garantir(Plataforma::Youtube, $canal['id'], 'youtube');
+
             $conta = ContaSocial::updateOrCreate(
                 [
                     'plataforma' => Plataforma::Youtube,

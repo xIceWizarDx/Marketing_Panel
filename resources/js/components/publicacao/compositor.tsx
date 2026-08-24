@@ -2,6 +2,7 @@ import { Link, useForm, usePage } from '@inertiajs/react';
 import { Check, LoaderCircle, Play, Send, X } from 'lucide-react';
 import { FormEventHandler, useEffect, useMemo, useState } from 'react';
 
+import CampoDeHashtags from '@/components/campo-de-hashtags';
 import MarcaDaRede from '@/components/conexao/marca-da-rede';
 import ErroDeCampo from '@/components/erro-de-campo';
 import EnviarMidia from '@/components/midia/enviar-midia';
@@ -11,7 +12,7 @@ import { IconeDoNivel } from '@/components/midia/selo-laudo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { contar, limiteMaisApertado, type LimiteDaRede } from '@/lib/medida-de-texto';
+import { algumaSomaTituloNaLegenda, avisoDeCusto, contar, limiteMaisApertado, redeQueExigeTitulo, type LimiteDaRede } from '@/lib/medida-de-texto';
 import { cn } from '@/lib/utils';
 import { type DadosCompartilhados, type Laudo } from '@/types';
 
@@ -45,6 +46,14 @@ export interface DadosDoCompositor {
     /** O que o servidor aguenta de fato — nunca o que o produto gostaria. */
     tamanhoMaximoMb: number;
     /**
+     * ⭐ As hashtags que este grupo já traz escritas (DEC-152).
+     *
+     * ⛔ **Ponto de partida, não carimbo:** o campo continua editável e o que
+     * sobe é o que estiver escrito na hora de publicar. E elas não aparecem ao
+     * republicar — ali o texto que vale é o do post anterior (DEC-61).
+     */
+    hashtagsPadrao: string[];
+    /**
      * Vem preenchido ao republicar — **só o texto** (DEC-61).
      *
      * O vídeo não vem junto porque não existe mais: ele saiu quando a publicação
@@ -76,6 +85,7 @@ export default function Compositor({
     contas,
     limites,
     tamanhoMaximoMb,
+    hashtagsPadrao,
     inicial,
     aoFechar,
 }: DadosDoCompositor & { aoFechar: () => void }) {
@@ -87,12 +97,27 @@ export default function Compositor({
         hashtags: string[];
     }>({
         midia: '',
-        // ⚠️ Contas SEMPRE vazias, mesmo ao republicar: marcar sozinho onde já
-        // foi publicado repetiria o post, e publicação não tem desfazer.
-        contas: [],
+        /*
+         * ⭐ **Post novo já nasce com todas as contas marcadas** (DEC-153): o
+         * normal é publicar em tudo, e desmarcar uma é mais rápido que marcar
+         * cinco. A contagem no botão diz em quantas vai — é ela que impede o
+         * clique distraído.
+         *
+         * ⛔ **Republicar continua vindo VAZIO, e isso não é inconsistência.**
+         * Ali existe um post que já subiu: marcar sozinho onde ele já está
+         * publicaria de novo, e publicação não tem desfazer.
+         *
+         * ⚠️ Conta que não pode publicar fica de fora — marcar uma que vai
+         * falhar é prometer um envio que o painel já sabe que não acontece.
+         */
+        contas: inicial ? [] : contas.filter((c) => c.podePublicar).map((c) => c.ulid),
         titulo: inicial?.titulo ?? '',
         legenda: inicial?.legenda ?? '',
-        hashtags: inicial?.hashtags ?? [],
+        /*
+         * ⚠️ Ao republicar valem as hashtags **daquele post**, não as do grupo:
+         * o texto anterior é o que a pessoa veio reaproveitar (DEC-61).
+         */
+        hashtags: inicial?.hashtags ?? hashtagsPadrao,
     });
 
     // Qual grupo esta em foco — vem do servidor, nunca de estado local.
@@ -103,6 +128,24 @@ export default function Compositor({
     // O arquivo é o desta sessão: só existe depois que a pessoa enviou.
     const escolhida = data.midia && midiaEnviada?.ulid === data.midia ? midiaEnviada : undefined;
 
+    /*
+     * ⭐ **O arquivo recém-enviado já nasce ESCOLHIDO** (DEC-60): não há lista
+     * onde procurá-lo depois.
+     *
+     * ⛔ E quem faz isso é **este** componente, com a propriedade que ele já
+     * recebe tipada. A versão anterior deixava a tarefa para o campo de envio,
+     * que ia buscar o valor dentro das propriedades da página **pelo caminho
+     * errado** — e como caminho de texto não é conferido pelo TypeScript,
+     * ninguém avisou: o vídeo subia, era salvo, e não aparecia em lugar nenhum.
+     *
+     * ⚠️ A dependência é só o `ulid`. Depender do objeto faria o arquivo voltar
+     * sozinho depois de quem o removeu no botão de tirar.
+     */
+    useEffect(() => {
+        if (midiaEnviada?.ulid) setData('midia', midiaEnviada.ulid);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [midiaEnviada?.ulid]);
+
     // As redes que a pessoa escolheu — é o que decide qual limite vale.
     const redesEscolhidas = useMemo(
         () => [...new Set(contas.filter((c) => data.contas.includes(c.ulid)).map((c) => c.plataforma))],
@@ -112,9 +155,30 @@ export default function Compositor({
     const limiteDoTitulo = limiteMaisApertado(limites, redesEscolhidas, 'titulo');
     const limiteDaLegenda = limiteMaisApertado(limites, redesEscolhidas, 'legenda');
 
+    /**
+     * ⛔ O texto que de fato SOBE — e é ele que o contador mede.
+     *
+     * ⚠️ Threads e TikTok não têm campo de título: ele vai colado na legenda, e
+     * os dois dividem um orçamento só. Contar só a legenda diria que cabe, e o
+     * servidor recusaria em seguida — duas verdades para o mesmo texto.
+     */
+    const somaOTitulo = algumaSomaTituloNaLegenda(limites, redesEscolhidas);
+
+    /**
+     * ⛔ **O X é a única rede em que o TEXTO muda o preço** (DEC-126): publicar
+     * com link custa US$ 0,20 em vez de US$ 0,015 — treze vezes mais.
+     *
+     * ⚠️ Descobrir isso na fatura é o tipo de surpresa que faz alguém parar de
+     * confiar na ferramenta. Aviso, nunca bloqueio: quem decide gastar é ela.
+     */
+    const avisoDeLink = useMemo(
+        () => avisoDeCusto(limites, redesEscolhidas, `${data.titulo} ${data.legenda}`),
+        [limites, redesEscolhidas, data.titulo, data.legenda],
+    );
+
     const textoFinal = useMemo(
-        () => [data.legenda, ...data.hashtags.map((t) => `#${t}`)].filter(Boolean).join(' ').trim(),
-        [data.legenda, data.hashtags],
+        () => [somaOTitulo ? data.titulo : '', data.legenda, ...data.hashtags.map((t) => `#${t}`)].filter(Boolean).join(' ').trim(),
+        [somaOTitulo, data.titulo, data.legenda, data.hashtags],
     );
 
     const alternarConta = (ulid: string) =>
@@ -133,7 +197,25 @@ export default function Compositor({
      * Vira o texto do próprio botão: dizer o que falta no lugar onde a pessoa
      * vai clicar é mais direto que deixá-la clicar para descobrir.
      */
-    const oQueFalta = !data.midia ? 'Escolha o que publicar' : data.contas.length === 0 ? 'Escolha ao menos uma conta' : null;
+    /*
+     * ⛔ **A rede que exige título avisa ANTES do clique** (DEC-166).
+     *
+     * ⚠️ Publicar sem título no YouTube subia na fila, era recusado lá na
+     * frente, e o quadrado da rede virava "não foi" em vermelho — por uma coisa
+     * que dava para saber aqui. ⭐ Contar falha é placar; impedir é produto.
+     */
+    const semTitulo =
+        data.titulo.trim() === ''
+            ? redeQueExigeTitulo(limites, redesEscolhidas, Object.fromEntries(contas.map((c) => [c.plataforma, c.plataformaRotulo])))
+            : null;
+
+    const oQueFalta = !data.midia
+        ? 'Escolha o que publicar'
+        : data.contas.length === 0
+          ? 'Escolha ao menos uma conta'
+          : semTitulo
+            ? `Escreva um título para o ${semTitulo}`
+            : null;
 
     if (conectadas.length === 0) {
         return (
@@ -232,7 +314,7 @@ export default function Compositor({
                             </div>
                         ) : (
                             <div className="mt-2">
-                                <EnviarMidia tamanhoMaximoMb={tamanhoMaximoMb} aoEnviar={(ulid) => setData('midia', ulid)} />
+                                <EnviarMidia tamanhoMaximoMb={tamanhoMaximoMb} />
                             </div>
                         )}
 
@@ -247,7 +329,7 @@ export default function Compositor({
                             <div className="flex items-baseline justify-between gap-3">
                                 <Label htmlFor="titulo">Título</Label>
                                 {limiteDoTitulo && (
-                                    <span className="text-muted-foreground text-[0.6875rem]">
+                                    <span className="text-muted-foreground text-[0.8125rem]">
                                         {contar(data.titulo, 'caracteres')}/{limiteDoTitulo.valor} ·{' '}
                                         <span className="capitalize">{limiteDoTitulo.rede}</span>
                                     </span>
@@ -283,16 +365,33 @@ export default function Compositor({
                             <Label htmlFor="hashtags">
                                 Hashtags <span className="text-muted-foreground font-normal">(separadas por espaço, sem #)</span>
                             </Label>
-                            <Input
+                            {/* ⛔ Campo compartilhado com o do grupo: enquanto
+                                cada um tinha o seu, os dois nasceram com o
+                                mesmo defeito — o texto voltava já limpo a cada
+                                tecla e o espaço do fim sumia, então dava para
+                                escrever a primeira hashtag e nunca a segunda. */}
+                            <CampoDeHashtags
                                 id="hashtags"
-                                value={data.hashtags.join(' ')}
-                                onChange={(e) => setData('hashtags', e.target.value.split(/[\s,#]+/).filter(Boolean))}
+                                valor={data.hashtags}
+                                aoMudar={(lista) => setData('hashtags', lista)}
                                 placeholder="corte shorts humor"
+                                invalido={!!errors.hashtags}
                             />
                             <ErroDeCampo mensagem={errors.hashtags} />
                         </div>
 
                         <ContagemDoTexto texto={textoFinal} limite={limiteDaLegenda} />
+
+                        {/* ⛔ O preço do link no X, com o número na frente — não
+                            "pode custar mais", que não ajuda ninguém a decidir.
+                            ⚠️ Cor por `var()`, como o resto do projeto: os tokens de saúde
+                            não são classes do Tailwind, e `text-saude-atencao` seria uma
+                            classe inexistente — texto sem cor nenhuma. */}
+                        {avisoDeLink && (
+                            <p className="text-[0.8125rem] leading-snug" style={{ color: 'var(--saude-atencao)' }}>
+                                {avisoDeLink}
+                            </p>
+                        )}
                     </section>
 
                     {/* ─── PARA ONDE ────────────────────────────────────────── */}
@@ -329,7 +428,7 @@ export default function Compositor({
                                                 {/* ⚠️ Republicar na mesma conta é engano quase
                                                     sempre — e publicação não tem desfazer. */}
                                                 {(jaFoi || !conta.podePublicar) && (
-                                                    <span className="text-muted-foreground block text-[0.625rem]">
+                                                    <span className="text-muted-foreground block text-[0.8125rem]">
                                                         {conta.podePublicar ? 'já publicado aqui' : conta.statusRotulo}
                                                     </span>
                                                 )}
@@ -371,7 +470,7 @@ export default function Compositor({
 
 /** Rótulo de seção — discreto de propósito: quem manda é o conteúdo. */
 function Rotulo({ children }: { children: React.ReactNode }) {
-    return <h2 className="text-muted-foreground text-[0.6875rem] font-semibold tracking-wide uppercase">{children}</h2>;
+    return <h2 className="text-muted-foreground text-[0.8125rem] font-semibold tracking-wide uppercase">{children}</h2>;
 }
 
 /**

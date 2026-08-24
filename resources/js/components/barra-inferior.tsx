@@ -38,7 +38,7 @@ export default function BarraInferior() {
                                 )}
                             >
                                 {item.icone && <item.icone className="size-5 shrink-0" aria-hidden="true" />}
-                                <span className={cn('w-full truncate text-center text-[0.65rem] leading-none', ativo && 'font-medium')}>
+                                <span className={cn('w-full truncate text-center text-[0.8125rem] leading-none', ativo && 'font-medium')}>
                                     {item.titulo}
                                 </span>
                             </Link>

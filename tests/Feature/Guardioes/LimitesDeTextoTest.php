@@ -119,3 +119,92 @@ describe('os tetos vieram do lexicon oficial', function () {
         expect($bluesky->tamanhoMaximoBytes)->toBe(100_000_000);
     });
 });
+
+describe('⛔ rede sem campo de título soma o título na legenda', function () {
+    it('⭐ e a lista de quem TEM campo de título é decidida uma vez', function () {
+        /*
+         * ⛔ O título que a pessoa escreve tem que ir para algum lugar. Nas redes
+         * que têm campo próprio, ele vai para lá; nas que não têm, ele sobe
+         * **colado na legenda** — e aí os dois dividem um orçamento só.
+         *
+         * ⚠️ Sem isso acontecem duas coisas ruins, e as duas já aconteceram
+         * aqui: ou o título **desaparece sem aviso** (era o caso do Bluesky,
+         * Instagram, Threads, TikTok e X), ou ele estoura o limite **depois** de
+         * o vídeo inteiro ter subido.
+         *
+         * ⛔ **Rede nova quebra este teste de propósito.** É para alguém decidir
+         * na hora onde o título dela vai parar, em vez de descobrir depois que
+         * ele sumiu.
+         */
+        $temCampoProprio = [
+            Plataforma::Youtube,   // `snippet.title`
+            Plataforma::Facebook,  // `title`, separado da `description`
+            Plataforma::Linkedin,  // `content.media.title`
+            Plataforma::Pinterest, // `title` (100), separado da `description` (800)
+        ];
+
+        foreach (Plataforma::comEspecificacao() as $rede) {
+            $soma = EspecificacaoDaRede::de($rede)->texto->tituloEntraNaLegenda;
+
+            expect($soma)->toBe(
+                ! in_array($rede, $temCampoProprio, true),
+                "O {$rede->rotulo()} não decidiu onde o título vai parar."
+            );
+        }
+    });
+
+    it('⭐ e quando soma, mede título, legenda e hashtags JUNTOS', function () {
+        // É assim que o texto sobe; medir outra coisa seria conferir um texto
+        // que a rede não vai receber.
+        $achados = EspecificacaoDaRede::de(Plataforma::Bluesky)
+            ->conferirTextos(str_repeat('t', 200), str_repeat('a', 90), ['umahashtag']);
+
+        expect($achados)->not->toBeEmpty()
+            ->and($achados[0]->mensagem)->toContain('juntos');
+    });
+});
+
+describe('⛔ as hashtags contam SEMPRE, porque sempre sobem juntas', function () {
+    it('⭐ nenhuma rede tem campo separado de hashtag — elas viajam no texto', function () {
+        /*
+         * ⛔ A conferência media só a legenda, e as hashtags entravam de graça.
+         * No Pinterest, com 800 de descrição, quinze hashtags passavam aqui e
+         * eram recusadas lá — **depois** do vídeo inteiro ter subido.
+         *
+         * ⚠️ Isto valia para toda rede com campo de título próprio, porque
+         * nelas a regra do "título junto" não se aplicava e ninguém tinha olhado
+         * o que acontecia com as hashtags.
+         */
+        $spec = EspecificacaoDaRede::de(Plataforma::Pinterest);
+
+        // 795 + 1 espaço + 4 = 800: cabe raspando.
+        expect($spec->conferirTextos('Título', str_repeat('a', 795), ['abc']))->toBeEmpty();
+
+        // A MESMA legenda com uma hashtag a mais passa dos 800.
+        $achados = $spec->conferirTextos('Título', str_repeat('a', 795), ['abc', 'de']);
+
+        expect($achados)->not->toBeEmpty()
+            ->and($achados[0]->mensagem)->toContain('hashtags');
+    });
+
+    it('⭐ e o título com campo próprio continua medido sozinho', function () {
+        // No Pinterest o título tem 100 e a descrição tem 800: são orçamentos
+        // separados, e juntá-los seria o erro oposto.
+        $achados = EspecificacaoDaRede::de(Plataforma::Pinterest)
+            ->conferirTextos(str_repeat('t', 101), 'curta');
+
+        expect($achados)->not->toBeEmpty()
+            ->and($achados[0]->mensagem)->toStartWith('Título:');
+    });
+
+    it('⚠️ e o YouTube continua com DOIS orçamentos de hashtag', function () {
+        /*
+         * ⚠️ Ele manda as tags num campo separado ALÉM de elas irem na
+         * descrição. Dois limites existem, e as duas conferências existem.
+         */
+        $achados = EspecificacaoDaRede::de(Plataforma::Youtube)
+            ->conferirTextos('Titulo', 'curta', [str_repeat('a', 501)]);
+
+        expect(collect($achados)->contains(fn ($a) => str_contains($a->mensagem, 'Hashtags')))->toBeTrue();
+    });
+});

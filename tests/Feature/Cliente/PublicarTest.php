@@ -123,7 +123,15 @@ it('exige pelo menos uma conta', function () {
         ->assertSessionHasErrors('contas');
 });
 
-it('recusa hashtag com # ou espaco', function () {
+it('⭐ o # e LIMPO, nao recusado (DEC-152)', function () {
+    /*
+     * ⚠️ Isto ja foi recusa, e a recusa estava errada: o campo da tela separa
+     * por `#`, mas colar uma lista pronta nao passa por ele — e negar por um
+     * caractere que a pessoa nao escolheu escrever e recusa que ela nao tem
+     * como entender.
+     *
+     * ⛔ E a limpeza vale para as DUAS portas: publicar e as hashtags do grupo.
+     */
     [$ana, $midia, $conta] = clienteComTudoPronto();
 
     $this->actingAs($ana)
@@ -132,6 +140,23 @@ it('recusa hashtag com # ou espaco', function () {
             'midia' => $midia->ulid,
             'contas' => [$conta->ulid],
             'hashtags' => ['#corte'],
+        ])
+        ->assertSessionHasNoErrors();
+
+    expect(Publicacao::firstOrFail()->hashtags)->toBe(['corte']);
+});
+
+it('recusa hashtag com espaco', function () {
+    // ⚠️ Espaco continua recusado: `corte shorts` seria UMA hashtag que rede
+    // nenhuma aceita — e a pessoa quis duas.
+    [$ana, $midia, $conta] = clienteComTudoPronto();
+
+    $this->actingAs($ana)
+        ->from('/publicar')
+        ->post('/publicar', [
+            'midia' => $midia->ulid,
+            'contas' => [$conta->ulid],
+            'hashtags' => ['tem espaco'],
         ])
         ->assertSessionHasErrors('hashtags.0');
 });
@@ -251,4 +276,51 @@ it('mostra o nome da conta quando há mais de uma na mesma rede', function () {
     $this->actingAs($dono)
         ->get('/publicacoes')
         ->assertInertia(fn ($p) => $p->where('publicacoes.data.0.destinos.0.conta', 'Canal Um'));
+});
+
+it('⛔ recusa ANTES de enviar quando a rede exige titulo (DEC-166)', function () {
+    /*
+     * ⛔ Isto ja subiu na fila e falhou la na frente: o publicador do YouTube
+     * recusava por titulo vazio, o destino virava FALHOU, e o quadrado da rede
+     * mostrava "nao foi" em vermelho — por uma coisa que dava para saber antes
+     * de clicar.
+     *
+     * ⭐ Contar falha e placar. Impedir e produto.
+     */
+    [$ana, $midia, $conta] = clienteComTudoPronto();
+
+    ContextoDoUsuario::definir($ana);
+    $conta->forceFill(['plataforma' => App\Enums\Plataforma::Youtube])->save();
+    ContextoDoUsuario::limpar();
+
+    $this->actingAs($ana)
+        ->from('/publicar')
+        ->post('/publicar', [
+            'midia' => $midia->ulid,
+            'contas' => [$conta->ulid],
+            'legenda' => 'sem titulo nenhum',
+        ])
+        ->assertSessionHasErrors('legenda');
+
+    // ⛔ E nao criou destino nenhum: recusar antes significa NAO enfileirar.
+    ContextoDoUsuario::definir($ana);
+    expect(Destino::count())->toBe(0);
+});
+
+it('⭐ e com titulo passa normalmente', function () {
+    [$ana, $midia, $conta] = clienteComTudoPronto();
+
+    ContextoDoUsuario::definir($ana);
+    $conta->forceFill(['plataforma' => App\Enums\Plataforma::Youtube])->save();
+    ContextoDoUsuario::limpar();
+
+    $this->actingAs($ana)->post('/publicar', [
+        'midia' => $midia->ulid,
+        'contas' => [$conta->ulid],
+        'titulo' => 'Meu corte',
+        'legenda' => 'olha isso',
+    ])->assertSessionHasNoErrors();
+
+    ContextoDoUsuario::definir($ana);
+    expect(Destino::count())->toBe(1);
 });

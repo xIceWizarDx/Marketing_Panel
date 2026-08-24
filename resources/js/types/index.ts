@@ -46,6 +46,13 @@ export interface Grupo {
     publicacoes: number;
     /** As marcas do que ha dentro — reconhece o grupo antes de ler o nome. */
     plataformas: string[];
+    /**
+     * ⭐ As hashtags que este grupo ja traz escritas ao compor (DEC-152).
+     *
+     * ⛔ Ponto de partida, nunca carimbo: o campo continua editavel e o que
+     * sobe e o que estiver escrito na hora de publicar.
+     */
+    hashtags: string[];
 }
 
 /** ⭐ Em qual grupo a pessoa esta, e para onde ela pode ir. */
@@ -57,6 +64,8 @@ export interface Grupos {
 /** Dados que chegam em TODA pagina (vem do HandleInertiaRequests). */
 export interface DadosCompartilhados {
     nomeDoApp: string;
+    /** Token de formulário — só a conexão federada usa (DEC-138). */
+    csrf: string;
     auth: Autenticacao;
     avisos: Avisos;
     impersonacao: Impersonacao | null;
@@ -64,6 +73,13 @@ export interface DadosCompartilhados {
     grupos: Grupos | null;
     /** Recado de uma requisicao so: abrir o catalogo de redes ao montar. */
     abrirCatalogo?: boolean;
+    /**
+     * ⭐ O mesmo recado, apontando para UMA rede (DEC-154).
+     *
+     * ⛔ E o que liga a janela do grupo a janela da rede, onde desconectar e
+     * mover de grupo moram — sem repetir a acao irreversivel em dois lugares.
+     */
+    abrirRede?: string | null;
     [key: string]: unknown;
 }
 

@@ -3,7 +3,9 @@
 namespace App\Publicadores;
 
 use App\Enums\Plataforma;
+use App\Models\ContaSocial;
 use App\Models\Destino;
+use App\Services\ContaSocialService;
 use App\Services\Meta\EnvioRetomavel;
 use App\Services\Meta\ErroDaMeta;
 use Illuminate\Http\Client\ConnectionException;
@@ -28,7 +30,7 @@ use Illuminate\Support\Facades\Storage;
  * corte de 2 minutos publica no Instagram e é recusado aqui, então a recusa vem
  * da `EspecificacaoDaRede`, antes de qualquer byte subir.
  */
-class PublicadorFacebook implements Publicador
+class PublicadorFacebook implements LeitorDeMetricas, Publicador
 {
     private const API = 'https://graph.facebook.com/v25.0';
 
@@ -68,7 +70,7 @@ class PublicadorFacebook implements Publicador
                 return $video;
             }
 
-            $envio = $this->enviarArquivo($token, $video, $conteudo, $retomada->comecouAntes());
+            $envio = $this->enviarArquivo($token, $video, $conteudo, $retomada->comecouAntes(), $destino);
 
             if ($envio instanceof ResultadoPublicacao) {
                 return $envio;
@@ -164,7 +166,7 @@ class PublicadorFacebook implements Publicador
             ]);
 
         if (! $resposta->successful()) {
-            return $this->interpretar($resposta);
+            return $this->interpretar($resposta, $destino);
         }
 
         $video = (string) $resposta->json('video_id');
@@ -185,6 +187,7 @@ class PublicadorFacebook implements Publicador
         string $video,
         string $conteudo,
         bool $retomando,
+        Destino $destino,
     ): true|ResultadoPublicacao {
         $envio = EnvioRetomavel::paraFacebook();
 
@@ -195,7 +198,7 @@ class PublicadorFacebook implements Publicador
         $resposta = $envio->enviar($token, $video, $conteudo, $deslocamento);
 
         if (! $resposta->successful()) {
-            return $this->interpretar($resposta);
+            return $this->interpretar($resposta, $destino);
         }
 
         return true;
@@ -226,14 +229,14 @@ class PublicadorFacebook implements Publicador
             ], fn ($valor) => $valor !== null && $valor !== ''));
 
         if (! $resposta->successful()) {
-            return $this->interpretar($resposta);
+            return $this->interpretar($resposta, $destino);
         }
 
         // ⭐ DEC-31: aceito ≠ no ar. A confirmação é da conciliação, não daqui.
         return ResultadoPublicacao::aceito($video);
     }
 
-    private function interpretar(Response $resposta): ResultadoPublicacao
+    private function interpretar(Response $resposta, ?Destino $destino = null): ResultadoPublicacao
     {
         $erro = ErroDaMeta::de($resposta);
 
@@ -243,10 +246,181 @@ class PublicadorFacebook implements Publicador
             return ResultadoPublicacao::semCota($erro->mensagem);
         }
 
+        /*
+         * ⭐ **Autorização morta acende o semáforo** (DEC-159).
+         *
+         * ⛔ Sem isto a conta ficava **verde e "Conectada"** na tela enquanto
+         * recusava toda publicação — e o semáforo do token é justamente o que
+         * este produto diz fazer melhor que os outros (DEC-32).
+         */
+        if ($erro->credencialMorreu && $destino) {
+            app(ContaSocialService::class)->marcarComProblema($destino->contaSocial, $erro->mensagem);
+        }
+
         // ⭐ A rede diz se vale tentar de novo, no `is_transient`. No YouTube
         // tivemos que deduzir isso do código HTTP — e erramos duas vezes.
         return $erro->passageiro
             ? ResultadoPublicacao::tentarDepois($erro->mensagem, (string) $erro->subcodigo)
             : ResultadoPublicacao::recusado($erro->mensagem, (string) $erro->subcodigo);
+    }
+
+    /**
+     * ⭐ Seguidores da Página.
+     *
+     * ⚠️ `followers_count` vem no objeto da Página e **não custa permissão de
+     * métrica** — diferente das visualizações do vídeo.
+     */
+    public function metricasDaConta(ContaSocial $conta): ?MetricasDaConta
+    {
+        $token = $conta->credencial?->access_token;
+
+        if (! $token) {
+            return null;
+        }
+
+        try {
+            $resposta = Http::timeout(20)->get(self::API.'/'.$conta->identificador_externo, [
+                'fields' => 'followers_count',
+                'access_token' => $token,
+            ]);
+        } catch (ConnectionException) {
+            return null;
+        }
+
+        if (! $resposta->successful()) {
+            return null;
+        }
+
+        $seguidores = $resposta->json('followers_count');
+
+        return new MetricasDaConta(seguidores: is_numeric($seguidores) ? (int) $seguidores : null);
+    }
+
+    /**
+     * ⭐ Os contadores do vídeo publicado na Página.
+     *
+     * ⚠️ **Duas chamadas, pela mesma razão do Instagram:** curtida e comentário
+     * vêm no objeto do vídeo e não custam permissão; a visualização vive em
+     * `video_insights`, que exige `read_insights` (DEC-143).
+     *
+     * ⛔ **A visualização do reel não é "quem viu"**: `blue_reels_play_count` é
+     * *quantas vezes o reel começou a tocar depois de aparecer para alguém*.
+     * Uma pessoa que passou por ele três vezes conta três. É por isso que somar
+     * este número com o do TikTok e o do YouTube só serve para sentir tamanho,
+     * nunca para comparar redes (DEC-146).
+     */
+    public function metricasDoPost(Destino $destino): ?MetricasDoPost
+    {
+        $token = $destino->contaSocial->credencial?->access_token;
+
+        if (! $token || ! $destino->identificador_externo) {
+            return null;
+        }
+
+        $basico = $this->lerVideo($destino->identificador_externo, $token);
+
+        if ($basico === null) {
+            return null;
+        }
+
+        return new MetricasDoPost(
+            visualizacoes: $this->lerVisualizacoes($destino->identificador_externo, $token),
+            curtidas: $basico['curtidas'],
+            comentarios: $basico['comentarios'],
+            // ⚠️ O Facebook nao publica compartilhamento de video por aqui:
+            // `null`, nunca zero (DEC-95).
+            compartilhamentos: null,
+        );
+    }
+
+    /**
+     * @return array{curtidas: ?int, comentarios: ?int}|null `null` = nao deu para ler agora
+     */
+    private function lerVideo(string $id, string $token): ?array
+    {
+        try {
+            $resposta = Http::timeout(20)->get(self::API.'/'.$id, [
+                'fields' => 'likes.summary(true).limit(0),comments.summary(true).limit(0)',
+                'access_token' => $token,
+            ]);
+        } catch (ConnectionException) {
+            return null;
+        }
+
+        if (! $resposta->successful()) {
+            return null;
+        }
+
+        $curtidas = $resposta->json('likes.summary.total_count');
+        $comentarios = $resposta->json('comments.summary.total_count');
+
+        return [
+            'curtidas' => is_numeric($curtidas) ? (int) $curtidas : null,
+            'comentarios' => is_numeric($comentarios) ? (int) $comentarios : null,
+        ];
+    }
+
+    /**
+     * ⛔ **As métricas de REEL, que não são as de vídeo** (DEC-157).
+     *
+     * ⚠️ Aqui pedia-se `total_video_views` — e ele **não existe para reel**. A
+     * referência do `video_insights` separa a lista em duas: *Video metrics*,
+     * onde `total_video_views` mora, e *Reels metrics*, que usa outros nomes
+     * (`blue_reels_play_count`, `fb_reels_total_plays`). Publicamos por
+     * `/video_reels`, ou seja, **tudo o que publicamos é reel** — e a chamada
+     * voltava sem o número, sempre, calada.
+     *
+     * ⛔ O efeito era o pior possível para este produto: a tela dizia "sem
+     * leitura" para o Facebook **para sempre**, e isso parece a rede não ter
+     * respondido, e não um campo pedido pelo nome errado.
+     *
+     * ⚠️ Dois nomes porque medem coisas diferentes: `blue_reels_play_count` é
+     * quantas vezes o reel **começou a tocar**; `fb_reels_total_plays` conta
+     * **reprises** junto. O primeiro é o mais próximo de "quantos viram", e o
+     * segundo só entra se o primeiro não vier.
+     */
+    private const METRICAS_DO_REEL = ['blue_reels_play_count', 'fb_reels_total_plays'];
+
+    /**
+     * A visualização — exige `read_insights`.
+     *
+     * ⚠️ Devolve `null` quando a permissão não foi concedida, e **isso não é
+     * erro**: quem recusou continua vendo curtida e comentário.
+     */
+    private function lerVisualizacoes(string $id, string $token): ?int
+    {
+        try {
+            $resposta = Http::timeout(20)->get(self::API.'/'.$id.'/video_insights', [
+                'metric' => implode(',', self::METRICAS_DO_REEL),
+                'access_token' => $token,
+            ]);
+        } catch (ConnectionException) {
+            return null;
+        }
+
+        if (! $resposta->successful()) {
+            return null;
+        }
+
+        $lidas = [];
+
+        foreach ((array) $resposta->json('data', []) as $item) {
+            $nome = $item['name'] ?? null;
+            $valor = $item['values'][0]['value'] ?? null;
+
+            if (is_string($nome) && is_numeric($valor)) {
+                $lidas[$nome] = (int) $valor;
+            }
+        }
+
+        // ⚠️ Na ordem da constante, não na ordem em que a Meta respondeu: a
+        // preferência é uma decisão nossa sobre o que significa "visualização".
+        foreach (self::METRICAS_DO_REEL as $metrica) {
+            if (isset($lidas[$metrica])) {
+                return $lidas[$metrica];
+            }
+        }
+
+        return null;
     }
 }

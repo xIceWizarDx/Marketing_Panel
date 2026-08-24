@@ -19,6 +19,21 @@ enum StatusDestino: string
     case Publicado = 'publicado';
     case Falhou = 'falhou';
 
+    /**
+     * ⭐ **Esteve no ar e saiu** (DEC-148).
+     *
+     * ⛔ Existe porque as duas alternativas mentem. Deixar como `Publicado` diz
+     * que continua no ar um post que a rede removeu — é exatamente o defeito que
+     * o produto acusa nos concorrentes. E marcar `Falhou` diz que nunca subiu um
+     * post que **subiu** e foi tirado depois — o que manda a pessoa publicar de
+     * novo sem entender o que houve.
+     *
+     * ⚠️ Só a reconferência (DEC-145) leva um destino até aqui, e ela só chega
+     * neste estado quando a rede **afirma** que o post não existe mais — nunca
+     * por instabilidade.
+     */
+    case Removido = 'removido';
+
     public function rotulo(): string
     {
         return __("rotulos.status_destino.{$this->value}");
@@ -28,7 +43,7 @@ enum StatusDestino: string
     public function ehTerminal(): bool
     {
         return match ($this) {
-            self::Publicado, self::Falhou => true,
+            self::Publicado, self::Falhou, self::Removido => true,
             default => false,
         };
     }
@@ -61,9 +76,22 @@ enum StatusDestino: string
             self::Enviando => [self::Processando, self::Falhou, self::Pendente, self::AguardandoJanela],
             // Só a conciliação tira daqui: ela releu o post e sabe o desfecho.
             self::Processando => [self::Publicado, self::Falhou, self::Pendente],
-            // Publicado é definitivo. Falhou pode ser reprocessado à mão.
-            self::Publicado => [],
+            /*
+             * ⭐ **Publicado deixou de ser definitivo — e a mudança é do mundo,
+             * não do código** (DEC-148). Rede remove post depois de aceitar, e
+             * a reconferência existe para descobrir isso.
+             *
+             * ⛔ Mas ele só sai para `Removido`, nunca para `Falhou`: dizer que
+             * falhou o que subiu é mentir na direção oposta.
+             */
+            self::Publicado => [self::Removido],
             self::Falhou => [self::Pendente],
+            /*
+             * ⚠️ Sem volta. Um post removido pela rede não volta sozinho, e
+             * republicar é outra publicação — com outro vídeo, outra data e
+             * outra prova.
+             */
+            self::Removido => [],
         };
     }
 

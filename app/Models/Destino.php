@@ -36,6 +36,9 @@ class Destino extends Model
             'hashtags_override' => 'array',
             'opcoes' => 'array',
             'publicado_em' => 'datetime',
+            // ⭐ Quando confirmamos pela ultima vez que continua no ar (DEC-145).
+            'reconferido_em' => 'datetime',
+            'metricas_lidas_em' => 'datetime',
         ];
     }
 

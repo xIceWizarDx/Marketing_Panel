@@ -2,10 +2,25 @@
 
 namespace App\Http\Requests\Cliente;
 
+use App\Support\HashtagsLimpas;
 use Illuminate\Foundation\Http\FormRequest;
 
 class PublicarRequest extends FormRequest
 {
+    /**
+     * ⭐ O `#` cai antes da validação — mesma limpeza do grupo (DEC-152).
+     *
+     * ⚠️ O campo da tela já separa por `#`, mas colar uma lista pronta não
+     * passa por ele. Recusar por um caractere que a pessoa não escolheu
+     * escrever é recusa que ela não tem como entender.
+     */
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('hashtags')) {
+            $this->merge(['hashtags' => HashtagsLimpas::de($this->input('hashtags'))]);
+        }
+    }
+
     public function rules(): array
     {
         return [

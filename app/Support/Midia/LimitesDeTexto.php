@@ -24,6 +24,30 @@ readonly class LimitesDeTexto
         /** Orçamento total das hashtags juntas. */
         public ?int $hashtags = null,
         public Medida $medidaDasHashtags = Medida::Caracteres,
+
+        /**
+         * ⛔ **Esta rede não tem campo de título: ele vai colado na legenda.**
+         *
+         * ⚠️ Quando é assim, os dois dividem **um orçamento só** — e conferir
+         * separado deixa passar o que a rede vai recusar. No Threads, com 500
+         * bytes, um título de 200 e uma legenda de 400 passam nas duas
+         * conferências e estouram o limite ao chegar lá: a recusa acontece
+         * depois de o vídeo inteiro ter subido.
+         */
+        public bool $tituloEntraNaLegenda = false,
+
+        /**
+         * ⛔ **Esta rede EXIGE título — sem ele não publica** (DEC-166).
+         *
+         * ⚠️ Nasceu de uma falha de campo evitável: o painel deixou enviar sem
+         * título para o YouTube, a publicação subiu na fila, o publicador
+         * recusou lá na frente e o quadrado da rede virou "não foi" em
+         * vermelho. **Tudo isso para uma coisa que dava para saber antes de
+         * clicar.**
+         *
+         * ⭐ Contar falha é placar. Impedir é produto.
+         */
+        public bool $tituloObrigatorio = false,
     ) {}
 
     /**

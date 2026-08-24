@@ -12,19 +12,16 @@ const aceitos = {
 
 type Tipo = keyof typeof aceitos;
 
-export default function EnviarMidia({
-    tamanhoMaximoMb,
-    aoEnviar,
-}: {
-    tamanhoMaximoMb: number;
-    /**
-     * Chamado com o ULID da mídia recém-enviada.
-     *
-     * ⭐ É o que faz o arquivo já nascer ESCOLHIDO no compositor: ninguém envia
-     * um vídeo para depois procurá-lo numa lista — e lista não existe (DEC-60).
-     */
-    aoEnviar?: (ulid: string) => void;
-}) {
+/**
+ * O campo de envio — e **só** o envio.
+ *
+ * ⛔ **Ele não escolhe o arquivo depois de enviar, de propósito.** Isso é do
+ * compositor, que já recebe `midiaEnviada` como propriedade tipada. Aqui, a
+ * única forma de saber o ULID seria cavar as propriedades da página por um
+ * caminho escrito em texto — e caminho de texto o TypeScript não confere. Foi
+ * exatamente assim que o vídeo passou a subir, ser salvo e não aparecer.
+ */
+export default function EnviarMidia({ tamanhoMaximoMb }: { tamanhoMaximoMb: number }) {
     const campo = useRef<HTMLInputElement>(null);
     const [tipo, setTipo] = useState<Tipo>('video');
     const [arrastando, setArrastando] = useState(false);
@@ -50,12 +47,14 @@ export default function EnviarMidia({
                 preserveState: true,
                 preserveScroll: true,
                 onProgress: (evento) => setProgresso(evento?.percentage ?? 0),
-                onError: (erros) => setErro(erros.arquivo ?? erros.tipo),
-                onSuccess: (pagina) => {
-                    const enviada = (pagina.props as { midiaEnviada?: string }).midiaEnviada;
-
-                    if (enviada) aoEnviar?.(enviada);
-                },
+                /*
+                 * ⛔ **Recusa sem motivo é pior que recusa**: aqui já se leu só
+                 * `arquivo` e `tipo`, e qualquer outra recusa virava `undefined`
+                 * — a barra sumia, nada aparecia escrito, e o arquivo parecia
+                 * ter evaporado. Agora, o que não for previsto ainda diz algo.
+                 */
+                onError: (erros) =>
+                    setErro(erros.arquivo ?? erros.tipo ?? Object.values(erros)[0] ?? 'Não consegui enviar o arquivo. Tente de novo.'),
                 onFinish: () => {
                     setEnviando(false);
                     setProgresso(0);

@@ -7,6 +7,7 @@ use App\Enums\StatusConta;
 use App\Models\ContaSocial;
 use App\Services\TokenDoGoogle;
 use App\Support\ContextoDoUsuario;
+use App\Support\ErroDoGoogle;
 use App\Support\RegistroDeSeguranca;
 use Illuminate\Console\Command;
 use Illuminate\Http\Client\ConnectionException;
@@ -78,6 +79,23 @@ class ReconferirContasDoYoutube extends Command
         } catch (ConnectionException) {
             // Rede fora do ar não é autorização revogada: não mexe na conta.
             $this->line("  · {$conta->nome_exibicao} — sem resposta, tentamos de novo");
+
+            return false;
+        }
+
+        /*
+         * ⛔ **Falha que passa não marca conta** (DEC-98).
+         *
+         * Antes, qualquer resposta fora do 2xx virava lista vazia — e lista
+         * vazia marca a conta como `Erro`, o que **bloqueia publicar** até
+         * alguém reconectar na mão. Ou seja: um 403 de cota ou um 500 do Google,
+         * que somem sozinhos, desligavam a publicação de todo mundo do YouTube.
+         *
+         * ⚠️ Isto fica mais caro com a leitura de métrica, que consome a mesma
+         * cota: mais leitura por dia é mais chance de encostar no teto.
+         */
+        if (ErroDoGoogle::ehPassageiro($resposta)) {
+            $this->line("  · {$conta->nome_exibicao} — o YouTube não respondeu agora, tentamos de novo");
 
             return false;
         }

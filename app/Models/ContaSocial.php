@@ -26,6 +26,13 @@ class ContaSocial extends Model
         'grupo_id',
         'plataforma',
         'identificador_externo',
+        /*
+         * ⭐ Onde a conta MORA — só rede federada preenche (Mastodon).
+         *
+         * ⚠️ Nas outras é `null`: elas têm um endereço só, e ele mora no
+         * publicador. Aqui o servidor é parte da identidade da conta.
+         */
+        'servidor',
         'nome_exibicao',
         'avatar_url',
         'status',
@@ -37,6 +44,7 @@ class ContaSocial extends Model
         return [
             'plataforma' => Plataforma::class,
             'status' => StatusConta::class,
+            'metricas_lidas_em' => 'datetime',
         ];
     }
 

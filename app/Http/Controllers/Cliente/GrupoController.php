@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Cliente;
 
+use App\Enums\Plataforma;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Cliente\GuardarGrupoRequest;
+use App\Http\Requests\Cliente\GuardarHashtagsDoGrupoRequest;
 use App\Models\ContaSocial;
 use App\Models\Grupo;
 use App\Services\GrupoService;
@@ -52,6 +54,27 @@ class GrupoController extends Controller
         return back()->with('sucesso', "Agora ele se chama «{$grupo->nome}».");
     }
 
+    /**
+     * ⭐ As hashtags que este grupo já traz escritas ao compor (DEC-152).
+     *
+     * ⚠️ Gesto próprio, separado do renomear: são duas decisões diferentes, e
+     * juntá-las num formulário só faria trocar a hashtag exigir reconfirmar o
+     * nome — e vice-versa.
+     */
+    public function hashtags(GuardarHashtagsDoGrupoRequest $request, string $ulid): RedirectResponse
+    {
+        $grupo = Grupo::where('ulid', $ulid)->firstOrFail();
+
+        $this->grupos->definirHashtags($grupo, $request->hashtagsEscolhidas());
+
+        return back()->with(
+            'sucesso',
+            $grupo->hashtags
+                ? 'Estas hashtags já vêm escritas ao publicar neste grupo. Você pode mudar cada post.'
+                : 'Este grupo não traz mais hashtags escritas.'
+        );
+    }
+
     public function excluir(string $ulid): RedirectResponse
     {
         $grupo = Grupo::where('ulid', $ulid)->firstOrFail();
@@ -92,8 +115,26 @@ class GrupoController extends Controller
           * segundos, na mesma URL) reabria o catálogo sem parar. Flash existe
           * por uma requisição só — é exatamente a duração de um recado.
           */
-        return $request->boolean('conectar')
-            ? to_route('painel')->with('abrirCatalogo', true)
+        if ($request->boolean('conectar')) {
+            return to_route('painel')->with('abrirCatalogo', true);
+        }
+
+        /*
+         * ⭐ **`rede` leva à janela DAQUELA rede** (DEC-154) — onde moram
+         * desconectar e mover de grupo.
+         *
+         * ⛔ É o que resolve o beco da janela do grupo sem duplicar a ação: ela
+         * mostra as redes de dentro dele e não tinha como agir sobre nenhuma.
+         * Repetir "desconectar" ali criaria **dois lugares para o mesmo gesto
+         * irreversível** — a receita do "desconectei e continuou aparecendo".
+         *
+         * ⚠️ Só passa o que é plataforma de verdade: valor inventado viraria um
+         * modal que nunca abre, e o silêncio pareceria defeito da tela.
+         */
+        $rede = Plataforma::tryFrom((string) $request->input('rede'));
+
+        return $rede
+            ? to_route('painel')->with('abrirRede', $rede->value)
             : back();
     }
 

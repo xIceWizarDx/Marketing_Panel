@@ -37,14 +37,27 @@ todo `.mov` de iPhone ser recusado depois do upload inteiro.
 
 ## Estado
 
+> ⭐ **A tabela abaixo é resumo humano; a fonte é o código.** Para o estado exato de hoje:
+> `php artisan redes:situacao` (ou `--md` para colar aqui).
+>
+> ⚠️ Esta tabela já envelheceu quatro vezes — dizia que o YouTube faltava credencial depois de ele
+> estar publicando, e listava o Pinterest como "em estudo" com o publicador pronto. Se ela divergir
+> do comando, **quem está certo é o comando**.
+
 | Rede | Situação | Plano |
 |---|---|---|
 | **Bluesky** | 🟢 publicando · correções aplicadas | [plano](bluesky/plano-de-acao.md) · [lexicons oficiais](bluesky/documentacao/lexicons/) |
-| **YouTube** | 🟡 **código pronto, falta a credencial do Google** | ⚙️ **[como configurar](youtube/como-configurar.md)** · [plano](youtube/plano-de-acao.md) · [16 achados](youtube/achados.md) · [conformidade](youtube/achados-de-conformidade.md) |
-| LinkedIn (perfil) | ⚪ decidida, não começada | — |
-| Instagram · Facebook · Threads | ⚪ decididas, dependem de App Review | — |
-| TikTok | ⚪ decidida, depende de audit | — |
-| Pinterest · X · Mastodon · Discord · LinkedIn Página · Snapchat · Google Meu Negócio | ⚪ em estudo | — |
+| **YouTube** | 🟢 publicando · ⚠️ enquanto a auditoria do Google não sair, o vídeo sobe **privado** | ⚙️ **[como configurar](youtube/como-configurar.md)** · [plano](youtube/plano-de-acao.md) · [16 achados](youtube/achados.md) · [conformidade](youtube/achados-de-conformidade.md) |
+| **Facebook · Instagram** | 🟡 código pronto e conta conectada · falta a prova de campo | [plano](../documentação-inicial/21-plano-meta.md) · [achados](meta-compartilhado.md) |
+| **Threads** | 🟡 código pronto e app configurado · falta a prova de campo | [plano](../documentação-inicial/21-plano-meta.md) · [achados](threads/achados.md) |
+| **LinkedIn (perfil)** | 🟡 código pronto · falta criar o aplicativo no portal da LinkedIn | [plano](../documentação-inicial/22-plano-linkedin.md) · [achados](linkedin/achados.md) |
+| **TikTok** | 🟡 código pronto · falta criar o aplicativo no portal · ⛔ sem auditoria ele **não publica** (DEC-124): post privado nunca ganha link, e sem link não há prova | [plano](../documentação-inicial/23-plano-tiktok.md) · [achados](tiktok/achados.md) |
+| **X** | 🟡 código pronto · falta o aplicativo no console · ⛔ **cada post custa** (US$ 0,015, e US$ 0,200 com link) | [plano](../documentação-inicial/24-plano-x.md) · [achados](x/achados.md) |
+| **Pinterest** | 🟡 código pronto · falta o aplicativo no portal · ⭐ melhor encaixe de formato de todas (nativamente vertical) | [plano](../documentação-inicial/25-plano-pinterest.md) · [spec oficial lida](pinterest/documentacao/) |
+| **Mastodon** | 🟢 código pronto · ⭐ **sem cadastro nenhum a fazer** — testável hoje | [plano](../documentação-inicial/26-plano-mastodon.md) |
+| **Discord** | 🟢 código pronto · ⭐ **sem cadastro nenhum a fazer** — testável hoje · ⚠️ sem alcance: é aviso para quem já está no canal | [plano](../documentação-inicial/27-plano-discord.md) |
+| LinkedIn Página | 🟡 pedido a fazer — o código é o mesmo do perfil, falta a aprovação da LinkedIn | [por quê](../documentação-inicial/28-redes-que-ficam-de-fora.md) |
+| Snapchat · Google Meu Negócio | ⛔ **fora, com motivo** — não há API de publicação orgânica / não é o produto | [por quê](../documentação-inicial/28-redes-que-ficam-de-fora.md) |
 
 O mapa completo de barreira por rede está em
 [`../documentação-inicial/10-redes-adicionais.md`](../documentação-inicial/10-redes-adicionais.md);

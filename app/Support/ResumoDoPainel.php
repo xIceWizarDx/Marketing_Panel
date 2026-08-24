@@ -36,7 +36,7 @@ class ResumoDoPainel
      * deu certo é o que os concorrentes fazem, e é por isso que o painel deles
      * mente.
      *
-     * @return array{noAr: int, andando: int, naoSubiram: int}
+     * @return array{noAr: int, andando: int, naoSubiram: int, saiuDoAr: int}
      */
     public function total(): array
     {
@@ -46,7 +46,7 @@ class ResumoDoPainel
     /**
      * O mesmo, por grupo.
      *
-     * @return array<int, array{noAr: int, andando: int, naoSubiram: int}>
+     * @return array<int, array{noAr: int, andando: int, naoSubiram: int, saiuDoAr: int}>
      */
     public function porGrupo(): array
     {
@@ -63,7 +63,7 @@ class ResumoDoPainel
      * E por rede, dentro de um grupo — é o que alimenta os quadrados de "Suas
      * redes".
      *
-     * @return array<string, array{noAr: int, andando: int, naoSubiram: int}>
+     * @return array<string, array{noAr: int, andando: int, naoSubiram: int, saiuDoAr: int}>
      */
     public function porRedeDoGrupo(?int $grupoId): array
     {
@@ -122,11 +122,11 @@ class ResumoDoPainel
 
     /**
      * @param  list<object>  $linhas
-     * @return array{noAr: int, andando: int, naoSubiram: int}
+     * @return array{noAr: int, andando: int, naoSubiram: int, saiuDoAr: int}
      */
     private function somar(array $linhas): array
     {
-        $soma = ['noAr' => 0, 'andando' => 0, 'naoSubiram' => 0];
+        $soma = ['noAr' => 0, 'andando' => 0, 'naoSubiram' => 0, 'saiuDoAr' => 0];
 
         foreach ($linhas as $linha) {
             $status = $linha->status instanceof StatusDestino
@@ -138,6 +138,19 @@ class ResumoDoPainel
             $coluna = match ($status) {
                 StatusDestino::Publicado => 'noAr',
                 StatusDestino::Falhou => 'naoSubiram',
+                /*
+                 * ⛔ **Balde PRÓPRIO** (DEC-165).
+                 *
+                 * ⚠️ Isto já entrou em `naoSubiram`, com a justificativa de que
+                 * "a frase da tela diz qual dos dois casos é". **No quadrado da
+                 * rede não existe frase** — existe a palavra *"não foi"*, e ela
+                 * é falsa: o post foi, a pessoa viu, e depois foi apagado.
+                 *
+                 * ⛔ Juntar os dois desfaz exatamente a distinção que a
+                 * reconferência (DEC-145) criou, e faz o painel acusar falha
+                 * onde houve uma decisão de quem publica.
+                 */
+                StatusDestino::Removido => 'saiuDoAr',
                 StatusDestino::Pendente,
                 StatusDestino::Enviando,
                 StatusDestino::Processando,

@@ -272,3 +272,79 @@ describe('⭐ a tela ve TODOS os grupos (DEC-88)', function () {
             ->assertInertia(fn ($p) => $p->where('resumoDosGrupos.0.cadencia', 'sem canal conectado'));
     });
 });
+
+describe('⛔ desconectar por vontade própria NÃO é pendência (DEC-155)', function () {
+    it('⛔ conta que VOCÊ desconectou não vira alerta vermelho', function () {
+        /*
+         * ⚠️ `podePublicar()` responde "não" para expirada e para desconectada,
+         * mas os dois casos sao opostos: uma parou SOZINHA e precisa de
+         * conserto; a outra parou porque a pessoa mandou parar.
+         *
+         * ⛔ Cobrar conserto de um gesto deliberado e o painel discutindo a
+         * decisao de quem usa — e e assim que alguem aprende a ignorar o bloco
+         * de avisos inteiro, inclusive no dia do problema de verdade.
+         */
+        $dono = cliente();
+        ContextoDoUsuario::definir($dono);
+
+        $conta = ContaSocial::factory()->doUsuario($dono)->comCredencial()->create();
+        app(App\Services\ContaSocialService::class)->desconectar($conta);
+        ContextoDoUsuario::limpar();
+
+        $this->actingAs($dono)
+            ->get('/painel')
+            ->assertInertia(fn ($p) => $p->where('pendencias', fn ($lista) => collect($lista)
+                ->doesntContain(fn ($x) => str_contains($x['texto'], 'parou de publicar'))));
+    });
+
+    it('⭐ mas conta que parou SOZINHA continua avisando', function () {
+        // ⚠️ O contraponto: sem ele, a correcao acima poderia ter calado as duas.
+        $dono = cliente();
+        ContextoDoUsuario::definir($dono);
+
+        ContaSocial::factory()->doUsuario($dono)->comCredencial()->create()
+            ->forceFill(['status' => App\Enums\StatusConta::Expirada])->save();
+        ContextoDoUsuario::limpar();
+
+        $this->actingAs($dono)
+            ->get('/painel')
+            ->assertInertia(fn ($p) => $p->where('pendencias', fn ($lista) => collect($lista)
+                ->contains(fn ($x) => str_contains($x['texto'], 'parou de publicar'))));
+    });
+});
+
+describe('⛔ "saiu do ar" NÃO é "não foi" (DEC-165)', function () {
+    it('⛔ post apagado na rede não conta como falha', function () {
+        /*
+         * ⛔ Sao opostos: um nunca chegou; o outro chegou, foi visto, e depois
+         * foi apagado — quase sempre por quem publica. Somados, o painel acusa
+         * FALHA onde houve uma DECISAO, e desfaz a distincao que a
+         * reconferencia (DEC-145) existe para criar.
+         */
+        $dono = cliente();
+        ContextoDoUsuario::definir($dono);
+
+        $conta = ContaSocial::factory()->doUsuario($dono)->comCredencial()->create();
+
+        foreach ([StatusDestino::Removido, StatusDestino::Falhou, StatusDestino::Publicado] as $estado) {
+            Destino::factory()->create([
+                'publicacao_id' => Publicacao::factory()->doUsuario($dono)->enviada()->create()->id,
+                'conta_social_id' => $conta->id,
+                'status' => $estado,
+                'url_publicada' => $estado === StatusDestino::Falhou ? null : 'https://exemplo.test/p',
+            ]);
+        }
+        ContextoDoUsuario::limpar();
+
+        $this->actingAs($dono)
+            ->get('/painel')
+            ->assertInertia(fn ($p) => $p
+                // ⚠️ UM falhou, e so ele. O removido tem balde proprio.
+                ->where('numeros.naoSubiram', 1)
+                ->where('numeros.noAr', 1)
+                // ⚠️ Pela REDE da conta, nunca pelo indice: `redes` traz o
+                // catalogo inteiro, e a ordem dele nao e contrato deste teste.
+                ->where('redes', fn ($redes) => collect($redes)
+                    ->contains(fn ($r) => $r['falhas'] === 1 && $r['saiuDoAr'] === 1)));
+    });
+});

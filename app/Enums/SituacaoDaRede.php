@@ -20,6 +20,16 @@ enum SituacaoDaRede: string
     /** Mapeada, sem decisão. Pode nunca entrar. */
     case EmEstudo = 'em_estudo';
 
+    /**
+     * ⛔ **Decidida como FORA** — e isso é diferente de "em estudo".
+     *
+     * ⚠️ "Em estudo" quer dizer que ninguém decidiu; esta quer dizer que
+     * alguém decidiu **não**, com motivo escrito (doc 28). Chamar as duas de
+     * "em estudo" faria alguém pesquisar Snapchat de novo daqui a seis meses e
+     * chegar à mesma conclusão pela segunda vez.
+     */
+    case Fora = 'fora';
+
     public function rotulo(): string
     {
         return __("rotulos.situacao_rede.{$this->value}");

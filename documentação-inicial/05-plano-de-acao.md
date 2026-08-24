@@ -42,6 +42,8 @@ evidências: [`20-evidencias-do-mercado.md`](20-evidencias-do-mercado.md)
 | ordem de construção — o que evita retrabalho | 15 |
 | como trabalhar comigo — falhas e proteções | 16 |
 | referências de layout (Buffer, Publer, bundle.social) | 18 |
+| **o que cada rede entrega de métrica**, e o que ela não entrega | **17** |
+| **o módulo Meta** — Facebook, Instagram e Threads, e a ordem entre eles | **21** |
 
 ---
 
@@ -972,6 +974,143 @@ Storage local com URL pública temporária pra mídia (DEC-07).
   que exige integração pronta (verificação OAuth, auditoria YouTube, App Review, audit
   TikTok). Revogados nos docs 02/03/05/07 os textos de "uso pessoal / 1 << 100 / ok pra nós /
   folga total"; doc 01 §10 reescrito com o quadro de trâmites.
+- 2026-08-05 — **Métricas de rede levantadas nas 9 APIs e entregues no recorte possível →
+  `17-plano-metricas.md` (DEC-93..98).** A consulta à documentação oficial devolveu uma matriz
+  **desigual**, e é ela que define o tamanho: o **número de agora** sai hoje em YouTube e Bluesky
+  sem pedir permissão nova a ninguém; o **gráfico ao longo do tempo não sai** (DEC-93) — exige
+  `yt-analytics.readonly`, e mexer na submissão de um app **em verificação** recomeça a fila que
+  trava o produto; exige máquina ligada todo dia, e dia desligado é buraco permanente porque
+  nenhuma rede devolve "quantos seguidores eu tinha em tal dia"; e nas outras redes ou não existe
+  ou é **proibido guardar** (o Pinterest diz literalmente *"call the API each time"*). Travadas:
+  **DEC-94** um bloco por rede, nunca tabela comparativa — coluna igual obriga a inventar célula, e
+  *visualização* não é a mesma coisa em duas redes; **DEC-95** `null` é resposta com frase própria e
+  **zero é outra coisa** (quatro situações virariam 0: a rede não tem o número, o dono escondeu, a
+  rede não calculou, não lemos); **DEC-96** métrica fora do contrato do `Publicador` — interface
+  `LeitorDeMetricas` à parte, porque amarrar o contador à prova faria a **prova** depender de uma
+  cota que pode acabar; **DEC-97** sem histórico, coluna sobrescrita — as Políticas do YouTube
+  proíbem métrica derivada dos dados deles, e *"ganhou 12 inscritos hoje"* por subtração é
+  exatamente isso; **DEC-98** ler métrica não pode derrubar publicação.
+  ⛔ **Defeito pré-existente corrigido antes de tudo (DEC-98):** `ReconferirContasDoYoutube`
+  transformava **qualquer** resposta fora do 2xx em lista vazia, e lista vazia marcava a conta como
+  `Erro` — o que **bloqueia publicar** até reconectar na mão. Um 403 de cota ou um 500 do Google
+  desligavam a publicação de todos os clientes do YouTube. Nasceu `ErroDoGoogle`, que separa a falha
+  que passa da que fica pelo `error.errors[].reason`.
+  ⚠️ **Correção à pesquisa, confirmada no código:** os contadores do Bluesky **não** vêm de graça na
+  conciliação. Ela usa `com.atproto.repo.getRecord` (lê o repositório do autor, prova mais forte);
+  os contadores vivem no AppView, em `getPosts`. É uma chamada a mais, e a conciliação não muda.
+  Entregue: colunas `seguidores`/`metricas_lidas_em` em `contas_sociais` e
+  `visualizacoes`/`curtidas`/`comentarios`/`compartilhamentos`/`metricas_lidas_em` em `destinos`
+  (todas anuláveis, **fora do `fillable`** — escrita só por máquina); leitores de YouTube e Bluesky;
+  comando `metricas:atualizar` diário às 05:10 (separado do `youtube:reconferir` das 04:20, que
+  consome a mesma cota); contador na janela da rede e ao lado da prova, na linha da publicação.
+  Cópias locais da documentação em `planos-de-redes/youtube/documentacao/05-estatisticas.md` e
+  `planos-de-redes/bluesky/documentacao/02-contadores.md`. 386 testes verdes (20 novos).
+  **Confirmado no real:** a conta do YouTube conectada foi lida com o escopo `youtube.readonly` que
+  o app **já pede** — nenhuma permissão nova.
+- 2026-08-06 — **Gráfico de comparação entre posts + Visão geral reorganizada + botão único de
+  grupo.** (a) **Gráfico:** *"Seus posts no X, por Y"* — barras na medida compartilhada, **um por
+  rede** e cada uma na medida que ELA publica (`Plataforma::metricaDeComparacao()`: YouTube por
+  visualização, Bluesky por curtida, porque o Bluesky não tem visualização). Sai da lista inteira do
+  grupo, não da página aberta, e só na aba "Tudo" — gráfico que ignora o filtro ao lado de uma lista
+  que o obedece são dois números para o mesmo fato. Teto de 8 barras; menos de 2 não vira gráfico.
+  ⭐ **Zero em tudo é ESTADO com frase, não gráfico vazio:** no YouTube é o esperado enquanto a
+  auditoria não passa (vídeo privado não recebe visualização), e sem a frase a tela pareceria
+  quebrada justamente quando está certa. Reusa `BarraDeEntrega` — nenhum código de gráfico novo, e a
+  troca por biblioteca continua sendo um arquivo só (DEC-92).
+  (b) **Visão geral:** faixa de indicadores no topo (tamanho fixo, zero em cinza) e corpo em duas
+  colunas com trilho fixo de 320px à direita para avisos e redes. ⛔ **O bloco "Como está" foi
+  removido**: repetia os três números da faixa por extenso, e era placar somado desde sempre, que só
+  sobe — o que não subiu é tarefa, não placar. `fraseDaEntrega()` saiu junto (grep-zero).
+  (c) **Gerenciar grupos:** três ícones por linha viraram **uma engrenagem** com menu escrito —
+  *Renomear · Editar conexões · Excluir*, com o motivo do bloqueio escrito embaixo. ⚠️ *Editar
+  conexões* ganhou `preserveState`, que é o que faz a janela de grupos continuar aberta por baixo do
+  catálogo: sem ele o Inertia remonta a página, o seletor do topo remonta junto e leva a janela
+  embora no meio do gesto. 392 testes verdes (6 novos, do gráfico).
+- 2026-08-06 — **Barra lateral refinada + tema ao alcance de um clique.**
+  ⭐ **A regra nova é o EIXO DOS ÍCONES:** todo ícone da barra vive num compartimento de largura
+  fixa derivada da largura recolhida (`max(calc(var(--sidebar-width-collapsed) - 1rem), 3rem)`), e o
+  centro desse compartimento é o mesmo aberta ou fechada — o ícone **não anda para o lado** enquanto
+  a largura anima. Antes o item trocava `justify-center` por `padding` conforme o estado, e a coluna
+  inteira tremia no meio da transição. Vale para os itens de menu, o seletor de tema e o avatar.
+  ⚠️ **O rótulo deixou de ser removido do DOM ao recolher** — ele é *cortado* pela borda
+  (`whitespace-nowrap` + `overflow-hidden`). Removido, sumia de uma vez no primeiro quadro e voltava
+  de uma vez no último: lia como piscada, não como deslizamento.
+  ⭐ **O cabeçalho inteiro virou o botão de recolher**, com `ChevronsLeft`/`ChevronsRight`; o botão
+  "Recolher menu" do rodapé saiu (era o mesmo gesto, longe da borda que se mexe). Recolhido, a seta
+  ganha um empurrãozinho de 3px a cada 1,6s (`.dica-de-expandir`) — a barra fechada é uma coluna de
+  ícones e nada nela dizia que ela abre. ⛔ Só na seta de expandir, e desligada em
+  `prefers-reduced-motion`: animação infinita é a primeira a incomodar quem pediu menos movimento.
+  ⚠️ O cabeçalho é a única parte **fora** do eixo, de propósito: em 68px, símbolo (32px) e seta não
+  cabem com o símbolo preso no eixo. Ele é bloco de marca, não item de menu.
+  Entregue também: `components/ui/tooltip.tsx` (o `title` do navegador demora quase um segundo, não
+  segue o tema e não existe no toque) — dica só quando a barra está recolhida, porque com ela aberta
+  o nome já está escrito ao lado; e **seletor de tema no rodapé da barra**, lendo e escrevendo o
+  mesmo `useAparencia` de Minha conta → Aparência, sem estado paralelo. ⛔ Menu com as três opções,
+  não botão que cicla: ciclar obriga a clicar até acertar e nunca deixa "do sistema" ser escolhido
+  de propósito. ⚠️ Ele ficou na **barra do topo, à direita do seletor de grupo** — e só como ícone:
+  os dois dividem a mesma linha, e o grupo é o que precisa ser encontrado sem procurar, porque
+  publicar no grupo errado não desfaz e trocar de tema desfaz com um clique.
+  ⛔ **Defeito de 0.N corrigido de passagem:** a letra do símbolo da marca estava **escrita à mão**
+  no componente — um pedaço do nome do produto morando no código, que ficaria para trás no dia da
+  renomeação com o símbolo dizendo uma letra e o nome ao lado dizendo outra. Agora é a inicial de
+  `nomeDoApp`, calculada na hora. 392 testes verdes.
+- 2026-08-06 — **⛔ BUG: conectar um canal que já vive em outro grupo dizia "conectado" e não
+  mostrava nada.** Achado por relato ("conectei o YouTube no grupo Teste e não aparece") e
+  confirmado no banco: **nenhuma conta nova havia sido criada**. O mecanismo é a UNIQUE
+  `(usuario_id, plataforma, identificador_externo)`, que **não inclui o grupo de propósito** (é ela
+  que impede o mesmo canal de existir em dois grupos): o `updateOrCreate` da conexão encontrava o
+  registro do outro grupo, atualizava nome e situação e **deixava o `grupo_id` como estava** — e o
+  `creating` que carimba o grupo corrente só roda na criação. A pessoa autorizava na rede, voltava,
+  lia que deu certo, e o grupo continuava vazio. Nada avisava, e o banco estava certo.
+  ⛔ **A correção não é mover o canal por conta própria:** mover leva o canal para longe do grupo
+  onde o histórico dele nasceu, e isso é ação explícita com janela e aviso (DEC-77) — fazer escondido
+  durante um "conectar" é exatamente o acidente que o grupo existe para evitar. Nasceu
+  `CanalDeUmGrupoSo`, que recusa nomeando o canal e o grupo onde ele está.
+  ⚠️ O defeito era dos **dois** caminhos de conexão (YouTube e Bluesky), por isso a trava vive em um
+  lugar só. Reconectar no mesmo grupo continua passando — é o caminho de renovar autorização vencida,
+  e travá-lo quebraria o semáforo (DEC-32). 396 testes verdes (4 novos).
+- 2026-08-06 — **Documentação do Threads consultada e módulo Meta organizado →
+  `21-plano-meta.md` (DEC-99..105) + `planos-de-redes/threads/`.** Facebook e Instagram já estavam
+  lidos (31/07) e com publicador escrito; a lacuna era o Threads, que não tinha nada.
+  ⛔ **A DEC-30 estava errada na parte do fluxo.** Ela dizia que o Threads pega carona com "fluxo
+  idêntico ao IG". Ele tem **janela de autorização própria** (`threads.net/oauth/authorize`),
+  **servidor próprio** (`graph.threads.net`), **permissões próprias** (`threads_*`) e **não aceita
+  envio de arquivo** — só URL pública. Sobra de carona o mesmo aplicativo Meta e a mesma conta de
+  desenvolvedor; **não sobra o código**. Conectar o Instagram não acende o Threads.
+  ⛔ **Segunda correção de documento:** o `CLAUDE.md` descreve a URL pública temporária como aberta
+  *"p/ Instagram e TikTok"* — o Instagram **não usa**, porque a escolha do Login do Facebook deu
+  upload direto justamente para evitar expor o arquivo. **O Threads é a primeira rede do produto
+  que realmente precisa desse buraco** (DEC-100), e por isso ele fica desligado enquanto não houver
+  servidor alcançável pela internet (DEC-101) — a Meta não enxerga `localhost`.
+  Travadas ainda: **DEC-102** renovação obrigatória com janela de 24 h a 60 dias (é a única rede do
+  produto com morte definitiva por inatividade); **DEC-103** o segundo passo não dorme segurando
+  worker; **DEC-104** o limite de texto é 500 **bytes UTF-8**, não caracteres — dez emojis comem 40
+  bytes e a legenda estoura sem parecer; **DEC-105** ligar Facebook e Instagram de verdade **antes**
+  de escrever o Threads, porque os dois publicadores nunca rodaram contra a rede e a revisão do
+  Facebook já achou sete divergências na leitura.
+- 2026-08-06 — **Fase 2 e Fase 3 do plano 21 entregues.** (a) **URL temporária da mídia** — rota
+  assinada, fora do grupo autenticado, 15 minutos, servindo só o arquivo. É o **único endereço do
+  produto que serve arquivo sem sessão**, e existe porque o Threads não aceita envio: ele recebe uma
+  URL e vem BUSCAR a mídia, com um servidor da Meta que nunca terá login aqui. ⛔ Por isso a
+  assinatura é a trava inteira. ⚠️ Um dos 9 guardiões documenta o que **parece furo e não é**: o
+  endereço serve mídia de qualquer dono, e tem que servir — não há sessão para o escopo usar, e com
+  escopo a consulta **lançaria exceção**. O teste existe para ninguém "consertar" isso e quebrar a
+  integração. (b) **`ConexaoComThreads` + `threads:renovar`** (diário, 04:50, com 15 dias de folga).
+  ⛔ **Dois achados que só apareceram escrevendo:** o campo dos escopos concedidos é `permissions`,
+  **não** a string `scope` do padrão OAuth — ler o errado recusaria toda conexão válida; e
+  `refresh_token` fica **nulo**, porque o Threads renova o próprio token longo apresentando ele
+  mesmo, o que faz `expira_em` significar **o prazo de morte da conta** e não o de um token que se
+  renova sozinho. 420 testes verdes (24 novos).
+- 2026-08-07 — **Aplicativo criado na Meta, com os três casos de uso** (Threads · Página ·
+  Instagram) e o **Login do Facebook para Empresas**, que é o que libera enviar o arquivo direto.
+  ⛔ Recusados de propósito os casos de uso de **Vídeo ao Vivo** e **oEmbed**: a análise cobra
+  vídeo de demonstração por permissão pedida, e permissão sem uso reprova a submissão inteira.
+  ⚠️ Ao vivo multiplataforma foi avaliado e **fica fora do plano**: exige servidor de mídia
+  (uma transmissão 1080p para 4 redes são ~24 Mbps saindo continuamente) e **quebra a tese** — ao
+  vivo não tem post para reler, então não há prova. Endereço público resolvido por **túnel**, que é
+  suficiente para testar e insuficiente para o resto. O que falta do lado da Meta está listado em
+  `21-plano-meta.md` — inclusive **redefinir a chave secreta**, que foi exposta numa captura durante
+  a configuração.
 
 ---
 
@@ -1896,3 +2035,830 @@ compartilhada mais engana, porque 5 falhas em 5 desenham menos vermelho que 3 em
 ⛔ **Fora, de propósito:** porcentagem (com 3 posts, "100%" vira "67%" e parece piora), ranking,
 meta, escala logarítmica, e métricas de rede — bloqueadas enquanto o aplicativo do YouTube estiver
 em Testes, porque todo vídeo sobe privado e a tela mostraria zero em tudo.
+
+---
+
+### 2026-08-08 — Threads: a publicação ganhou guardiões, e dois defeitos apareceram no caminho
+
+⭐ **A Fase 4 do plano 21 fechou com 17 guardiões verdes.** O publicador do Threads já existia; o que
+faltava era o que trava o comportamento sutil dele — e escrever teste foi o que fez os dois defeitos
+abaixo aparecerem. Nenhum deles daria erro em desenvolvimento: os dois só apareceriam com um post
+real na mão de alguém.
+
+⛔ **A lista de erros da rede tem erro de digitação — e ela muda entre leituras.** A documentação
+oficial escreve `INVALID_ASPEC_RATIO`, **sem o `T`**. Numa segunda leitura da mesma página, no mesmo
+dia, `INVALID_FRAME_RATE` apareceu como `FAILED_FRAME_RATE`. O código casava a palavra inteira, então
+a recusa **mais comum de todas** — a proporção do vídeo — cairia no genérico *"o Threads recusou este
+post"*. A pessoa ficaria sem saber o que arrumar num vídeo que só precisava ser reenquadrado. O
+casamento passou a ser por **pedaço estável** (`ASPEC`, `FRAME_RATE`, `BIT_RATE`…), que funciona com
+a grafia errada de hoje e com a corrigida de amanhã; os dois guardiões cobrem as duas grafias.
+
+⛔ **Cota estourada virava falha permanente.** O Threads não devolve código de erro próprio para
+"acabaram as 250 do dia" — quem sabe é o endpoint `GET /{id}/threads_publishing_limit`, que existe e
+está documentado (na primeira leitura a página devolvia 404, e a cópia local registrava o contrário).
+Sem consultá-lo, a publicação de número 251 seria marcada como falha e queimaria as três tentativas
+contra um limite que só volta amanhã. ⚠️ **Limite diário é espera, não falha (DEC-24).** O endpoint é
+consultado **só depois** de uma recusa acontecer: uma chamada a mais no caminho do erro, nenhuma no
+caminho normal. E na dúvida a resposta é "não estourou" — se a consulta da cota falhar, o motivo que
+a pessoa vê continua sendo o que a rede deu; inventar "limite do dia" a partir de uma chamada que nem
+respondeu esconderia o erro real.
+
+⚠️ **O que ainda não aconteceu:** nenhum post saiu no Threads de verdade. A conta conecta e a
+publicação está escrita e travada por teste — falta a prova de campo.
+
+---
+
+### 2026-08-09 — LinkedIn: a rede que não deixa provar
+
+⭐ **Quinta rede conectável, com 32 guardiões verdes** — e a primeira em que a documentação oficial
+obrigou a mudar uma promessa do produto, não só o código.
+
+⛔ **A tese do produto não cabe inteira aqui.** A DEC-31 diz que o painel só afirma que subiu depois
+de **reler** o post na rede. No LinkedIn, reler exige `r_member_social`, que é *restricted — available
+to approved users only*. As únicas permissões abertas a qualquer desenvolvedor são `profile`, `email`
+e `w_member_social`: **escrever, sim; ler, não.**
+
+⭐ **O que sobra ainda é bastante, e vale medir com precisão:** dá para conferir que o vídeo chegou,
+que foi aceito e que terminou de processar (`GET /rest/videos/{urn}` responde com a permissão de
+escrita), e dá para ter o identificador do post. ⚠️ **A falha assíncrona clássica — a que o produto
+existe para pegar, o vídeo que a rede aceita e depois recusa — é detectável.** O que fica de fora é a
+remoção por moderação **depois** de publicado.
+
+**DEC-106 — o LinkedIn tem um grau de certeza próprio, e a tela diz qual é.** Não existe "conferido"
+para esta rede. O link aparece com uma ressalva escrita por extenso, e ela chega também a quem usa
+leitor de tela. ⛔ Reusar a frase das outras redes seria afirmar uma conferência que não aconteceu —
+o defeito exato que o produto critica nos concorrentes. E raspar a página pública do post, que
+tecnicamente funcionaria, está fora: é violação dos termos de uso da API.
+
+**DEC-112 — a renovação do token é aviso, não serviço.** *"Programmatic refresh tokens are available
+for a limited set of partners."* O token vive 60 dias e a renovação passa pelo navegador da pessoa.
+⛔ **Não existe `RenovarTokensDoLinkedin`** — um comando que "renova" e não renova seria pior que não
+ter: a conexão morreria em silêncio com um serviço verde dizendo que está tudo bem. Tem guardião
+travando a ausência dele.
+
+⛔ **Três armadilhas que a documentação enterra, e que custariam caro em produção:**
+
+**O identificador do post vem no CABEÇALHO `x-restli-id`, e o corpo do `201` vem vazio.** Procurá-lo
+no JSON acharia `null`, o motor concluiria que falhou — com o post já publicado — e na passada
+seguinte publicaria de novo. Publicação não tem desfazer.
+
+**O exemplo de dividir o arquivo está errado.** A documentação manda `split -b 4194303` e devolve o
+intervalo `firstByte: 0, lastByte: 4194303`, que **inclusive** dá 4.194.304 bytes. Seguir o exemplo
+deixaria cada pedaço um byte curto, e o erro só apareceria em arquivo grande — com o vídeo montado
+errado no fim, depois de tudo responder sucesso. O código lê o intervalo que a API manda.
+
+**A mesma página diz 500 MB numa seção e 5 GB na outra.** Vale o menor: recusar em 500 MB é seguro
+nas duas leituras; aceitar 5 GB pode estourar no meio do envio, com o arquivo já subindo.
+
+⚠️ **E o limite é contado em REQUISIÇÕES, não em posts:** 150 por pessoa por dia, e uma publicação
+gasta 1 inicializar + N pedaços + 1 finalizar + 1 conferir + 1 postar. Um vídeo de 40 MB são 14. O
+teto real fica perto de **10 publicações por dia**, não 150 — e por isso recomeçar um envio pergunta
+antes se o vídeo já subiu, em vez de reenviar às cegas.
+
+---
+
+### 2026-08-09 — TikTok: a rede que já pensa como o produto
+
+⭐ **Sexta rede conectável, com 43 guardiões verdes.** E, ao contrário do LinkedIn, aqui a
+documentação oficial trouxe boa notícia: **o TikTok implementa a tese do produto por conta
+própria.**
+
+O campo chama `publicaly_available_post_id`, e a documentação diz que ele *"returns post_id only for
+public posts approved by moderation"*. Ou seja, a rede separa dois estados que todo mundo trata como
+um só:
+
+- `PUBLISH_COMPLETE` **sem** o identificador → subiu, ainda não liberado;
+- `PUBLISH_COMPLETE` **com** o identificador → subiu **e a moderação aprovou**.
+
+**DEC-115 — a prova é o identificador, não o `PUBLISH_COMPLETE`.** Parar no status seria o erro que o
+produto critica: a rede aceitou, e o post pode não estar visível para ninguém. Enquanto o
+identificador não chega, o destino continua **processando** — que é a verdade.
+
+⛔ **E nada disso existe enquanto o aplicativo não for auditado** (DEC-116). Sem auditoria a rede
+recusa qualquer privacidade que não seja `SELF_ONLY`, e post privado nunca recebe o identificador —
+logo, não há link de prova. Mesma situação do YouTube antes da auditoria do Google, e a mesma
+resposta: publicar funciona, o painel diz que é privado, e diz por quê já na hora de conectar.
+
+⛔ **Cinco armadilhas que a documentação enterra:**
+
+**O `total_chunk_count` arredonda para BAIXO.** *"video_size ÷ chunk_size, rounded down."* Um vídeo
+de 12 MB com pedaço de 5 MB dá **dois** pedaços, e o último carrega 7 MB. Todo mundo escreveria
+`ceil()` aqui — é o que faz sentido em qualquer outro protocolo de envio em partes — e o número que
+não bate faz o envio falhar **depois** de o arquivo inteiro ter subido. A aritmética virou classe
+própria, com sete guardiões que não tocam em rede nenhuma: aritmética se prova com números na mão.
+
+**O token vive 24 horas.** O prazo mais curto do painel, por larga margem. Um comando de madrugada
+não dá conta: vídeo agendado, fila parada ou worker que dormiu encontrariam token morto no meio do
+dia. Por isso a renovação acontece **na hora de publicar** (DEC-118), e o comando diário ficou como
+rede de segurança para as contas que passam dias sem publicar.
+
+**O `refresh_token` gira.** *"The returned refresh_token may be different than the one passed in the
+payload."* Guardar o antigo dá uma conexão que funciona hoje, funciona amanhã e um dia para sem
+ninguém ter mexido em nada — o pior tipo de defeito, porque não tem evento para investigar.
+
+**Erro dentro de um HTTP 200.** O `status/fetch` responde 200 e põe o erro em `error.code`. Confiar
+no código HTTP trataria `invalid_publish_id` como sucesso, e o destino ficaria esperando para sempre
+por um post que não existe.
+
+**Perguntar ao criador antes de publicar é obrigatório** (DEC-117) — e não é etiqueta: privacidade
+fora da lista devolve `privacy_level_option_mismatch`. ⭐ E a resposta trouxe algo que não existia em
+nenhuma outra rede: **`max_video_post_duration_sec` é por CONTA, não por plataforma.** Contas novas
+têm teto menor. O limite fixo do `EspecificacaoDaRede` passou a ser o máximo possível; o real se
+pergunta, e a recusa acontece antes de subir um byte.
+
+⚠️ **Duas frases que não podem culpar quem publicou:** `auth_removed` é a pessoa tendo tirado a
+autorização no aplicativo do TikTok — dizer "falhou" mandaria ela procurar defeito no arquivo; e
+`reached_active_user_cap` é o **nosso** aplicativo que estourou a cota do dia, não a conta dela.
+
+⚠️ **O que ainda não aconteceu:** nenhum vídeo saiu no TikTok, e o aplicativo no portal ainda não
+existe.
+
+---
+
+### 2026-08-09 — Revisão do que foi escrito hoje: quatro defeitos, e nenhum deles quebrava teste
+
+⚠️ **Suíte verde não é ausência de bug.** Os 519 testes passavam, e mesmo assim os quatro achados
+abaixo estavam lá — três deles publicariam coisa errada na conta de alguém.
+
+⛔ **1. O TikTok podia publicar o mesmo vídeo DUAS VEZES.** O caminho: os pedaços sobem todos, e a
+resposta do último se perde — tempo esgotado, processo morto, worker reiniciado. O destino volta para
+a fila e o publicador começava do zero: novo `publish_id`, arquivo inteiro de novo, **dois vídeos no
+ar**. O YouTube já tapava isso com `quantoJaSubiu` e o LinkedIn com `jaSubiu`; aqui faltava. Agora o
+envio pergunta antes se já aconteceu — e só `FAILED` autoriza refazer.
+
+⛔ **2. O LinkedIn podia publicar o mesmo post até vinte vezes** (DEC-125). Criar post não é
+idempotente e a rede não aceita chave de repetição. Um tempo esgotado *depois* de ela ter recebido o
+pedido significa post publicado e resposta perdida — e a conciliação roda vinte vezes. E não dá para
+conferir antes de criar: reler post exige permissão restrita (DEC-106). ⭐ Entre repetir e duplicar,
+ou parar e avisar, agora o produto **para e avisa**, com a frase dizendo que o post pode ter subido.
+
+⛔ **3. As hashtags nunca chegavam ao Threads nem ao TikTok.** A pessoa escrevia, a tela contava, e
+nada saía. Bluesky, Facebook e Instagram sempre usaram `Destino::textoFinal()` — o helper que junta
+legenda e hashtags e respeita o texto próprio de cada destino. Esses dois publicadores montavam o
+texto à mão e jogavam fora as hashtags **e** o `legenda_override`. ⚠️ No TikTok isso é grave de um
+jeito próprio: hashtag é o mecanismo de descoberta da plataforma, e um post sem hashtag é um post que
+ninguém acha.
+
+⛔ **4. O título estourava o limite de texto em silêncio.** Threads e TikTok não têm campo de título:
+ele sobe **colado na legenda**, e os dois dividem um orçamento só. A conferência media os dois
+separados. No Threads, com 500 bytes, um título de 200 e uma legenda de 400 passavam nas duas
+conferências e estouravam ao chegar lá — a recusa acontecendo depois de o vídeo inteiro ter subido.
+Agora a régua mede **exatamente o que sobe**: título, legenda e hashtags juntos. ⚠️ E o contador da
+tela mede a mesma coisa — front e servidor precisam contar igual, senão são duas verdades para o
+mesmo texto.
+
+⚠️ **E uma decisão que estava errada no papel: a DEC-116.** Ela dizia que o TikTok sem auditoria
+seria *"mesma resposta do YouTube: publica privado e a tela diz por quê"*. **No YouTube o vídeo
+privado tem endereço**; no TikTok o identificador só vem para post público aprovado, então um post
+privado nunca ganha link — e `marcarPublicado()` recusa destino sem link, de propósito (DEC-31).
+Publicar ali só poderia terminar em "falhou" depois de o vídeo ter subido de verdade, com o painel
+oferecendo republicar e duplicando. ⭐ **DEC-124: sem auditoria, o TikTok não publica — recusa antes
+de subir, e diz por quê.** Mesmo desenho do Threads sem endereço público (DEC-101).
+
+**530 testes verdes** ao fim, com 11 guardiões novos — um para cada defeito acima, mais os das
+frases que não podem culpar quem publicou.
+
+---
+
+### 2026-08-09 — X: a rede em que o TEXTO muda o preço
+
+⭐ **Sétima rede conectável, com 36 guardiões verdes.** E a primeira em que o achado principal não é
+técnico: **aqui publicar custa dinheiro, e uma escolha de texto muda o custo em treze vezes.**
+
+| Operação | Preço |
+|---|---|
+| Post: criar | US$ 0,015 |
+| ⛔ **Post: criar (com URL)** | **US$ 0,200** |
+| ⭐ Post: ler o que é seu | US$ 0,001 |
+
+Em 500 posts por mês: **US$ 7,50 sem link, US$ 100,00 com link em todos.** Não existe faixa gratuita
+— os créditos são comprados antes, no console deles.
+
+⚠️ **A pesquisa antiga (doc 10) estava desatualizada num ponto importante:** ela falava em assinatura
+e níveis de acesso. Hoje é **pagamento por uso, com crédito comprado antes**. Reler a fonte oficial
+antes de escrever código pegou isso.
+
+**DEC-126 — o painel avisa o custo do link ANTES de publicar.** Quando a legenda tem link e o X está
+entre as redes escolhidas, a tela diz, com o número na frente. ⛔ **Aviso, nunca bloqueio:** pode ser
+exatamente o que a pessoa quer, e quem decide gastar é ela — o que não pode é ela descobrir na
+fatura. ⚠️ E o aviso é da tela, não do publicador: quando o publicador roda, o gasto já aconteceu.
+
+⭐ **E a prova tem preço baixo:** reler o próprio post é *owned read*, US$ 0,001. A tese do produto
+(DEC-31) custa um décimo de centavo por conferência aqui — mas é a primeira rede em que **insistir
+gasta crédito de alguém**, e não só limite de uso (DEC-127).
+
+⛔ **Quatro armadilhas próprias desta rede:**
+
+**O código de autorização vive 30 SEGUNDOS** (DEC-128) — uma ordem de grandeza abaixo de qualquer
+outra; o LinkedIn dá 30 minutos. Qualquer coisa feita antes da troca pode consumir a janela e queimar
+a autorização, e o erro que aparece é o genérico *"a autorização não pôde ser confirmada"*, que manda
+a pessoa procurar no lugar errado. A troca passou a ser a **primeira** coisa da volta.
+
+**PKCE obrigatório** (DEC-129) — primeira rede do painel a exigir. O segredo nasce na ida e é exigido
+na volta: vai para a sessão junto com o `state`, ou a troca falha **sem recuperação possível**.
+
+**O token vive 2 HORAS**, mais curto que o do TikTok (DEC-130). E **sem `offline.access` não existe
+token de renovação nenhum**: a conexão funciona por duas horas e morre, sem nada ter mudado.
+
+**`media.write` é escopo separado** (DEC-131), e o sintoma de esquecer engana: a conta conecta, o
+texto subiria, **e o vídeo não**.
+
+⚠️ **E o que a documentação NÃO diz** (DEC-132): nenhuma página consultada declara tamanho máximo,
+duração, proporção, codecs, quantidade de mídias por post nem limite de caracteres do texto. Nada
+disso foi inventado — os números que o painel aplica têm procedência escrita no próprio código: o
+perfil canônico do produto, ou a doc 10, identificada como fonte de terceiro.
+
+⭐ **Uma observação que só apareceu com quatro redes de envio em pedaços prontas:** cada uma ordena
+os pedaços de um jeito diferente — YouTube e TikTok por faixa de bytes, LinkedIn pela ordem dos
+recibos, X por um número. Quatro convenções. Tentar generalizar isso numa abstração só erraria nas
+quatro.
+
+**566 testes verdes** ao fim.
+
+---
+
+### 2026-08-09 — Revisão do X: e o mesmo defeito reaparecendo em rede nova
+
+⚠️ **A suíte estava verde com 566 testes, e mesmo assim os cinco achados abaixo estavam lá.** Dois
+deles são o **mesmo defeito que a revisão anterior já tinha corrigido em outras redes** — o que diz
+que corrigir caso a caso não bastava: faltava um guardião que pegasse a *próxima* rede.
+
+⛔ **1. O título sumia em CINCO redes, não em duas.** A revisão anterior tinha achado isso no Threads
+e no TikTok. Faltou perguntar onde mais. **Bluesky, Instagram e X** também jogavam fora o título que
+a pessoa escreveu — nenhuma das três tem campo próprio para ele, e nenhuma o colava no texto. A
+pessoa escrevia, a tela contava, e a palavra não chegava.
+
+⭐ **A correção agora é uma regra, não cinco remendos:** rede sem campo de título soma o título na
+legenda, e o guardião **enumera num lugar só quem tem campo próprio** (YouTube, Facebook, LinkedIn).
+Ligar uma rede nova **quebra o teste de propósito** — é para alguém decidir na hora onde o título dela
+vai parar, em vez de descobrir depois que ele sumiu.
+
+⛔ **2. O laudo dava VERDE em imagem que o publicador ia recusar — em quatro redes.**
+`aceitaImagem` não quer dizer "a plataforma suporta imagem": a própria frase do laudo diz *"não
+publica imagem **por aqui**"* — é sobre o painel. LinkedIn, Instagram, Facebook e X declaravam que
+aceitavam, e os quatro publicadores recusavam na primeira linha. A pessoa via "formato aceito" e
+recebia "o X recebe vídeo por aqui" depois. ⭐ Mesmo remédio: um guardião que percorre **todas** as
+redes e exige que o laudo concorde com o publicador.
+
+⛔ **3. Crédito acabado no envio da mídia caía numa frase genérica.** O `402` estava tratado só na
+criação do post. No envio, virava *"o X recusou o envio do vídeo"* — mandando a pessoa reexportar um
+arquivo perfeito quando o que faltava era **dinheiro no console do X**.
+
+⛔ **4. Os preços do X existiam escritos em dois idiomas** (DEC-133). US$ 0,20 e US$ 0,015 estavam em
+PHP e em TypeScript. No dia em que o X mudar a tabela, uma das cópias fica errada — e é a errada que
+a pessoa lê. Agora a frase vem pronta do servidor, e a tela só decide quando mostrar. O guardião
+passa pela **requisição de verdade**, porque o defeito que ele pega é a frase existir no servidor e
+não chegar no React.
+
+⚠️ **5. Um item do plano estava marcado como feito sem estar.** O X manda um campo dizendo quando
+voltar a conferir (`check_after_secs`), e o código não o lê — a conciliação usa a espera própria
+dela, que é sempre **maior** que a pedida. Nunca perguntamos cedo demais; perguntamos tarde. O plano
+foi corrigido para dizer isso em vez de afirmar o que não acontece.
+
+**573 testes verdes** ao fim, com 7 guardiões novos — e dois deles são do tipo que quebra quando
+alguém ligar a próxima rede sem decidir.
+
+---
+
+### 2026-08-09 — As redes que faltavam: três entraram, três ficaram de fora com motivo
+
+⭐ **Onze redes com código agora, e duas delas testáveis hoje** — sem esperar aprovação de ninguém.
+
+**Pinterest.** ⭐ A documentação deles é aplicação JavaScript e não entrega nada para leitura
+automática; a **spec OpenAPI oficial** entregou tudo, com os limites exatos. Foi a regra do projeto —
+*preferir spec legível por máquina* — pagando sozinha. Duas coisas só existem aqui: **o Pin mora num
+quadro** (e por isso conectar traz um canal por quadro, como a Meta traz um por Página), e **o
+arquivo sobe para a AWS**, num formulário assinado onde o campo do arquivo tem que ir por último —
+o S3 ignora o que vier depois dele, e recusa com um erro de XML que não menciona ordem nenhuma.
+
+**Mastodon.** ⛔ Não é um serviço: é um protocolo, com milhares de servidores independentes. Isso
+obrigou uma **terceira forma de conectar** (a pessoa diz onde a conta mora antes de autorizar) e uma
+**coluna nova** (`contas_sociais.servidor`) — derivar o endereço do nome de exibição montaria URL de
+API a partir de texto de tela. ⭐ E ele é a rede de **barreira zero de verdade**: o protocolo deixa
+registrar o aplicativo por API, sem autenticação, então não há portal nenhum para cadastrar nada.
+
+⭐ **E é a primeira rede do painel que aceita chave de idempotência.** Isso **inverte** a regra do
+LinkedIn, do X e do Pinterest: lá, um tempo esgotado depois de a rede receber o pedido obriga a parar
+e avisar, porque repetir criaria um segundo post. Aqui repetir é seguro, e a chave é o `ulid` do
+destino.
+
+**Discord.** ⭐ A conexão mais simples do painel: a pessoa cria um webhook no canal e cola o
+endereço. ⛔ O endereço **é** a credencial, e por isso é partido na hora de guardar — identificador na
+conta, segredo na credencial cifrada. ⛔ E `wait=true` é obrigatório: sem ele o Discord responde 204 e
+*"unconfirmed messages don't generate errors"* — a publicação poderia falhar em silêncio com o painel
+dizendo que deu certo. ⚠️ É também a primeira rede que **não aceita o vídeo do perfil canônico**: 10 MB
+é o piso do servidor sem impulsionamento.
+
+⛔ **E três ficaram de fora, com motivo escrito** (doc 28): o **Snapchat** não tem API de publicação
+orgânica — nem é fila de aprovação, é ausência de endpoint; o **Google Meu Negócio** publica ficha de
+estabelecimento, não vitrine de vídeo vertical; e o **LinkedIn Página** é o único dos três que já
+está tecnicamente pronto — falta só a aprovação da LinkedIn, e é justamente ela que devolveria a
+prova que falta naquela rede.
+
+---
+
+### 2026-08-09 — Revisão das três: o mesmo defeito, pela terceira vez
+
+⚠️ **A suíte estava verde com 608 testes.** Os quatro achados abaixo estavam lá, e três deles são a
+**mesma família** que as duas revisões anteriores já tinham corrigido em outras redes.
+
+⛔ **1. As hashtags não contavam no limite — em toda rede com campo de título próprio.** As duas
+revisões anteriores trataram o caso "rede sem campo de título". Faltou perguntar o que acontecia nas
+outras: nelas, a legenda era medida sozinha e as hashtags entravam **de graça**. No Pinterest, com 800
+de descrição, quinze hashtags passavam na conferência e eram recusadas na rede — depois do vídeo
+inteiro ter subido.
+
+⭐ **A correção virou regra geral, não um quarto remendo:** a legenda medida é **a que sobe**,
+hashtags sempre incluídas, título junto só onde não há campo próprio. Nenhuma rede do painel tem
+campo separado de hashtag — elas viajam dentro do texto, e agora a régua sabe disso.
+
+⛔ **2. O LinkedIn também jogava as hashtags fora.** Ele montava a legenda à mão, como o Threads e o
+TikTok faziam. Passou despercebido nas revisões anteriores por um motivo específico: o título **tem**
+campo próprio nesta rede, e a atenção ficou nele.
+
+⛔ **3. O link de prova do Discord ia para o lugar errado.** O endereço de uma mensagem tem três
+partes — servidor, canal e mensagem — e só duas estavam ali. O link caía em `channels/@me`, que é
+conversa privada: **um link de prova que não prova nada.** O servidor só existe na resposta do
+webhook, não na da mensagem, então ele passou a ser guardado na conexão — na mesma coluna que a rede
+federada usa.
+
+⛔ **4. No Mastodon, erro definitivo virava três horas de espera.** Qualquer resposta que não fosse
+200 devolvia "ainda processando", e a conciliação insistia vinte vezes contra um `404` ou um token
+revogado — para terminar com a frase genérica *"a rede aceitou mas não confirmou"*, que não diz nada
+sobre a causa.
+
+**614 testes verdes** ao fim.
+
+⭐ **E dois guardiões novos são do tipo que quebra sozinho:** ligar uma rede nova sem decidir onde o
+título dela vai parar, ou sem alinhar o laudo de imagem com o publicador, **derruba a suíte de
+propósito**. Foi assim que o Pinterest, o Mastodon e o Discord tiveram essas três decisões tomadas na
+hora de entrar, em vez de descobertas depois.
+
+---
+
+### 2026-08-10 — O painel passa a responder "funcionou?" e "continua no ar?"
+
+⭐ Três frentes do [plano 32](32-plano-metricas-e-prova.md), e a segunda delas conserta a promessa
+central do produto.
+
+**As quatro redes do escopo passaram a responder.** Instagram, Facebook e TikTok ganharam leitor de
+métrica — antes só o YouTube respondia, e comparar redes era um gráfico de uma rede só.
+
+⛔ **E métrica custou permissão nova** (DEC-143): `instagram_manage_insights`, `read_insights` e
+`video.list`. ⚠️ Isso parece contrariar o escopo mínimo (DEC-41) e não contraria: o mínimo é o mínimo
+**para o que o produto faz**, e responder "funcionou?" passou a ser parte disso. Continuamos sem pedir
+permissão de apagar nem de alterar.
+
+⭐ **E recusar não apaga a tela.** Curtida e comentário vêm do objeto da mídia e **não custam
+permissão**; só visualização e compartilhamento exigem a permissão nova. Por isso são **duas
+chamadas** de propósito: quem recusar continua vendo dois números, em vez de a tela inteira ficar
+vazia por causa de uma permissão opcional.
+
+**O número passou a ter ontem** (DEC-144). Até aqui o comando diário **sobrescrevia**: sabíamos
+quanto tem, nunca quanto tinha. Agora grava uma linha por destino **por dia** — reexecutar no mesmo
+dia atualiza a linha, não cria um segundo ponto. ⚠️ Ela nasceu **antes da tela** de propósito: só
+começa a valer depois de coletar, então a curva de vida do post existe daqui a uma semana sem
+ninguém fazer nada.
+
+⭐ **A prova deixou de expirar em três horas e meia** (DEC-145). A conciliação perguntava 20 vezes e
+parava para sempre — e moderação de rede não trabalha nesse relógio. Um vídeo derrubado no dia
+seguinte continuava marcado "No ar", **com a mesma confiança de sempre**: a crítica que fazemos aos
+concorrentes passava a valer para nós a partir da quarta hora. Agora um comando diário relê o que
+está publicado, guarda **quando** conferiu, e rebaixa o que sumiu.
+
+⛔ **E a máquina de estados brigou com isso na primeira execução — com razão de existir, e errada de
+fato.** Ela dizia `Publicado => []`: uma vez no ar, para sempre no ar.
+
+⭐ **DEC-148 — entra o `Removido`, "Saiu do ar".** As duas alternativas mentiam: deixar como
+publicado afirma que continua no ar o que a rede tirou; marcar como falhou afirma que **nunca subiu**
+o que subiu. Ele é a única saída de `Publicado`, é terminal, e não volta — republicar é outra
+publicação, com outra data e outra prova.
+
+⚠️ **E o estado novo quebrou duas suposições da tela**, as duas encontradas na revisão: a lista
+considerava "em andamento" tudo que não fosse publicado ou falhado — então um post removido ficaria
+**atualizando para sempre** —, e o alerta do cartão só olhava para `falhou`. As duas foram corrigidas
+com a lista de terminais explícita.
+
+**628 testes verdes**, com 13 guardiões novos.
+
+⚠️ **O que falta:** a tela. O total com as três ressalvas (DEC-146) e a comparação do mesmo vídeo
+entre redes (DEC-147) ainda não existem — mas o dado que elas desenham **já está sendo coletado**.
+
+---
+
+### 2026-08-10 — Revisão do que acabou de entrar: o estado novo vazou
+
+⚠️ **628 testes verdes, e dois defeitos.** Os dois vieram da mesma causa: o estado `Removido`
+(DEC-148) apareceu em lugares que ninguém tocou.
+
+⛔ **1. Uma publicação com destino removido ficava em "Publicando…" para sempre.** `deduzirStatus`
+somava só `Publicado` e `Falhou` para decidir se a publicação terminou. Um destino `Removido` não era
+nem um nem outro, a conta nunca fechava, e a publicação inteira voltava ao estado de espera — para
+algo que já tinha acabado.
+
+⚠️ E o defeito ficava **invisível na tela do jeito pior**: o cartão mostrava o giro de "publicando"
+num vídeo que subiu, saiu do ar, e não ia mudar mais.
+
+⛔ **2. A segurança da reconferência era ACIDENTAL.** Em sete dos onze publicadores, `conciliar()` é
+onde o post **nasce** — e o comando novo chama exatamente esse método, agora em destinos já
+publicados. Nenhum republica hoje; mas por motivos **diferentes**: uns têm guarda explícita no
+identificador, outros são leitura de ponta a ponta. Isso é o tipo de garantia que some numa
+refatoração, sem ninguém perceber, publicando duas vezes.
+
+⭐ Agora existe um guardião que percorre **as oito redes** e exige que nenhuma chamada de **criação**
+saia da reconferência. ⚠️ E ele olha **caminho e método**: ler um post do X é `GET /2/tweets/{id}` e
+criar é `POST /2/tweets` — o caminho sozinho não distingue, e a primeira versão do teste reprovava a
+própria leitura.
+
+⚠️ **Duas dívidas anotadas, não consertadas:**
+
+- `reconferido_em` é gravado e **não aparece na tela**. A frase *"no ar · conferido hoje"* é metade
+  do valor da DEC-145, e ela entra com a Fase 4.
+- A tela nova (total com ressalvas e comparação por vídeo) segue pendente — mas o dado que ela
+  desenha já está sendo coletado desde hoje.
+
+**631 testes verdes.**
+
+---
+
+### 2026-08-10 — A tela das métricas, e o vazamento que quase passou
+
+⭐ **Fase 4 do [plano 32](32-plano-metricas-e-prova.md) entregue — as quatro fases fechadas, 641
+testes verdes.**
+
+**O total apareceu, com as três ressalvas juntas do número** (DEC-146): ele é dito como **soma
+bruta**, com a frase de que cada rede conta do seu jeito, e avisa **de quantas redes veio** quando
+falta alguém. ⚠️ Sem esse último aviso, uma rede que não respondeu hoje viraria queda de desempenho
+que não aconteceu. E ele **só aparece quando existe leitura** — um zero ali diria que ninguém viu,
+quando o certo é que ninguém leu.
+
+⭐ **DEC-149 — e aqui uma decisão anterior teve que ser refinada.** A DEC-147 mandava comparar o mesmo
+vídeo entre redes; a DEC-146 proibia comparar redes pela soma. As duas estavam certas e **juntas não
+fechavam**: 900 do YouTube ao lado de 900 do TikTok continua sendo régua diferente, mesmo com o vídeo
+igual. O que fecha as duas é comparar cada post com **a média dos posts daquela rede** — mesma régua
+dos dois lados. ⚠️ E só com base: menos de três posts e a frase cala.
+
+⛔ **E o achado do dia: `Destino` não tem escopo de dono.** Quem tem são `ContaSocial` e `Publicacao`.
+A primeira versão da soma consultava `Destino::query()` direto — varrendo o banco **inteiro, de todos
+os clientes**.
+
+⚠️ **Quem barrou foi o escopo da conta, e barrou quebrando**: a relação vinha nula e o código
+estourava com "property on null". O teste que pegou não era um teste de soma — era o
+*"não mostra post de outro dono"*, que já existia. **Barulho é melhor que silêncio, mas depender
+disso é sorte**, e agora há guardião próprio somando dois donos e exigindo o número certo.
+
+⭐ **A dívida tipográfica foi paga inteira.** Quinze lugares escreviam abaixo do piso de `0.8125rem`
+— e num telefone, com a fonte base em 13px, `0.6rem` vira **7,8 pixels**. O que estava nesse tamanho
+não era enfeite: era o número de visualizações, o "entregue em baixa", o nome do grupo. O produto
+gastava atenção para dizer a verdade e depois a escrevia pequena demais para ser lida.
+
+⚠️ E o guardião novo pegou um caso que o meu próprio `grep` tinha deixado passar (`0.6rem`) — porque
+ele varre por **expressão numérica**, não por lista de tamanhos conhecidos. Escrever menor de novo
+agora derruba a suíte.
+
+**E a data da reconferência chegou à tela:** *"no ar · conferido há 2 horas"*. Era metade do valor da
+DEC-145 e estava sendo gravada sem ninguém ver.
+---
+
+### 2026-08-10 — O passo que a Meta pede e ninguém avisava (DEC-150)
+
+⛔ **Conectar o Facebook falhava com uma mensagem que podia estar mentindo.** A Meta responde a lista
+de Páginas vazia em **duas situações diferentes**: quem não tem Página nenhuma, e quem tem mas
+**passou pelo passo em que ela pergunta quais Páginas liberar sem marcar nenhuma**. O painel dizia
+*"nenhuma Página foi encontrada nesta conta"* nos dois casos — mandando quem tem três Páginas criar a
+quarta, em vez de refazer a autorização, que é o que resolve.
+
+⭐ **E o pré-requisito não estava escrito em lugar nenhum.** O modal de conexão tinha o aviso do
+YouTube (vídeo privado até a auditoria) e nada da Meta. Quem chegava ali não sabia que:
+
+- Facebook e Instagram **só publicam em Página**, nunca em perfil pessoal — regra da Meta;
+- existe um passo, **no site da Meta**, onde é preciso **marcar** a Página;
+- **com mais de uma Página**, todas as marcadas viram **contas separadas** aqui — e escolher onde
+  publicar continua sendo decisão de quem publica, post a post;
+- o **Instagram vem junto**, sem conexão própria, desde que seja profissional e vinculado à Página.
+
+⚠️ **O terceiro item é o que mais assusta**, e por isso está em negrito na tela: sem ele, quem marca
+duas Páginas conclui que passou a publicar nas duas de uma vez.
+
+⭐ A régua aqui é a mesma da DEC-41 e da DEC-46: **o que a rede exige se diz ANTES de autorizar**, na
+tela em que a pessoa decide — não depois, num erro que ela vai ler como defeito do painel.
+
+---
+
+### 2026-08-10 — O vídeo que subia e sumia (DEC-151)
+
+⛔ **Achado em campo, e era o pior tipo de defeito: o que parece perda de dado.** O envio chegava a
+100%, a barra sumia e a tela voltava a pedir um arquivo — como se o vídeo tivesse evaporado. Ele
+estava **salvo no banco o tempo todo**, com laudo lido.
+
+⚠️ **A causa era de FORMA, não de lógica.** O servidor manda `midiaEnviada` como **objeto**
+(`{ulid, nome, miniatura, laudo…}`) e a tela lia como se fosse o ULID em texto:
+
+```js
+const enviada = (pagina.props as { midiaEnviada?: string }).midiaEnviada;
+if (enviada) aoEnviar?.(enviada);   // ← o objeto inteiro ia parar onde só cabe o ULID
+```
+
+O objeto era **verdadeiro**, então o `if` passava; o compositor guardava o objeto em `data.midia`; e
+a comparação `midiaEnviada?.ulid === data.midia` nunca batia. Resultado: arquivo salvo e invisível
+— e publicar ficava impossível.
+
+⛔ **E o `as` era o cúmplice.** Afirmar um tipo ao TypeScript é **desligar a conferência** dele
+naquele ponto: o compilador tinha como saber, e foi mandado calar. Agora só se afirma o campo que se
+usa (`{ ulid: string }`).
+
+⭐ **Segundo defeito, no mesmo arquivo, achado junto:** o tratamento de recusa lia só `arquivo` e
+`tipo`. Qualquer outra recusa virava `undefined` — a barra sumia **sem escrever nada**. Recusa muda,
+mas ficar em silêncio é sempre defeito, então agora existe fallback para a primeira mensagem que
+vier e, na falta de todas, uma frase.
+
+⚠️ **Guardião novo mira a FORMA do que sai do servidor** (`MidiaVoltaEscolhidaTest`), porque
+`has('midiaEnviada')` passaria com o ULID solto — que é exatamente o estado quebrado. Três casos: o
+objeto com `ulid`, o nulo de quem não enviou nada (DEC-60, o compositor não tem acervo) e a recusa
+com mensagem no campo `arquivo`.
+
+**644 testes verdes.**
+
+**Correção do registro acima, no mesmo dia.** A primeira leitura do defeito estava errada e a
+primeira correção não resolveu: o problema **não era objeto lido como texto**. Era **caminho**. O
+campo de envio buscava `props.midiaEnviada`, e o servidor entrega em `props.compositor.midiaEnviada`
+— um nível abaixo. O valor vinha `undefined`, o `if` nunca passava, e nada acontecia.
+
+⛔ **A lição é a mesma, mais funda:** caminho escrito em texto dentro de um `as` é **duas** conferências
+desligadas de uma vez — o tipo e o endereço. O TypeScript tinha como saber e foi mandado calar duas
+vezes.
+
+⭐ **Por isso a correção mudou de lugar, em vez de mudar de letra.** Escolher o arquivo virou
+responsabilidade do **compositor**, que já recebe `midiaEnviada` como propriedade tipada e não
+precisa cavar nada. O campo de envio agora só envia — e o `as` sumiu do projeto.
+
+---
+
+### 2026-08-10 — Duas ideias de campo, entregues (DEC-152 e DEC-153)
+
+⭐ **[DEC-152](15-plano-grupo.md) — hashtags que já vêm escritas, guardadas no grupo.** Campo novo
+na janela do grupo; o compositor começa com elas em post novo. **Ponto de partida, nunca carimbo:**
+o texto continua editável e o que sobe é o que estiver escrito na hora de publicar. Ao republicar
+valem as do post anterior (DEC-61).
+
+⭐ **[DEC-153](12-plano-compositor.md) — post novo nasce com todas as contas marcadas.** Desmarcar
+uma é mais rápido que marcar cinco, e o caso normal é publicar em tudo. ⛔ Republicar continua vindo
+vazio — ali existe post que já subiu, e marcar sozinho publicaria de novo.
+
+⚠️ **E uma recusa antiga caiu no caminho.** Publicar negava `#corte` — mas o campo da tela já separa
+por `#`, então só chegava lá quem **colou** uma lista pronta. Recusar por um caractere que a pessoa
+não escolheu escrever é recusa que ela não tem como entender. Agora o `#` é limpo antes da validação,
+em `HashtagsLimpas`, **pelas duas portas** — publicar e o grupo. Espaço continua recusado, porque
+`corte shorts` seria uma hashtag só e ela quis duas.
+
+⛔ **O teste que afirmava a recusa foi reescrito, não removido:** ele agora afirma a regra nova e
+guarda o caso do espaço, que continua valendo.
+
+**652 testes verdes.**
+
+**E o campo de hashtags não deixava digitar espaço — nos DOIS lugares.** Ele mostrava
+`lista.join(' ')`: cada tecla virava lista, a lista voltava a virar texto **sem o espaço do fim**, e
+o cursor ficava preso na primeira palavra. Dava para escrever uma hashtag e nunca a segunda.
+
+⛔ **O defeito era anterior ao campo do grupo** — o compositor tinha o mesmo, e a cópia só o revelou.
+Por isso a correção virou **um componente só** (`CampoDeHashtags`), usado pelos dois: dois campos com
+a mesma regra são duas chances de a regra divergir.
+
+⭐ Ele guarda o **texto cru** e deriva a lista dele. E colapsa espaço repetido para **um só** — mas
+com `{2,}`, nunca com `trim`: o espaço do fim precisa sobreviver enquanto a palavra não terminou.
+
+⚠️ **O `#` continua aparecendo enquanto se digita** e some só da lista. Caractere que desaparece
+embaixo do dedo é pior que caractere indesejado: a pessoa acha que o teclado falhou.
+
+⭐ **E a janela do grupo deixou de ser um beco** ([DEC-154](15-plano-grupo.md)). Ela listava as redes
+do grupo sem nenhuma ação possível. ⛔ Pôr "desconectar" ali seria a **segunda porta** para uma ação
+sem volta — então o quadrado virou botão e **leva** à janela da rede, onde desconectar e mover já
+moram. Mesmo mecanismo do "conectar neste grupo": recado de uma requisição só.
+
+**655 testes verdes.**
+
+⛔ **E "Precisa de você" cobrava conserto de um gesto deliberado** (DEC-155). Desconectar uma conta
+na mão a deixava sem publicar — e o painel a listava em vermelho, com um "Resolver" ao lado.
+
+⚠️ A raiz é que `podePublicar()` responde **"não"** para dois casos **opostos**: a conta expirada
+parou **sozinha** e precisa de conserto; a desconectada parou **porque a pessoa mandou**. Tratar as
+duas igual é o painel discutindo a decisão de quem usa — e é assim que alguém aprende a ignorar o
+bloco de avisos inteiro, inclusive no dia do problema de verdade.
+
+⭐ O guardião veio em par: um exige o silêncio para a desconectada, o outro exige que a expirada
+**continue avisando**. Sem o segundo, a correção poderia ter calado as duas.
+
+---
+
+### 2026-08-11 — Auditoria do módulo Meta contra a documentação (33)
+
+⭐ **[Laudo completo em 33-auditoria-meta.md](33-auditoria-meta.md).** Três defeitos **silenciosos** —
+nenhum aparecia como erro em lugar nenhum — e um bloqueio ainda sem causa provada.
+
+⛔ **DEC-157 — a métrica do reel não é a métrica do vídeo.** Pedíamos `total_video_views`, que a
+referência lista em *Video metrics*; reel usa *Reels metrics* (`blue_reels_play_count`). Como só
+publicamos por `/video_reels`, **toda** leitura de visualização do Facebook pedia um campo que não
+existe para o objeto lido. ⚠️ E a chamada não quebra: responde `200` vazio, e a tela dizia "sem
+leitura" **para sempre** — indistinguível de rede que não respondeu.
+
+⭐ **DEC-158 — a retomada do Instagram estava desligada por engano.** O código afirmava que ele não
+documentava retomada. Documenta, no guia de *resumable uploads*, no campo `video_status` (o Facebook
+usa `status`). Cada tropeço de rede reenviava o vídeo inteiro — o oposto do que a classe existe para
+fazer. ⚠️ E há armadilha de grafia: `bytes_transfered` num exemplo, `bytes_transferred` no outro. As
+quatro combinações agora são lidas.
+
+⛔ **DEC-159 — o semáforo estava morto.** O diferencial declarado do produto (DEC-32) era acendido por
+**1 dos 11** publicadores, e `marcarComProblema()` — escrito para isso — **não era chamado por
+ninguém**. Na Meta passou despercebido porque o token de Página **não vence por tempo**; sem data,
+parecia não haver o que vigiar. Ele não vence, ele **morre** (senha trocada, app removido, papel
+perdido). A conta ficava **verde e "Conectada"** recusando toda publicação — e o `is_transient` da
+Meta ainda fazia o motor queimar as três tentativas.
+
+⚠️ **Corrigido só na Meta, de propósito.** As outras 9 redes ficaram como pendência escrita: cada uma
+sinaliza credencial morta do seu jeito, e chutar o sinal de nove APIs de uma vez trocaria um silêncio
+por nove alarmes falsos.
+
+⭐ **Cada correção veio com o contraponto guardado** — erro comum de formato **não** derruba a conta.
+Sem esse par, a correção do semáforo viraria "reconecte sua conta" a cada tropeço, que é o alarme
+falso mais caro deste produto.
+
+**664 testes verdes.**
+
+⛔ **DEC-160 — e a causa do bloqueio era nossa, não da Meta.** O registro fechou o caso: sete
+permissões concedidas, `pages_show_list` inclusive, e `{"data":[]}`. O código pedia
+`instagram_business_account{...}` **aninhado** no `fields` do `/me/accounts` — uma viagem economizada
+que a documentação não descreve (ela manda fazer **duas** chamadas, a segunda no nó da Página, com o
+token dela).
+
+⚠️ **Por isso funcionou antes e parou depois:** sem Instagram ligado, o campo aninhado não tinha nada
+para resolver. No dia em que a Página ganhou um, a Meta parou de devolver **a Página inteira** — sem
+erro, sem campo nulo. Lista vazia.
+
+⛔ **E a suíte provava o caminho errado com convicção:** o `Http::fake` devolvia o Instagram aninhado,
+reproduzindo uma forma de API que a Meta não documenta. **Teste verde sobre um `fake` inventado é
+pior que teste ausente — ele afirma.**
+
+⭐ **A hipótese mais convincente estava errada**, e vale registrar: a Página tinha sido restringida
+por suspeita de personificação **no mesmo dia**. Perseguir isso levaria a mandar documento e esperar
+48 horas por um problema que era nosso. Quem decidiu foi o registro, não o raciocínio.
+
+**666 testes verdes.**
+
+---
+
+### 2026-08-13 — A configuração do Login para Empresas (DEC-162 e DEC-163)
+
+⛔ **DEC-162 — o endereço de autorização ia com `scope`, e o app é Login para Empresas.** Esse tipo de
+login se invoca por **`config_id`**; `scope` é do login clássico. Com o parâmetro errado, a Meta
+aceita a autorização, concede **todas as permissões** e **não anexa ativo nenhum** — nem Página, nem
+Instagram.
+
+⚠️ **E falha em silêncio de um jeito cruel:** a integração aparece "Ativa" no Facebook com todos os
+interruptores azuis, `/me/permissions` responde `granted` em tudo, e `/me/accounts` volta
+`{"data":[]}`. **Três telas dizendo "deu certo" e nenhuma Página.** Quem soube distinguir *"autorizou
+o aplicativo"* de *"autorizou o aplicativo NAQUELA Página"* foi o `debug_token`, no `granular_scopes`
+**sem `target_ids`**.
+
+⛔ **Isso derrubou três hipóteses minhas, todas plausíveis e todas erradas:** a Página restringida por
+personificação (coincidência do mesmo dia), o campo aninhado no `/me/accounts` (desalinhamento real
+com a documentação, mas não a causa) e a "configuração anterior" reaproveitada. O padrão dos três foi
+o mesmo — **conclusão antes de evidência**. Quem decidiu foi a sonda, não o raciocínio.
+
+⭐ **DEC-163 — permissões amplas agora, revisadas antes de pedir análise.** ⛔ **Regra da plataforma
+inteira, não só da Meta:** toda rede pede o conjunto amplo enquanto o aplicativo é privado, e a
+revisão permissão-por-permissão vira **passo obrigatório do checklist de publicação** de cada uma.
+
+Decisão do dono, com a ressalva registrada em [21-plano-meta.md](21-plano-meta.md): enquanto o app
+está **não publicado**, permissão a mais não custa nada. ⚠️ Permissão sem tela que a use segura a
+aprovação do app **inteiro**, não só dela. A tabela de "o que usamos" × "o que foi pedido para o
+futuro" ficou escrita — a revisão não pode depender de memória, senão vira esquecimento, e o
+esquecimento aparece como reprovação semanas depois, com lançamento marcado.
+
+⭐ **Configuração criada e ligada:** `META_CONFIG_ID` no `.env`, endereço de autorização agora saindo
+com `config_id` e **sem** `scope`.
+
+**668 testes verdes.**
+
+⛔ **DEC-164 — e a causa era `business_management`, achada no fórum da Meta.** Duas confirmações
+independentes: *"obrigatória para todas as versões da API"* desde a v19 (jan/2024), e *"o problema
+acontece especificamente quando os usuários usam o Meta Business Suite — as Páginas deles não
+aparecem em `/me/accounts` sem essa permissão"*.
+
+⭐ **A linha do tempo do banco fecha com precisão de dia:** conexão funcionou **10/08 13:22**;
+Instagram vinculado pelo Business Suite em **11/08**, o que tornou a Página um ativo de negócio; nada
+mais funcionou desde então.
+
+⚠️ **Ironia registrada:** `business_management` **estava** nas dez permissões da primeira
+configuração — e o diálogo quebrava porque ela não constava dos **casos de uso** do app. Ao reduzir
+para as sete "necessárias", o diálogo abriu e **saiu justamente a permissão que resolvia**.
+
+⛔ **Risco de lançamento:** essa permissão é difícil de aprovar na análise. Sem ela, **cliente com
+Página de negócio não conecta — e hoje isso é a maioria**. Está no laudo como item de lançamento.
+
+**670 testes verdes.**
+
+✅ **2026-08-14 — conectou.** Com `business_management` no caso de uso **e** na configuração, a
+autorização passou: **Página `Teste` e `@gabrielmoraes1997` na mesma conexão**, três contas no painel.
+A tese da carona (DEC-30) confirmada em campo: uma autorização, duas redes.
+
+⭐ **A mesma sessão provou a regra da ordem, pelo avesso:** `pages_manage_engagement` marcada na
+configuração **sem** estar no caso de uso derruba o diálogo; desmarcada, passa. **Primeiro no caso de
+uso, depois na configuração.**
+
+⭐ **O estado que funciona ficou registrado inteiro** em [21-plano-meta.md](21-plano-meta.md): as 9
+permissões marcadas, a que fica **desmarcada de propósito** (`pages_manage_engagement`, ausente dos
+casos de uso), o tipo de token, os casos de uso que precisaram existir e o endereço de autorização
+que passa. **Registrado porque foi caro** — se um dia parar, é contra isto que se compara.
+
+⛔ **DEC-165 — "saiu do ar" não é "não foi".** Achado de campo, minutos depois da reconferência
+funcionar: o quadrado da rede mostrava **"não foi"** em vermelho para post que a pessoa **apagou com
+a própria mão**.
+
+⚠️ A decisão antiga estava escrita no código: *"entra em `naoSubiram` porque é o balde do que precisa
+de atenção, e a frase da tela diz qual dos dois casos é"*. **No quadrado da rede não existe frase** —
+existe a palavra, e a palavra era falsa.
+
+⛔ **E o estrago é maior que um rótulo errado:** juntar os dois desfaz exatamente a distinção que a
+reconferência (DEC-145) e o estado `Removido` (DEC-148) existem para criar, e faz o painel **acusar
+falha onde houve uma decisão de quem publica**.
+
+⭐ Balde próprio (`saiuDoAr`), número próprio no quadrado, e **cor neutra — não vermelha**: apagar um
+post é escolha de quem publica, e o painel não discute escolha de ninguém.
+
+**671 testes verdes.**
+
+---
+
+### 2026-08-14 — "Não preciso contar as falhas, preciso impedir elas" (DEC-166 e DEC-167)
+
+⭐ **Frase do dono, e ela reorganiza a tela.** O quadrado da rede mostrava três números — no ar, não
+foi, saiu do ar — e virou **placar**. Placar de falha não ajuda ninguém a agir.
+
+⛔ **DEC-166 — a falha do YouTube era EVITÁVEL.** Publicar sem título subia na fila, o publicador
+recusava lá na frente, o destino virava `Falhou` e o quadrado ficava vermelho. **O painel sabia que a
+conta era do YouTube e sabia que o YouTube exige título** — e deixou enviar assim mesmo.
+
+Agora `tituloObrigatorio` é propriedade da rede, conferida **antes do envio**, no mesmo lugar onde já
+se recusa formato e texto longo demais. E o botão diz o que falta antes do clique: *"Escreva um
+título para o YouTube"*. ⚠️ Recusar antes significa **não enfileirar** — nenhum destino nasce
+condenado.
+
+⭐ **DEC-167 — um número no quadrado, e o ponto no canto para o resto.** Fica só "no ar" (e "indo",
+que responde *"cadê meu vídeo?"*). O que **precisa de você** — conta quebrada ou post que não subiu —
+acende o ponto vermelho no canto, que já existia.
+
+⛔ **E nada foi escondido:** a falha continua na janela da rede, em Publicações e no bloco "Precisa de
+você". Ela some do **placar**, não do produto — a decisão antiga ("a falha aparece do lado do acerto,
+no mesmo tamanho") valia para a tela grande, não para um quadrado de 6,5rem.
+
+⚠️ "Saiu do ar" não acende ponto nenhum: apagar um post é decisão de quem publica, e o painel não
+cobra providência de uma escolha.
+
+**673 testes verdes.**
+
+---
+
+### 2026-08-14 — Auditoria do TikTok contra a documentação (23)
+
+⭐ **Mesmo método da auditoria da Meta**, e ele achou dois defeitos silenciosos no código que já
+estava escrito. [Laudo em 23-plano-tiktok.md](23-plano-tiktok.md).
+
+⛔ **DEC-168 — `follower_count` estava no escopo errado.** A referência divide os campos do
+`/v2/user/info/` em três escopos, e o nome do primeiro engana: `user.info.basic` dá **só identidade**.
+Seguidor mora em **`user.info.stats`**, que não estava sendo pedido — então a leitura voltava `null`
+para sempre e a tela dizia "sem leitura".
+
+⚠️ **É o mesmo defeito que a Meta tinha** (DEC-157: `total_video_views`). Dois casos iguais em redes
+diferentes tornam o padrão claro o bastante para virar conferência de rotina: **todo campo lido tem
+um escopo, e o escopo precisa estar na lista.**
+
+⭐ **DEC-169 — a declaração de IA sumia no TikTok.** A caixinha do compositor chegava ao Instagram
+(`is_ai_generated`) e não ao TikTok (`is_aigc`). A mesma marcação valia numa rede e sumia na outra —
+e isso não é preferência de interface, é transparência com quem assiste. ⚠️ Declarado só quando a
+pessoa marca: `false` seria o painel afirmando "não é IA" por ela.
+
+✅ **E o que estava certo ficou registrado** para a próxima auditoria não refazer o caminho: as regras
+de pedaço (incluindo o arredondamento para baixo), o envio em sequência, o `creator_info` obrigatório,
+o erro dentro do HTTP 200, os campos de métrica e a recusa antes de publicar sem auditoria.
+
+**676 testes verdes.**
+
+⭐ **DEC-171 — os documentos públicos, que são PORTA DE ENTRADA.** O cadastro do TikTok travou em
+*Terms of Service URL* e *Privacy Policy URL* — os mesmos dois campos que estão pendentes na Meta.
+Sem eles **não existe integração**, nem em modo de teste.
+
+⛔ Então eles foram construídos: `/termos` e `/privacidade`, servidos pelo próprio painel, **fora de
+qualquer grupo autenticado**. O robô da plataforma abre sem sessão — página que mandasse entrar
+reprovaria a análise sem dizer por quê.
+
+⚠️ **E eles descrevem o que o código FAZ, não o que seria bonito prometer.** Cada frase corresponde a
+um comportamento que existe e tem guardião: o vídeo sai quando a publicação termina (DEC-59), a
+credencial é cifrada e nunca aparece em tela, desconectar apaga o dado do titular na hora (exigência
+do YouTube). Prometer o que o código não faz vira **declaração falsa numa análise** — e derruba o
+aplicativo inteiro, não só aquele item.
+
+⭐ Os termos dizem também **onde o produto NÃO promete**: que a rede aceite o vídeo, que a moderação
+aprove, que o post fique no ar. É a mesma honestidade da tela, no papel.
+
+⚠️ **Pendência registrada: o texto ainda não passou por revisão jurídica.** Serve para destravar
+cadastro e teste; antes de cliente pagante, precisa de leitura de advogado.

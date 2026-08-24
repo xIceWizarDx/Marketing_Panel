@@ -79,6 +79,22 @@ class GrupoService
     }
 
     /**
+     * ⭐ As hashtags que este grupo já traz escritas ao compor (DEC-152).
+     *
+     * ⛔ **Não alcança o que já foi publicado.** Publicação guarda o texto que
+     * de fato subiu, e mexer nele aqui reescreveria história — o produto todo
+     * existe para provar o que aconteceu, não para ajustar depois.
+     *
+     * @param  list<string>|null  $hashtags
+     */
+    public function definirHashtags(Grupo $grupo, ?array $hashtags): Grupo
+    {
+        $grupo->forceFill(['hashtags' => $hashtags])->save();
+
+        return $grupo;
+    }
+
+    /**
      * ⛔ Só exclui grupo **sem rede conectada**, e nunca o último (DEC-76).
      *
      * ⚠️ Por baixo é *soft delete*, e isso é **assunto do banco** — serve para

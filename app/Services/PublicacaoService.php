@@ -118,6 +118,24 @@ class PublicacaoService
     }
 
     /**
+     * ⭐ **O post saiu do ar** (DEC-148) — e isso não é falha de publicação.
+     *
+     * ⛔ Ele **subiu**. A rede removeu depois, e a reconferência descobriu
+     * (DEC-145). Marcar `Falhou` mandaria a pessoa publicar de novo sem
+     * entender o que houve; deixar `Publicado` diria que continua no ar o que
+     * não está.
+     *
+     * ⚠️ Guarda a mensagem no mesmo campo de erro porque é ali que a tela lê o
+     * motivo — mas o **estado** é outro, e é ele que a tela mostra.
+     */
+    public function marcarRemovido(Destino $destino, string $mensagem): void
+    {
+        $this->mover($destino, StatusDestino::Removido, ['erro_mensagem' => $mensagem]);
+
+        $this->recalcularStatus($destino->publicacao_id);
+    }
+
+    /**
      * Falha transitória (429, timeout, 5xx): volta pra fila.
      *
      * ⚠️ Retry ≠ falha. Aqui NÃO se recalcula o agregado nem se notifica —
@@ -259,15 +277,28 @@ class PublicacaoService
 
         $total = $contagem->sum();
         $publicados = (int) $contagem->get(StatusDestino::Publicado->value, 0);
-        $falhados = (int) $contagem->get(StatusDestino::Falhou->value, 0);
+
+        /*
+         * ⛔ **`Removido` conta junto com `Falhou` aqui** (DEC-148), e esquecer
+         * disso foi um defeito real: sem ele, um destino removido não era nem
+         * publicado nem falhado, a soma nunca fechava, e a publicação inteira
+         * voltava para **"Publicando…" para sempre** — um estado de espera para
+         * algo que já terminou.
+         *
+         * ⚠️ No nível da PUBLICAÇÃO os dois são a mesma coisa: algo precisa de
+         * atenção. A diferença entre "não subiu" e "subiu e saiu" é do DESTINO,
+         * e é lá que a frase mora.
+         */
+        $problemas = (int) $contagem->get(StatusDestino::Falhou->value, 0)
+            + (int) $contagem->get(StatusDestino::Removido->value, 0);
 
         // Ainda há destino em andamento: a publicação não terminou, ponto.
-        if ($publicados + $falhados < $total) {
+        if ($publicados + $problemas < $total) {
             return StatusPublicacao::Processando;
         }
 
         return match (true) {
-            $falhados === 0 => StatusPublicacao::Concluida,
+            $problemas === 0 => StatusPublicacao::Concluida,
             $publicados === 0 => StatusPublicacao::Falhou,
             default => StatusPublicacao::ConcluidaComFalhas,
         };

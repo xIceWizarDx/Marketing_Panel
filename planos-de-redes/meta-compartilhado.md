@@ -2,6 +2,11 @@
 
 > Escrito uma vez, referenciado pelos dois planos. Duplicar isso seria garantir que um dia as
 > duas cópias discordem.
+>
+> ⛔ **O Threads NÃO entra aqui.** Ele é da Meta, mas tem janela de autorização própria
+> (`threads.net`), servidor próprio (`graph.threads.net`), permissões próprias (`threads_*`) e
+> **não aceita envio de arquivo** — só URL pública. De comum com esta página, sobra o formato do
+> erro. Ver [`threads/achados.md`](threads/achados.md).
 
 As duas redes são **a mesma API por baixo**: mesmo login, mesmo servidor de upload, mesmo
 formato de erro, mesmo modelo de token. O que muda é o endpoint final e os limites.

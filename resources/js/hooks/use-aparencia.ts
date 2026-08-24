@@ -36,17 +36,38 @@ export function iniciarAparencia() {
 export function useAparencia() {
     const [aparencia, definirEstado] = useState<Aparencia>('sistema');
 
+    /**
+     * O tema que está **valendo agora** — coisa diferente do que foi escolhido.
+     *
+     * ⚠️ Com "do sistema" escolhido, `aparencia` é `sistema` e não responde
+     * "está escuro?". Quem desenha uma chavinha de dois estados precisa saber o
+     * estado real, não a preferência.
+     */
+    const [escuro, definirEscuro] = useState(false);
+
     const definirAparencia = (modo: Aparencia) => {
         definirEstado(modo);
         localStorage.setItem(CHAVE, modo);
         aplicar(modo);
+        definirEscuro(document.documentElement.classList.contains('dark'));
     };
 
     useEffect(() => {
         definirAparencia(aparenciaSalva());
 
-        return () => consultaDoSistema().removeEventListener('change', aoMudarOSistema);
+        // ⚠️ Com "do sistema", o tema muda sem ninguém clicar em nada — a
+        // chavinha precisa acompanhar, ou ela fica mostrando o contrário do que
+        // a tela está mostrando.
+        const consulta = consultaDoSistema();
+        const acompanhar = () => definirEscuro(document.documentElement.classList.contains('dark'));
+
+        consulta.addEventListener('change', acompanhar);
+
+        return () => {
+            consulta.removeEventListener('change', aoMudarOSistema);
+            consulta.removeEventListener('change', acompanhar);
+        };
     }, []);
 
-    return { aparencia, definirAparencia };
+    return { aparencia, escuro, definirAparencia };
 }

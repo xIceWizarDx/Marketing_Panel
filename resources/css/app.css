@@ -118,11 +118,41 @@
     --input: #ffffff;
     --ring: #4f46e5;
 
-    /* Semáforo de saúde da conexão (DEC-32) — o diferencial na tela */
-    --saude-ok: #16a34a;
-    --saude-atencao: #d97706;
-    --saude-erro: #dc2626;
+    /*
+     * Semáforo de saúde da conexão (DEC-32) — o diferencial na tela.
+     *
+     * ⚠️ **Estes valores são escuros porque eles viram TEXTO.** "36 no ar" é
+     * escrito com a cor, em 13px. Os tons anteriores (#16a34a e #d97706) davam
+     * 3,30:1 e 3,19:1 sobre branco — abaixo dos 4,5:1 que texto pequeno exige.
+     * Passam a 5,02:1 sem mudar de matiz: continuam verde e âmbar.
+     *
+     * ⚠️ O vermelho já passava (4,83:1) e escureceu mesmo assim, para 6,47:1: é
+     * o único estado que pede ação, e ele ganha peso por luminosidade além da cor.
+     *
+     * ⛔ Verde e âmbar têm agora a MESMA luminosidade — em escala de cinza eles
+     * são a mesma mancha. Isso é aceitável aqui porque a cor nunca é o único
+     * canal: existe a palavra escrita, a listra do "a caminho" e a ordem fixa na
+     * barra. Se algum dia um deles aparecer sozinho, sem palavra, esta linha
+     * deixa de valer.
+     */
+    --saude-ok: #15803d;
+    --saude-atencao: #b45309;
+    --saude-erro: #b91c1c;
     --saude-neutro: #94a3b8;
+
+    /*
+     * ⭐ O TRILHO — o vazio da barra, e ele precisa ser VISTO.
+     *
+     * ⚠️ Isto era `--muted` (#f1f5f9). Sobre o cartão branco dava 4% de
+     * diferença de luminância: o trilho sumia, e sem trilho a barra deixa de ser
+     * proporção e vira um traço colorido flutuando. É o que fazia o gráfico
+     * parecer enfeite.
+     *
+     * ⭐ Com o trilho à vista, o pedaço vazio à direita passa a SIGNIFICAR — é o
+     * que ainda falta subir. E é ele que torna legível a medida compartilhada
+     * entre grupos: dá para ver onde cada barra para dentro do mesmo trilho.
+     */
+    --trilho: #e2e8f0;
 
     --chart-1: #4f46e5;
     --chart-2: #0ea5e9;
@@ -149,46 +179,91 @@
 }
 
 .dark {
-    --background: #0b1220;
+    /*
+     * ⭐ **AS SUPERFÍCIES DO ESCURO SÃO QUASE NEUTRAS**, não azul-marinho.
+     *
+     * ⚠️ A saturação fica em 5-6%, só o bastante para o preto não ficar morto.
+     * Fundo com azul saturado empurra a tela inteira para uma cor, e tudo que é
+     * colorido por cima passa a ser lido em relação a ela — inclusive os logos
+     * das redes, que já trazem sete cores próprias. Quase neutro, o fundo vira
+     * **chão** e a cor volta a ser dos elementos.
+     *
+     * ⛔ **E não é preto puro.** #000 num painel de leitura diária cansa por
+     * excesso de contraste, e em tela OLED espalha halo em volta do texto claro.
+     *
+     * ⚠️ O cartão é MAIS CLARO que o fundo, não mais escuro: no escuro a
+     * elevação se faz com luz, porque não há sombra que apareça sobre preto.
+     */
+    --background: #111113;
     --foreground: #f8fafc;
-    --card: #0f172a;
+    --card: #161618;
     --card-foreground: #f8fafc;
-    --popover: #0f172a;
+    --popover: #161618;
     --popover-foreground: #f8fafc;
     --primary: #f8fafc;
-    --primary-foreground: #0f172a;
-    --secondary: #1f2937;
+    --primary-foreground: #161618;
+    --secondary: #27272b;
     --secondary-foreground: #f8fafc;
-    --muted: #1f2937;
+    --muted: #1d1d20;
     --muted-foreground: #94a3b8;
-    /* Índigo mantido no escuro — no projeto antigo virava cinza e a marca sumia (DEC-23) */
-    --accent: #6366f1;
-    --accent-foreground: #ffffff;
+    /*
+     * Índigo mantido no escuro — no projeto antigo virava cinza e a marca sumia
+     * (DEC-23).
+     *
+     * ⭐ **A cor de ação tem DOIS papéis que puxam para lados opostos:** ela é
+     * texto de link sobre o cartão escuro e é fundo de botão. Clarear ajuda o
+     * link e piora o botão; escurecer faz o contrário. Com letra branca em cima,
+     * não existe um índigo que atenda aos dois em 4,5:1.
+     *
+     * ⭐ A saída não é um token novo: é usar o que já existe para isso.
+     * `--accent-foreground` diz o que vai EM CIMA do accent — e no escuro ele
+     * deixa de ser branco. Com o par abaixo, link dá 5,98:1 e botão dá 6,28:1.
+     *
+     * ⚠️ No tema claro nada disso é necessário: #4f46e5 dá 6,29:1 nos dois
+     * papéis, com branco em cima.
+     */
+    --accent: #818cf8;
+    --accent-foreground: #111113;
     --destructive: #ef4444;
     --destructive-foreground: #ffffff;
-    --border: #1f2937;
-    --input: #1f2937;
-    --ring: #6366f1;
+    --border: #27272b;
+    --input: #27272b;
+    /* ⚠️ Acompanha o accent: o anel do foco é a mesma cor de ação vista de outro
+       jeito, e ficar num índigo levemente diferente é drift. De quebra ele passa
+       de 4,00:1 para 5,98:1 sobre o cartão, e o foco é justamente o que precisa
+       ser visto sem procurar. */
+    --ring: #818cf8;
 
     --saude-ok: #22c55e;
     --saude-atencao: #f59e0b;
     --saude-erro: #ef4444;
     --saude-neutro: #64748b;
 
-    --chart-1: #6366f1;
+    /* Um degrau ACIMA do cartão: no escuro o vazio é mais claro que o fundo, não
+       mais escuro — senão ele se confunde com o buraco da página.
+       ⚠️ Mais claro que o contorno (#27272b) de propósito: o trilho é uma área
+       que precisa ser vista inteira, e o contorno é só um fio. */
+    --trilho: #303036;
+
+    /* ⚠️ `chart-1` acompanha o accent: a barra de comparação de posts é
+       desenhada com ele, e um índigo diferente do resto da tela seria drift. */
+    --chart-1: #818cf8;
     --chart-2: #38bdf8;
     --chart-3: #2dd4bf;
     --chart-4: #fbbf24;
     --chart-5: #f472b6;
 
-    --sidebar-background: #0f172a;
+    /* ⚠️ A barra segue as mesmas superfícies do resto: ela é a única coisa que
+       fica na tela em todas as telas, e deixá-la num azul que o painel não usa
+       mais faria a página parecer duas páginas coladas. */
+    --sidebar-background: #161618;
     --sidebar-foreground: #f8fafc;
     --sidebar-primary: #f8fafc;
-    --sidebar-primary-foreground: #0f172a;
-    --sidebar-accent: #1f2937;
+    --sidebar-primary-foreground: #161618;
+    --sidebar-accent: #1d1d20;
     --sidebar-accent-foreground: #f8fafc;
-    --sidebar-border: #1f2937;
-    --sidebar-ring: #6366f1;
+    --sidebar-border: #27272b;
+    --sidebar-ring: #818cf8;
 }
 
 /* =============================================================
@@ -243,6 +318,72 @@ html {
 }
 
 /* =============================================================
+   TROCA DE TEMA — a revelação circular
+
+   ⭐ O tema novo entra por um círculo que cresce **de dentro da chavinha**, e
+   não por um piscar da tela inteira. Trocar claro por escuro é o efeito mais
+   violento que uma interface faz sozinha: sem origem, ele parece falha de
+   carregamento; saindo do dedo, parece resposta ao clique.
+
+   ⚠️ Só o tema NOVO anima. Se os dois animassem, apareceria uma borda cinzenta
+   no encontro dos dois, porque o antigo estaria sumindo enquanto o novo cresce.
+
+   ⚠️ `160%` e não `100%`: o círculo nasce no centro da chavinha, que fica num
+   canto da tela — para cobrir o canto oposto ele precisa de raio maior que a
+   própria tela.
+
+   ⛔ Sob `prefers-reduced-motion`, a troca é seca. Círculo de 400ms cobrindo a
+   tela inteira é exatamente o tipo de movimento que essa preferência recusa.
+   ============================================================= */
+::view-transition-old(root) {
+    animation: none;
+}
+
+::view-transition-new(root) {
+    animation: revelar-tema 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes revelar-tema {
+    from {
+        clip-path: circle(0% at var(--origem-do-tema-x, 50%) var(--origem-do-tema-y, 50%));
+    }
+    to {
+        clip-path: circle(160% at var(--origem-do-tema-x, 50%) var(--origem-do-tema-y, 50%));
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+        animation: none !important;
+    }
+}
+
+/* =============================================================
+   EMPURRÃOZINHO DA SETA DE EXPANDIR (barra lateral recolhida)
+
+   ⭐ Recolhida, a barra é uma coluna de ícones — e nada nela diz que ela ABRE.
+   Três pixels de vaivém a cada segunda e meia resolvem isso sem piscar, sem
+   pular e sem pedir atenção.
+
+   ⛔ Só na seta de EXPANDIR. Na de recolher seria animação por animação: quem
+   está com a barra aberta já a vê inteira e não precisa ser convencido de nada.
+   ============================================================= */
+@keyframes dica-de-expandir {
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+    50% {
+        transform: translateX(3px);
+    }
+}
+
+.dica-de-expandir {
+    animation: dica-de-expandir 1.6s ease-in-out infinite;
+}
+
+/* =============================================================
    BARRA DE PROGRESSO — fio no topo durante a navegação (DEC-37)
    ============================================================= */
 #barra-progresso {
@@ -260,9 +401,15 @@ html {
         opacity 250ms ease;
 }
 
+/* ⚠️ Animação que se repete para sempre é a primeira a incomodar quem pediu
+   menos movimento — e a dica da seta é justamente uma dessas. */
 @media (prefers-reduced-motion: reduce) {
     #barra-progresso {
         transition: none;
+    }
+
+    .dica-de-expandir {
+        animation: none;
     }
 }
 

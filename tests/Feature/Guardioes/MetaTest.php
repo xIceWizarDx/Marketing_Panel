@@ -33,9 +33,20 @@ beforeEach(function () {
     ContextoDoUsuario::limpar();
     Storage::fake('local');
     Queue::fake();
+    /*
+     * ⚠️ **Fixado, e não herdado do `.env`.** Este bloco já não zerava o
+     * `config_id`, e no dia em que ele entrou no `.env` de verdade a suíte
+     * quebrou — não por defeito, mas porque o teste lia a máquina de quem
+     * rodava. Teste que muda de resultado conforme o ambiente não prova nada.
+     *
+     * ⛔ `config_id` nulo aqui de propósito: estes testes cobrem o caminho
+     * clássico (por `scope`). O caminho por configuração tem guardião próprio,
+     * mais abaixo (DEC-162).
+     */
     config([
         'services.meta.client_id' => 'app-de-teste',
         'services.meta.client_secret' => 'segredo-de-teste',
+        'services.meta.config_id' => null,
     ]);
 });
 
@@ -106,18 +117,31 @@ describe('a conexão — uma só para as duas redes', function () {
             'graph.facebook.com/*/oauth/access_token*' => Http::sequence()
                 ->push(['access_token' => 'token-curto'])
                 ->push(['access_token' => 'token-longo-60-dias']),
+            /*
+             * ⛔ **O Instagram NAO vem aqui dentro** (DEC-160).
+             *
+             * ⚠️ Este `fake` ja devolveu `instagram_business_account` aninhado
+             * na lista de Paginas — e o codigo pedia assim. Funcionava no teste
+             * e QUEBROU EM CAMPO no dia em que a Pagina ganhou um Instagram
+             * ligado: a Meta passou a responder `data: []`, com todas as
+             * permissoes concedidas.
+             *
+             * ⛔ O `fake` reproduzia uma forma de API que a Meta nao documenta,
+             * entao a suite provava o caminho errado com convicção.
+             */
             'graph.facebook.com/*/me/accounts*' => Http::response(['data' => [[
                 'id' => '777',
                 'name' => 'Página de Teste',
                 'access_token' => 'token-da-pagina-nao-expira',
                 'tasks' => ['CREATE_CONTENT', 'MANAGE'],
                 'picture' => ['data' => ['url' => 'https://scontent.xx/p.jpg']],
-                'instagram_business_account' => [
-                    'id' => '888',
-                    'username' => 'canal_teste',
-                    'profile_picture_url' => 'https://scontent.xx/i.jpg',
-                ],
             ]]]),
+            // ⭐ Segunda chamada, no no da PAGINA — o caminho documentado.
+            'graph.facebook.com/*/777*' => Http::response(['instagram_business_account' => [
+                'id' => '888',
+                'username' => 'canal_teste',
+                'profile_picture_url' => 'https://scontent.xx/i.jpg',
+            ]]),
         ], $sobrescrever));
     }
 
@@ -153,6 +177,46 @@ describe('a conexão — uma só para as duas redes', function () {
             ->and($instagram->identificador_externo)->toBe('888')
             // O Instagram publica com o token da PÁGINA, não com um próprio.
             ->and($instagram->credencial->access_token)->toBe('token-da-pagina-nao-expira');
+    });
+
+    it('⛔ NUNCA pede o Instagram aninhado na lista de Páginas (DEC-160)', function () {
+        /*
+         * ⛔ Foi assim que a conexão quebrou em campo: pedir
+         * `instagram_business_account{...}` dentro do `fields` do `/me/accounts`
+         * funcionou enquanto a Página não tinha Instagram ligado, e no dia em
+         * que teve a Meta passou a responder `200` com `data: []` — **sem
+         * erro**, com todas as sete permissões concedidas.
+         *
+         * ⚠️ A documentação descreve duas chamadas separadas. A viagem
+         * economizada custou a conexão inteira.
+         */
+        $dono = cliente();
+        metaOk();
+
+        $this->actingAs($dono)->get('/conexoes/meta');
+        $this->actingAs($dono)->get('/conexoes/meta/retorno?code=c&state='.session('meta.estado'));
+
+        Http::assertSent(fn ($req) => ! (
+            str_contains($req->url(), '/me/accounts')
+            && str_contains($req->url(), 'instagram_business_account')
+        ));
+    });
+
+    it('⭐ Página sem Instagram conecta assim mesmo — ele é acréscimo', function () {
+        // ⛔ Perder a Página porque a segunda viagem tropeçou transformaria um
+        // acréscimo em requisito.
+        $dono = cliente();
+        metaOk(['graph.facebook.com/*/777*' => Http::response([], 400)]);
+
+        $this->actingAs($dono)->get('/conexoes/meta');
+        $this->actingAs($dono)
+            ->get('/conexoes/meta/retorno?code=c&state='.session('meta.estado'))
+            ->assertSessionHas('sucesso');
+
+        ContextoDoUsuario::definir($dono);
+
+        expect(ContaSocial::where('plataforma', Plataforma::Facebook)->count())->toBe(1)
+            ->and(ContaSocial::where('plataforma', Plataforma::Instagram)->count())->toBe(0);
     });
 
     it('⭐ guarda o token LONGO, não o curto', function () {
@@ -659,5 +723,45 @@ describe('a retomada do envio', function () {
 
         Http::assertSent(fn ($req) => str_contains($req->url(), 'rupload')
             && $req->header('offset') === ['0']);
+    });
+});
+
+describe('⛔ o endereço de autorização usa `config_id` (DEC-162)', function () {
+    it('⛔ com configuração, manda `config_id` e NÃO manda `scope`', function () {
+        /*
+         * ⛔ Este foi o defeito que custou a investigacao inteira. O app e
+         * *Login do Facebook para Empresas*, que se invoca por `config_id`. Com
+         * `scope` — o parametro do login CLASSICO — a Meta concede TODAS as
+         * permissoes e nao anexa ativo nenhum: nem Pagina, nem Instagram.
+         *
+         * ⚠️ E responde "deu certo" em todas as telas: integracao "Ativa",
+         * `/me/permissions` dizendo `granted`, e `/me/accounts` vazio.
+         *
+         * ⭐ A documentacao e literal: *"embora `scope` ainda possa ser
+         * incluido, recomendamos que voce nao o use"*. Mandar os dois e pedir
+         * para a Meta escolher entre duas fontes de verdade.
+         */
+        config(['services.meta.config_id' => '1234567890']);
+
+        $endereco = app(App\Services\Meta\ConexaoComMeta::class)->enderecoDeAutorizacao('estado');
+
+        expect($endereco)->toContain('config_id=1234567890')
+            ->and($endereco)->not->toContain('scope=')
+            /*
+             * ⛔ Sem isto o diálogo da Meta quebra com um *"Sorry, something
+             * went wrong"* seco: com configuração, o padrão dela é devolver
+             * TOKEN na URL, e pedir `code` exige dizer que o padrão foi trocado.
+             */
+            ->and($endereco)->toContain('override_default_response_type=true');
+    });
+
+    it('⭐ sem configuração, cai no `scope` — app antigo continua conectando', function () {
+        // ⚠️ O caminho classico sobrevive para quem ainda nao tem configuracao.
+        config(['services.meta.config_id' => null]);
+
+        $endereco = app(App\Services\Meta\ConexaoComMeta::class)->enderecoDeAutorizacao('estado');
+
+        expect($endereco)->toContain('scope=')
+            ->and($endereco)->not->toContain('config_id');
     });
 });

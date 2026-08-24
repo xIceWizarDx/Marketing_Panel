@@ -27,6 +27,18 @@ interface Conta {
     podePublicar: boolean;
     venceEm: string | null;
     venceEmBreve: boolean;
+    /**
+     * Seguidores — inscritos, no YouTube.
+     *
+     * ⛔ `null` é resposta, e ela NÃO é zero: ou a rede não publica esse número,
+     * ou ainda não lemos. Escrever `0` para quem escondeu os inscritos seria
+     * afirmar um fato falso.
+     */
+    seguidores: number | null;
+    /** A ressalva da rede sobre esse número — o YouTube arredonda, por exemplo. */
+    seguidoresNota: string | null;
+    /** Frase pronta do servidor: a tela não formata data. */
+    metricasLidas: string | null;
 }
 
 export interface Rede {
@@ -37,11 +49,38 @@ export interface Rede {
     faltaConfigurar: boolean;
     situacao: 'disponivel' | 'planejada' | 'em_estudo';
     situacaoRotulo: string;
+    /**
+     * Como esta rede se conecta — quem responde e o servidor (`Plataforma`).
+     *
+     * ⛔ `autorizacao` = a pessoa sai daqui e volta; `senha_de_aplicativo` = ela
+     * digita aqui. A tela NUNCA deduz isso pelo nome da rede: era assim que o
+     * modal do Facebook acabava pedindo senha do Bluesky.
+     */
+    /**
+     * ⭐ Três formas, e quem responde é o servidor (`Plataforma::formaDeConexao`).
+     *
+     * ⛔ Este bloco já perguntou `=== 'youtube'`, e tudo que não era YouTube caía
+     * no formulário do Bluesky — o modal do Facebook chegou a pedir senha de
+     * aplicativo do Bluesky.
+     */
+    formaDeConexao: 'autorizacao' | 'senha_de_aplicativo' | 'servidor_e_autorizacao' | 'endereco_de_webhook';
+    /** Para onde ir autorizar. `null` quando a conexao e por senha. */
+    enderecoDeConexao: string | null;
     publicados: number;
     /** Recusados pela rede. Aparece do lado do acerto, no mesmo tamanho. */
     falhas: number;
+    /**
+     * ⛔ **Publicados e depois APAGADOS — e não é falha** (DEC-165).
+     *
+     * ⚠️ "Não foi" e "saiu do ar" são opostos: um nunca chegou; o outro chegou,
+     * foi visto, e depois foi apagado — quase sempre por quem publica. Contados
+     * juntos, o painel acusa falha onde houve uma decisão.
+     */
+    saiuDoAr: number;
     /** Ainda em curso: nem sucesso nem falha. */
     andando: number;
+    /** O que esta rede não conta sobre um post — dito uma vez, aqui. */
+    notaDeMetrica: string | null;
     contas: Conta[];
 }
 
@@ -129,6 +168,30 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
 
     const totalPublicado = redes.reduce((soma, rede) => soma + rede.publicados, 0);
 
+    /** A rede aberta para conectar pede a senha aqui, ou manda autorizar fora? */
+    // ⚠️ Só a conexão federada usa: aquela porta redireciona para outro
+    // domínio, e isso exige navegação de verdade — com token na página.
+    const csrf = usePage<DadosCompartilhados>().props.csrf;
+
+    const porSenha = conectando?.formaDeConexao === 'senha_de_aplicativo';
+
+    /**
+     * ⛔ **A rede federada precisa saber ONDE a conta mora antes de autorizar.**
+     *
+     * ⚠️ Não existe "o Mastodon" para onde mandar todo mundo: são milhares de
+     * servidores independentes, e o endereço de autorização só existe depois que
+     * a pessoa disser qual é o dela.
+     */
+    const porServidor = conectando?.formaDeConexao === 'servidor_e_autorizacao';
+
+    /**
+     * ⭐ A forma mais simples de todas: a pessoa cria o webhook no próprio
+     * Discord e cola o endereço — não há ida ao site da rede, nem volta.
+     *
+     * ⛔ E o endereço **é** a credencial: quem o tem, publica.
+     */
+    const porWebhook = conectando?.formaDeConexao === 'endereco_de_webhook';
+
     /*
      * ⭐ Na tela ficam SÓ as redes conectadas.
      *
@@ -167,17 +230,27 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
                 duas redes conectadas em dois retângulos enormes. */}
             <ul className="flex flex-wrap gap-2.5 empty:hidden">
                 {minhas.map((rede) => {
+                    /*
+                     * ⭐ **O ponto no canto é o que substitui o placar**
+                     * (DEC-167): acende quando existe algo que precisa de você —
+                     * conta quebrada **ou** post que não subiu.
+                     *
+                     * ⛔ "Saiu do ar" NÃO acende: apagar um post é decisão de
+                     * quem publica, e o painel não cobra providência de uma
+                     * escolha (DEC-165).
+                     */
                     const problemas = rede.contas.filter((c) => c.podePublicar === false && c.status !== 'desconectada');
+                    const precisaDeVoce = problemas.length > 0 || rede.falhas > 0;
 
                     return (
                         <li key={rede.valor}>
                             <Quadro como="button" onClick={() => setAberta(rede)} className="gap-1.5">
                                 {/* Um ponto no canto avisa que algo precisa de você. */}
-                                {problemas.length > 0 && (
+                                {precisaDeVoce && (
                                     <span
                                         aria-hidden="true"
                                         className="absolute top-2 right-2 size-2 rounded-full"
-                                        style={{ backgroundColor: corDoSemaforo[problemas[0].cor] }}
+                                        style={{ backgroundColor: corDoSemaforo[problemas[0]?.cor ?? 'erro'] }}
                                     />
                                 )}
 
@@ -185,21 +258,22 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
 
                                 <span className="w-full truncate text-center text-xs leading-tight font-medium">{rede.rotulo}</span>
 
-                                {/* ⭐ Os três lados do mesmo fato. Mostrar só o que deu
-                                    certo é o que os concorrentes fazem — e é por isso que
-                                    o painel deles mente. Aqui a falha fica do lado do
-                                    acerto, no mesmo tamanho.
+                                {/* ⭐ **UM número: o que está no ar** (DEC-167).
+                                    ⚠️ Isto já mostrou três de uma vez — "no ar",
+                                    "não foi" e "saiu do ar" — e virou **placar**
+                                    num quadrado de 6,5rem. Placar de falha não
+                                    ajuda ninguém a agir.
 
-                                    Cada número só aparece quando existe: zeros em toda
-                                    parte viram ruído e escondem o que importa. */}
+                                    ⛔ E nada foi ESCONDIDO: a falha continua na
+                                    janela da rede, em Publicações e no bloco
+                                    "Precisa de você", e aqui ela acende o ponto
+                                    no canto. Some do placar, não do produto. */}
                                 <span className="flex items-end justify-center gap-2.5">
                                     <NumeroDaRede
                                         valor={rede.publicados}
                                         rotulo="no ar"
                                         cor={rede.publicados > 0 ? 'var(--saude-ok)' : 'var(--muted-foreground)'}
                                     />
-                                    {rede.andando > 0 && <NumeroDaRede valor={rede.andando} rotulo="indo" cor="var(--saude-atencao)" />}
-                                    {rede.falhas > 0 && <NumeroDaRede valor={rede.falhas} rotulo="não foi" cor="var(--saude-erro)" />}
                                 </span>
                             </Quadro>
                         </li>
@@ -225,8 +299,21 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
 
                     {/* ⚠️ Respiro maior entre as LINHAS que entre as colunas. Com
                         o mesmo valor nos dois eixos, quatro fileiras de quadrados
-                        viram uma malha — e o olho perde onde uma linha acaba. */}
-                    <ul className="flex flex-wrap gap-x-3 gap-y-4">
+                        viram uma malha — e o olho perde onde uma linha acaba.
+
+                        ⛔ **Grade de trilhas fixas, não `flex-wrap`.** O quadro
+                        tem lado fixo de propósito (ver `Quadro`), então cinco
+                        deles somam menos que a largura do modal — e com
+                        `flex-wrap` toda a sobra ficava empilhada **à direita**,
+                        como se o catálogo estivesse torto.
+
+                        ⭐ `auto-fit` com trilha de 6.5rem mantém o quadro do
+                        tamanho que ele tem que ter, alinha as colunas entre as
+                        linhas, e `justify-center` divide a sobra pelos dois
+                        lados em vez de jogar tudo num canto. E responde sozinho
+                        a telas estreitas: cabem menos colunas, sem `breakpoint`
+                        escrito à mão. */}
+                    <ul className="grid grid-cols-[repeat(auto-fit,6.5rem)] justify-center gap-x-3 gap-y-4">
                         {redes.map((rede) => {
                             const clicavel = rede.disponivel;
 
@@ -248,7 +335,7 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
 
                                         {/* ⚠️ "Aguardando aprovação" e "em estudo" são coisas
                                             diferentes: uma tem caminho, a outra é ideia. */}
-                                        <span className="text-muted-foreground text-center text-[0.65rem] leading-tight">
+                                        <span className="text-muted-foreground text-center text-[0.8125rem] leading-tight">
                                             {rede.contas.some((c) => c.status !== 'desconectada')
                                                 ? 'já conectada'
                                                 : rede.disponivel
@@ -297,6 +384,10 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
                         {aberta?.publicados === 1
                             ? '1 post confirmado no ar nesta rede.'
                             : `${aberta?.publicados ?? 0} posts confirmados no ar nesta rede.`}
+                        {/* ⭐ O que esta rede não conta, com todas as letras —
+                            e uma vez só, aqui, em vez de embaixo de cada post
+                            (DEC-94). */}
+                        {aberta?.notaDeMetrica && <span className="mt-1 block">{aberta.notaDeMetrica}</span>}
                     </DialogDescription>
 
                     <ul className="space-y-2">
@@ -316,47 +407,82 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
                                     </p>
                                     {conta.detalhe && <p className="text-muted-foreground mt-0.5 text-xs">{conta.detalhe}</p>}
 
+                                    {/* ⭐ O contador da conta. Só aparece depois
+                                        que houve leitura — sem leitura não
+                                        existe traço nem zero, porque os dois
+                                        seriam uma afirmação sobre um número que
+                                        ninguém foi buscar. */}
+                                    {conta.seguidores !== null && (
+                                        <p className="mt-1.5 text-[0.8125rem]">
+                                            <span className="font-medium tabular-nums">{conta.seguidores.toLocaleString('pt-BR')}</span>{' '}
+                                            <span className="text-muted-foreground">
+                                                {conta.seguidores === 1 ? 'seguidor' : 'seguidores'}
+                                                {conta.metricasLidas && ` · ${conta.metricasLidas}`}
+                                            </span>
+                                        </p>
+                                    )}
+
+                                    {/* ⚠️ A ressalva anda junto do número, nunca
+                                        num rodapé: o YouTube arredonda, e quem
+                                        comparar com o YouTube Studio sem ler
+                                        isto vai achar que o nosso número está
+                                        errado. */}
+                                    {conta.seguidores !== null && conta.seguidoresNota && (
+                                        <p className="text-muted-foreground mt-0.5 text-xs">{conta.seguidoresNota}</p>
+                                    )}
+
                                     {conta.venceEmBreve && (
                                         <p className="mt-1 flex items-start gap-1 text-xs text-[color:var(--saude-atencao)]">
                                             <AlertTriangle className="mt-0.5 size-3 shrink-0" aria-hidden="true" />
                                             Vence em breve. Reconecte para não perder publicações.
                                         </p>
                                     )}
-                                </div>
 
-                                {conta.status !== 'desconectada' && (
-                                    <div className="flex shrink-0 items-center gap-0.5">
-                                        {/* ⭐ Sem isto, o primeiro erro de cadastro vira
+                                    {/* ⛔ **Com TEXTO, não só ícone.**
+                                    Desconectar é a ação sem volta desta janela,
+                                    e uma tomada riscada em vermelho não diz o
+                                    que vai acontecer — quem não reconhece o
+                                    desenho descobre clicando, que é o pior
+                                    momento possível para descobrir.
+
+                                    ⚠️ Ficam ABAIXO da conta, não à direita: o
+                                    nome do canal pode ser longo, e dois botões
+                                    de texto disputando a mesma linha empurram a
+                                    identificação para as reticências. */}
+                                    {conta.status !== 'desconectada' && (
+                                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+                                            {/* ⭐ Sem isto, o primeiro erro de cadastro vira
                                             permanente e a pessoa acaba conectando o mesmo
                                             canal duas vezes (DEC-77). Só aparece quando há
                                             para onde levar. */}
-                                        {outrosGrupos.length > 0 && (
+                                            {outrosGrupos.length > 0 && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setAberta(null);
+                                                        setAMover(conta);
+                                                    }}
+                                                    className="text-muted-foreground hover:text-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-md text-[0.8125rem] transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                                                >
+                                                    <FolderInput className="size-3.5 shrink-0" aria-hidden="true" />
+                                                    Mover de grupo
+                                                </button>
+                                            )}
+
                                             <button
                                                 type="button"
                                                 onClick={() => {
                                                     setAberta(null);
-                                                    setAMover(conta);
+                                                    setADesconectar(conta);
                                                 }}
-                                                aria-label={`Mover ${conta.nome} de grupo`}
-                                                className="text-muted-foreground hover:text-foreground focus-visible:ring-ring rounded-md p-1 transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                                                className="text-muted-foreground focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-md text-[0.8125rem] transition-colors hover:text-[color:var(--destructive)] focus-visible:ring-2 focus-visible:outline-none"
                                             >
-                                                <FolderInput className="size-3.5" aria-hidden="true" />
+                                                <Unplug className="size-3.5 shrink-0" aria-hidden="true" />
+                                                Desconectar
                                             </button>
-                                        )}
-
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setAberta(null);
-                                                setADesconectar(conta);
-                                            }}
-                                            aria-label={`Desconectar ${conta.nome}`}
-                                            className="text-muted-foreground focus-visible:ring-ring rounded-md p-1 transition-colors hover:text-[color:var(--destructive)] focus-visible:ring-2 focus-visible:outline-none"
-                                        >
-                                            <Unplug className="size-3.5" aria-hidden="true" />
-                                        </button>
-                                    </div>
-                                )}
+                                        </div>
+                                    )}
+                                </div>
                             </li>
                         ))}
                     </ul>
@@ -380,24 +506,54 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
                             não pedimos
                         </p>
 
-                        {conectando?.valor === 'youtube' ? (
+                        {/* ⛔ Olha a FORMA DE CONEXÃO, nunca o nome da rede. Este
+                            bloco perguntava `=== 'youtube'`, e tudo que não era
+                            YouTube caía no texto do Bluesky — então o modal do
+                            Facebook pedia senha de aplicativo do Bluesky. */}
+                        {porWebhook ? (
                             <ul className="text-muted-foreground mt-2 space-y-1 text-sm">
                                 <li>
-                                    Permissão para <strong>enviar vídeos</strong> e para <strong>conferir se subiram</strong>. Só isso.
+                                    Um <strong>webhook</strong> que você mesmo cria no canal, em <em>Editar canal → Integrações → Webhooks</em>. Nós
+                                    nunca entramos no seu servidor.
                                 </li>
                                 <li>
-                                    <strong>Não pedimos permissão para apagar vídeos</strong> — nem podemos, mesmo que quiséssemos.
+                                    O endereço fica guardado criptografado e <strong>nunca aparece em tela nenhuma</strong>.
                                 </li>
-                                <li>Você revoga o acesso quando quiser, em myaccount.google.com/permissions.</li>
+                                <li>Você revoga apagando o webhook no Discord — e o painel avisa na próxima publicação.</li>
                             </ul>
-                        ) : (
+                        ) : porServidor ? (
                             <ul className="text-muted-foreground mt-2 space-y-1 text-sm">
                                 <li>
-                                    Uma <strong>senha de aplicativo</strong> — não a senha da sua conta. Você gera no Bluesky e{' '}
+                                    O Mastodon não é um site só: são <strong>milhares de servidores independentes</strong>. Diga em qual a sua conta
+                                    mora e você autoriza <strong>lá</strong>.
+                                </li>
+                                <li>
+                                    Permissão para <strong>publicar</strong> e <strong>enviar vídeo</strong>. Não pedimos acesso à sua linha do tempo
+                                    nem às suas mensagens.
+                                </li>
+                                <li>Você revoga o acesso quando quiser, nas configurações do seu servidor.</li>
+                            </ul>
+                        ) : porSenha ? (
+                            <ul className="text-muted-foreground mt-2 space-y-1 text-sm">
+                                <li>
+                                    Uma <strong>senha de aplicativo</strong> — não a senha da sua conta. Você gera na própria rede e{' '}
                                     <strong>revoga quando quiser</strong>.
                                 </li>
                                 <li>Ela serve para publicar. Não apagamos nem alteramos o que já existe.</li>
                                 <li>Fica guardada criptografada e nunca aparece em tela nenhuma — nem para o nosso suporte.</li>
+                            </ul>
+                        ) : (
+                            <ul className="text-muted-foreground mt-2 space-y-1 text-sm">
+                                <li>
+                                    Você autoriza <strong>no site da própria rede</strong> — sua senha nunca passa por aqui.
+                                </li>
+                                <li>
+                                    Permissão para <strong>publicar</strong> e para <strong>conferir se o post subiu</strong>. Só isso.
+                                </li>
+                                <li>
+                                    <strong>Não pedimos permissão para apagar nem alterar</strong> o que já existe, e você revoga o acesso quando
+                                    quiser, nas configurações da rede.
+                                </li>
                             </ul>
                         )}
 
@@ -425,16 +581,106 @@ export default function PainelDeRedes({ redes, totalConectado, aberta: redeAbert
                         </div>
                     )}
 
+                    {/* ⭐ **A exigência da Meta, dita ANTES de autorizar** (DEC-150).
+                        ⛔ Sem este bloco, quem não marca a Página no site da Meta
+                        volta para cá e lê *"nenhuma Página foi encontrada"* — e
+                        conclui que o painel quebrou, quando o que faltou foi um
+                        passo que ninguém avisou que existia. */}
+                    {(conectando?.valor === 'facebook' || conectando?.valor === 'instagram') && (
+                        <div className="rounded-lg border border-[color:var(--saude-atencao)]/30 bg-[color:var(--saude-atencao)]/10 p-3 text-sm">
+                            <p className="font-medium">Antes de autorizar</p>
+
+                            <ul className="text-muted-foreground mt-1 space-y-1.5">
+                                <li>
+                                    O Facebook e o Instagram <strong>só publicam em Página</strong> — nunca no perfil pessoal. É regra da Meta, não
+                                    nossa. Sem Página, não há como conectar.
+                                </li>
+                                <li>
+                                    No site da Meta aparece um passo perguntando <strong>quais Páginas</strong> você quer usar.{' '}
+                                    <strong>Marque a Página ali.</strong> Passar sem marcar traz você de volta sem nada.
+                                </li>
+                                {/* ⚠️ O caso de várias Páginas é o que mais assusta:
+                                    a pessoa marca duas e acha que passou a publicar
+                                    nas duas. Escolher o destino continua sendo dela,
+                                    na hora de publicar. */}
+                                <li>
+                                    <strong>Tem mais de uma Página?</strong> Todas as que você marcar viram <strong>contas separadas aqui</strong>, e
+                                    na hora de publicar você escolhe em quais quer postar. Marcar várias não publica em todas sozinho.
+                                </li>
+                                <li>
+                                    O <strong>Instagram vem junto</strong>, sem conexão separada — desde que seja conta profissional e esteja
+                                    vinculado a uma dessas Páginas.
+                                </li>
+                            </ul>
+                        </div>
+                    )}
+
                     <TermosDaRede rede={conectando?.valor ?? ''} />
 
-                    {conectando?.valor === 'youtube' ? (
+                    {/* ⚠️ O endereço vem do servidor (`enderecoDeConexao`), não
+                        montado aqui: Facebook e Instagram acendem pela MESMA
+                        porta, e essa regra escrita em React seria outra fonte de
+                        verdade para discordar da de lá. */}
+                    {porWebhook ? (
+                        /* ⚠️ Formulário de verdade, como o do Mastodon: a resposta
+                           é um redirecionamento, e XHR não o atravessa bem. */
+                        <form method="post" action={conectando?.enderecoDeConexao ?? '#'} className="space-y-4">
+                            <input type="hidden" name="_token" value={csrf} />
+                            <div className="grid gap-2">
+                                <Label htmlFor="endereco">Endereço do webhook</Label>
+                                <Input id="endereco" name="endereco" placeholder="https://discord.com/api/webhooks/..." autoComplete="off" required />
+                                <p className="text-muted-foreground text-[0.8125rem]">
+                                    ⚠️ O Discord não tem vitrine: aqui o vídeo vira <strong>aviso para quem já está no canal</strong>, não alcance
+                                    novo.
+                                </p>
+                            </div>
+
+                            <DialogFooter>
+                                <DialogClose asChild>
+                                    <Button type="button" variant="secondary">
+                                        Cancelar
+                                    </Button>
+                                </DialogClose>
+                                <Button type="submit">Conectar canal</Button>
+                            </DialogFooter>
+                        </form>
+                    ) : porServidor ? (
+                        /* ⚠️ `method="post"` de verdade, com o token do Laravel:
+                           esta porta RECEBE um formulário, não um clique — o
+                           endereço de autorização ainda não existe neste ponto. */
+                        <form method="post" action={conectando?.enderecoDeConexao ?? '#'} className="space-y-4">
+                            <input type="hidden" name="_token" value={csrf} />
+                            <div className="grid gap-2">
+                                <Label htmlFor="servidor">Endereço do seu servidor</Label>
+                                <Input id="servidor" name="servidor" placeholder="mastodon.social" autoComplete="off" required />
+                                <p className="text-muted-foreground text-[0.8125rem]">
+                                    É a parte depois do @ no seu perfil. Em <strong>@voce@mastodon.social</strong>, o servidor é{' '}
+                                    <strong>mastodon.social</strong>.
+                                </p>
+                            </div>
+
+                            <DialogFooter>
+                                <DialogClose asChild>
+                                    <Button type="button" variant="secondary">
+                                        Cancelar
+                                    </Button>
+                                </DialogClose>
+                                <Button type="submit">Continuar</Button>
+                            </DialogFooter>
+                        </form>
+                    ) : !porSenha ? (
                         <DialogFooter>
                             <DialogClose asChild>
                                 <Button type="button" variant="secondary">
                                     Cancelar
                                 </Button>
                             </DialogClose>
-                            <Button onClick={() => (window.location.href = route('conexoes.youtube'))}>Autorizar no Google</Button>
+                            <Button
+                                disabled={!conectando?.enderecoDeConexao}
+                                onClick={() => conectando?.enderecoDeConexao && (window.location.href = conectando.enderecoDeConexao)}
+                            >
+                                Autorizar no {conectando?.rotulo}
+                            </Button>
                         </DialogFooter>
                     ) : (
                         <form onSubmit={conectar} className="space-y-4">
@@ -550,7 +796,7 @@ function NumeroDaRede({ valor, rotulo, cor }: { valor: number; rotulo: string; c
             <span className="block text-lg leading-none font-semibold tabular-nums" style={{ color: cor }}>
                 {valor}
             </span>
-            <span className="text-muted-foreground block text-[0.6rem] leading-tight">{rotulo}</span>
+            <span className="text-muted-foreground block text-[0.8125rem] leading-tight">{rotulo}</span>
         </span>
     );
 }

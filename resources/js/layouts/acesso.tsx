@@ -40,7 +40,11 @@ export default function LayoutAcesso({ children, titulo, descricao }: Props) {
             {/* Coluna da promessa — some no celular */}
             <div className="bg-primary text-primary-foreground hidden flex-col justify-center px-12 py-16 lg:flex">
                 <div className="max-w-md">
-                    <p className="text-accent-foreground/70 mb-3 text-xs font-medium tracking-[0.14em] uppercase">{nomeDoApp}</p>
+                    {/* ⚠️ `primary-foreground`, e não `accent-foreground`: o painel é
+                        `bg-primary`, então quem diz o que se lê em cima dele é o par
+                        dele. Com o token errado, no tema escuro isto era branco sobre
+                        um painel quase branco — o nome do produto sumia. */}
+                    <p className="text-primary-foreground/70 mb-3 text-xs font-medium tracking-[0.14em] uppercase">{nomeDoApp}</p>
 
                     <p className="text-3xl leading-[1.15] font-semibold">
                         O painel que publica seu vídeo em várias redes — e <span className="text-[var(--accent)]">prova</span> que publicou.

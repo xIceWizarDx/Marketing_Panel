@@ -42,6 +42,17 @@ class HandleInertiaRequests extends Middleware
 
             'nomeDoApp' => config('app.name'),
 
+            /*
+             * ⭐ O token do formulário — e ele existe por um caso só: a conexão
+             * com rede federada (DEC-138).
+             *
+             * ⚠️ Aquela porta responde com um redirecionamento para **outro
+             * domínio** (o servidor Mastodon da pessoa), e requisição XHR não
+             * atravessa isso. Precisa ser navegação de verdade, e navegação de
+             * verdade precisa do token na página.
+             */
+            'csrf' => csrf_token(),
+
             'auth' => [
                 'usuario' => $usuario ? [
                     'ulid' => $usuario->ulid,
@@ -68,6 +79,10 @@ class HandleInertiaRequests extends Middleware
             // Recado de uma requisição só: "abra o catálogo de redes assim que
             // a tela montar". Vem de quem clicou na engrenagem de um grupo.
             'abrirCatalogo' => fn () => (bool) $request->session()->get('abrirCatalogo'),
+
+            // ⭐ O mesmo recado, apontando para UMA rede (DEC-154): é o que leva
+            // da janela do grupo até onde desconectar e mover de fato moram.
+            'abrirRede' => fn () => $request->session()->get('abrirRede'),
 
             // Alimenta a tarja fixa de "modo impersonação". Enquanto tiver
             // conteudo, a tela inteira mostra que aquilo nao e a conta de quem
@@ -111,13 +126,16 @@ class HandleInertiaRequests extends Middleware
             'lista' => Grupo::query()
                 ->withCount('publicacoes as publicacoes')
                 ->oldest('id')
-                ->get(['id', 'ulid', 'nome'])
+                ->get(['id', 'ulid', 'nome', 'hashtags'])
                 ->map(function (Grupo $grupo) use ($porGrupo) {
                     $contas = $porGrupo->get($grupo->id, collect());
 
                     return [
                         'ulid' => $grupo->ulid,
                         'nome' => $grupo->nome,
+                        // ⭐ As que já vêm escritas ao compor neste grupo
+                        // (DEC-152) — ponto de partida, nunca carimbo.
+                        'hashtags' => $grupo->hashtags ?? [],
                         // As marcas das redes que ele tem — é o que faz um
                         // grupo ser reconhecido sem ler o nome.
                         'plataformas' => $contas->pluck('plataforma')

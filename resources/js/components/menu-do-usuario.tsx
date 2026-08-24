@@ -14,12 +14,18 @@ import { cn } from '@/lib/utils';
 import { type DadosCompartilhados } from '@/types';
 
 interface Props {
-    recolhida?: boolean;
-    /** No celular o gatilho e so o avatar, sem nome nem seta. */
+    /**
+     * No celular o gatilho é só o avatar, sem nome nem seta.
+     *
+     * ⚠️ Não existe mais um modo "recolhido" aqui. Na barra lateral quem some
+     * com o nome é a **borda da barra**, cortando — e é isso que faz o nome
+     * deslizar em vez de piscar. Quem avisa de quem é a conta com a barra
+     * estreita é a dica, e ela mora lá, não aqui.
+     */
     somenteAvatar?: boolean;
 }
 
-export default function MenuDoUsuario({ recolhida = false, somenteAvatar = false }: Props) {
+export default function MenuDoUsuario({ somenteAvatar = false }: Props) {
     const { auth } = usePage<DadosCompartilhados>().props;
     const iniciaisDe = useIniciais();
     const usuario = auth?.usuario;
@@ -28,27 +34,42 @@ export default function MenuDoUsuario({ recolhida = false, somenteAvatar = false
         return null;
     }
 
-    const compacto = recolhida || somenteAvatar;
-
     return (
         <DropdownMenu>
             <DropdownMenuTrigger
                 className={cn(
-                    'hover:bg-sidebar-accent/60 focus-visible:ring-ring flex items-center gap-2 rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none',
-                    compacto ? 'justify-center p-1' : 'w-full px-2 py-1.5',
+                    'hover:bg-sidebar-accent/60 focus-visible:ring-ring flex items-center gap-2 overflow-hidden rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-none',
+                    somenteAvatar ? 'justify-center p-1' : 'w-full py-1.5 pr-2',
                 )}
                 aria-label="Menu da conta"
             >
+                {/*
+                 * ⭐ O avatar divide o EIXO DOS ÍCONES com os itens do menu.
+                 *
+                 * ⚠️ Ele é maior que um ícone de menu (32px contra 16px), mas o
+                 * que precisa coincidir é o CENTRO, não o tamanho. Sem o
+                 * compartimento, ele andava alguns pixels para o lado enquanto a
+                 * barra recolhia e era o único elemento fora de esquadro na
+                 * coluna inteira.
+                 */}
                 <span
-                    aria-hidden="true"
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--accent)] text-xs font-semibold text-[color:var(--accent-foreground)]"
+                    className={cn('flex shrink-0 items-center justify-center', somenteAvatar && 'w-auto')}
+                    style={somenteAvatar ? undefined : { width: 'max(calc(var(--sidebar-width-collapsed) - 1rem), 3rem)' }}
                 >
-                    {iniciaisDe(usuario.nome)}
+                    <span
+                        aria-hidden="true"
+                        className="flex size-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--accent)] text-xs font-semibold text-[color:var(--accent-foreground)]"
+                    >
+                        {iniciaisDe(usuario.nome)}
+                    </span>
                 </span>
 
-                {!compacto && (
+                {/* ⚠️ Presente sempre: é a borda da barra que corta, não o
+                    React que apaga. Removido do DOM, o nome sumia de uma vez no
+                    primeiro quadro da animação — piscada, não deslizamento. */}
+                {!somenteAvatar && (
                     <>
-                        <span className="min-w-0 flex-1 text-left">
+                        <span className="min-w-0 flex-1 overflow-hidden text-left whitespace-nowrap">
                             <span className="block truncate text-sm leading-tight font-medium">{usuario.nome}</span>
                             <span className="text-muted-foreground block truncate text-xs leading-tight">{usuario.papelRotulo}</span>
                         </span>

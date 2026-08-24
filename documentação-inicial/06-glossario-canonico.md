@@ -243,6 +243,8 @@ de uma vez. Onde precisar furar o de dono, usar `withoutGlobalScope(EscopoDoUsua
 | `avatar_url` | string null | |
 | `status` | string (enum `StatusConta`) default `ativa` | |
 | `status_detalhe` | string null | motivo humano do erro |
+| `seguidores` | unsignedBigInteger **null** | inscritos, no YouTube. ⛔ **`null` ≠ `0`** (DEC-95): ou a rede não publica o número, ou o dono escondeu, ou ainda não lemos. ⚠️ Fora do `fillable` de propósito — escrita só por máquina, via `forceFill` |
+| `metricas_lidas_em` | timestamp null | quando o contador acima foi lido. Vira frase no servidor (`DataEmPalavras`), nunca na tela |
 | timestamps | | **UNIQUE** (`usuario_id`,`plataforma`,`identificador_externo`) — DEC-10 · índice (`usuario_id`,`grupo_id`) |
 
 ### 🟢 `credenciais` (Model `Credencial`) — filha 1:1 de conta
@@ -322,7 +324,8 @@ na hora, sem carência. Fica o registro inteiro (miniatura, laudo, links e prova
 | `erro_mensagem` | text null | |
 | `tentativas_feitas` | unsignedTinyInteger default 0 | controla retry vs falha final |
 | `publicado_em` | timestamp null | |
-| timestamps | | **UNIQUE** (`publicacao_id`,`conta_social_id`) — impede destino duplicado (≠ idempotência de post: essa vem do `handle_externo`) |
+| `visualizacoes` / `curtidas` / `comentarios` / `compartilhamentos` | unsignedBigInteger **null** | os contadores que **aquela** rede publica. ⛔ **`null` nunca vira `0` na tela** (DEC-95): no Bluesky visualização não existe no protocolo, e um zero ali diria "ninguém viu" quando o certo é "ninguém conta" |
+| `metricas_lidas_em` | timestamp null | quando os quatro acima foram lidos |
 
 ### 🟢 `tentativas` (Model `Tentativa`) — filha de destino
 | Coluna | Tipo | Regra |

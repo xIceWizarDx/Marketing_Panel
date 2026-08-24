@@ -128,3 +128,23 @@ surpresa a evitar quando não há espera.
 
 **Os primeiros passos caíram de três para dois.** "Enviar um vídeo" deixou de ser etapa: o arquivo
 entra dentro do compositor. Manter o passo descreveria um caminho que não existe mais.
+
+---
+
+## ⭐ DEC-153 — post novo nasce com todas as contas marcadas
+
+Pedido de campo: *"no momento da publicação todas as redes já estarem selecionadas e eu desselecionar
+somente o que eu quiser"*.
+
+O caso normal é publicar em tudo. Desmarcar uma é um clique; marcar cinco são cinco — e o custo caía
+sempre sobre o caminho mais usado.
+
+⛔ **Republicar continua vindo VAZIO, e isso não é inconsistência — é a mesma regra.** Ali existe um
+post que já subiu: marcar sozinho onde ele já está publicaria de novo, e **publicação não tem
+desfazer**. As contas onde ele já foi continuam listadas como aviso, desmarcadas.
+
+⚠️ **Conta que não pode publicar fica de fora da marcação.** Marcar uma com credencial vencida é
+prometer um envio que o painel já sabe que não acontece.
+
+⭐ **O que segura o clique distraído é a contagem no botão:** ele diz *"Publicar em 4 contas"* antes
+de qualquer coisa. Sem esse número, marcar tudo por padrão seria esconder o tamanho da ação.

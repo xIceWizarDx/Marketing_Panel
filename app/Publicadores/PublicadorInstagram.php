@@ -3,7 +3,9 @@
 namespace App\Publicadores;
 
 use App\Enums\Plataforma;
+use App\Models\ContaSocial;
 use App\Models\Destino;
+use App\Services\ContaSocialService;
 use App\Services\Meta\EnvioRetomavel;
 use App\Services\Meta\ErroDaMeta;
 use Illuminate\Http\Client\ConnectionException;
@@ -27,7 +29,7 @@ use Illuminate\Support\Facades\Storage;
  * ⚠️ O container **expira em 24 horas**. Se a fila atrasar além disso, o envio se
  * perde — e a mensagem precisa dizer isso, não "erro desconhecido".
  */
-class PublicadorInstagram implements Publicador
+class PublicadorInstagram implements LeitorDeMetricas, Publicador
 {
     private const API = 'https://graph.facebook.com/v25.0';
 
@@ -65,7 +67,7 @@ class PublicadorInstagram implements Publicador
                 return $container;
             }
 
-            $envio = $this->enviarArquivo($token, $container, $conteudo, $retomada->comecouAntes());
+            $envio = $this->enviarArquivo($token, $container, $conteudo, $retomada->comecouAntes(), $destino);
 
             if ($envio instanceof ResultadoPublicacao) {
                 return $envio;
@@ -141,14 +143,18 @@ class PublicadorInstagram implements Publicador
                 // e o arquivo do cliente não fica exposto na internet.
                 'upload_type' => 'resumable',
                 // ⛔ SEM CORTAR. Quem recusa antes é o `EnvioDePublicacao`.
-                'caption' => $destino->textoFinal(),
+                /*
+                 * ⛔ **Título junto** — o Reels não tem campo de título, e sem
+                 * isto o que a pessoa escreveu ali desaparece sem aviso.
+                 */
+                'caption' => trim(($destino->titulo() ?? '').' '.$destino->textoFinal()),
                 // Declaração de conteúdo feito por IA — escolha da pessoa, nunca
                 // padrão nosso escondido no código.
                 'is_ai_generated' => ($opcoes['feito_com_ia'] ?? false) ? 'true' : null,
             ], fn ($valor) => $valor !== null && $valor !== ''));
 
         if (! $resposta->successful()) {
-            return $this->interpretar($resposta);
+            return $this->interpretar($resposta, $destino);
         }
 
         $container = (string) $resposta->json('id');
@@ -167,6 +173,7 @@ class PublicadorInstagram implements Publicador
         string $container,
         string $conteudo,
         bool $retomando,
+        Destino $destino,
     ): true|ResultadoPublicacao {
         $envio = EnvioRetomavel::paraInstagram();
 
@@ -175,7 +182,7 @@ class PublicadorInstagram implements Publicador
         $resposta = $envio->enviar($token, $container, $conteudo, $deslocamento);
 
         if (! $resposta->successful() || $resposta->json('success') === false) {
-            return $this->interpretar($resposta);
+            return $this->interpretar($resposta, $destino);
         }
 
         return true;
@@ -199,7 +206,7 @@ class PublicadorInstagram implements Publicador
             ]);
 
         if (! $resposta->successful()) {
-            return $this->interpretar($resposta);
+            return $this->interpretar($resposta, $destino);
         }
 
         $midia = (string) $resposta->json('id');
@@ -213,7 +220,7 @@ class PublicadorInstagram implements Publicador
         return ResultadoPublicacao::aceito($midia);
     }
 
-    private function interpretar(Response $resposta): ResultadoPublicacao
+    private function interpretar(Response $resposta, ?Destino $destino = null): ResultadoPublicacao
     {
         $erro = ErroDaMeta::de($resposta);
 
@@ -221,8 +228,158 @@ class PublicadorInstagram implements Publicador
             return ResultadoPublicacao::semCota($erro->mensagem);
         }
 
+        /*
+         * ⭐ **Autorização morta acende o semáforo** (DEC-159).
+         *
+         * ⛔ Sem isto a conta ficava **verde e "Conectada"** na tela enquanto
+         * recusava toda publicação — e o semáforo do token é justamente o que
+         * este produto diz fazer melhor que os outros (DEC-32).
+         *
+         * ⚠️ Aqui a conta do Instagram publica com o token **da Página**: quando
+         * ele morre, quem fica em pé é o Instagram, e é a conta dele que precisa
+         * ficar vermelha na tela — senão a pessoa reconecta o Facebook e acha
+         * que resolveu.
+         */
+        if ($erro->credencialMorreu && $destino) {
+            app(ContaSocialService::class)->marcarComProblema($destino->contaSocial, $erro->mensagem);
+        }
+
         return $erro->passageiro
             ? ResultadoPublicacao::tentarDepois($erro->mensagem, (string) $erro->subcodigo)
             : ResultadoPublicacao::recusado($erro->mensagem, (string) $erro->subcodigo);
+    }
+
+    /**
+     * ⭐ Seguidores da conta profissional.
+     *
+     * ⚠️ `followers_count` vem no PRÓPRIO objeto da conta, não em `insights` —
+     * e por isso não custa a permissão de leitura de métrica.
+     */
+    public function metricasDaConta(ContaSocial $conta): ?MetricasDaConta
+    {
+        $token = $conta->credencial?->access_token;
+
+        if (! $token) {
+            return null;
+        }
+
+        try {
+            $resposta = Http::timeout(20)->get(self::API.'/'.$conta->identificador_externo, [
+                'fields' => 'followers_count',
+                'access_token' => $token,
+            ]);
+        } catch (ConnectionException) {
+            return null;
+        }
+
+        if (! $resposta->successful()) {
+            return null;
+        }
+
+        $seguidores = $resposta->json('followers_count');
+
+        return new MetricasDaConta(seguidores: is_numeric($seguidores) ? (int) $seguidores : null);
+    }
+
+    /**
+     * ⭐ Os contadores do Reels publicado.
+     *
+     * ⚠️ **Duas chamadas, e é de propósito.** Curtida e comentário vêm no objeto
+     * da mídia (`like_count`, `comments_count`) e **não custam permissão**;
+     * visualização e compartilhamento só existem em `insights`, que exige
+     * `instagram_manage_insights` (DEC-143).
+     *
+     * ⛔ Assim, quem recusar a permissão de leitura **continua vendo curtida e
+     * comentário** — em vez de a tela inteira ficar vazia.
+     *
+     * ⚠️ E `views` é o nome atual: a Meta aposentou `impressions`, `plays` e
+     * `video_views` e juntou os três num só. Pedir os antigos devolve erro.
+     */
+    public function metricasDoPost(Destino $destino): ?MetricasDoPost
+    {
+        $token = $destino->contaSocial->credencial?->access_token;
+
+        if (! $token || ! $destino->identificador_externo) {
+            return null;
+        }
+
+        $basico = $this->lerMidia($destino->identificador_externo, $token);
+
+        if ($basico === null) {
+            return null;
+        }
+
+        $insights = $this->lerInsights($destino->identificador_externo, $token);
+
+        return new MetricasDoPost(
+            visualizacoes: $insights['views'] ?? null,
+            curtidas: $basico['like_count'] ?? null,
+            comentarios: $basico['comments_count'] ?? null,
+            compartilhamentos: $insights['shares'] ?? null,
+        );
+    }
+
+    /**
+     * Curtida e comentário — sem custo de permissão.
+     *
+     * @return array<string, int>|null `null` = não deu para ler agora
+     */
+    private function lerMidia(string $id, string $token): ?array
+    {
+        try {
+            $resposta = Http::timeout(20)->get(self::API.'/'.$id, [
+                'fields' => 'like_count,comments_count',
+                'access_token' => $token,
+            ]);
+        } catch (ConnectionException) {
+            return null;
+        }
+
+        if (! $resposta->successful()) {
+            return null;
+        }
+
+        return array_filter(
+            ['like_count' => $resposta->json('like_count'), 'comments_count' => $resposta->json('comments_count')],
+            fn ($valor) => is_numeric($valor)
+        );
+    }
+
+    /**
+     * Visualização e compartilhamento — exigem `instagram_manage_insights`.
+     *
+     * ⚠️ Devolve lista vazia quando a permissão não foi concedida, e **isso não
+     * é erro**: é a diferença entre "esta conta não autorizou" e "a rede caiu".
+     * Quem recusou continua vendo curtida e comentário.
+     *
+     * @return array<string, int>
+     */
+    private function lerInsights(string $id, string $token): array
+    {
+        try {
+            $resposta = Http::timeout(20)->get(self::API.'/'.$id.'/insights', [
+                'metric' => 'views,shares',
+                'access_token' => $token,
+            ]);
+        } catch (ConnectionException) {
+            return [];
+        }
+
+        if (! $resposta->successful()) {
+            return [];
+        }
+
+        $numeros = [];
+
+        foreach ((array) $resposta->json('data', []) as $item) {
+            $nome = $item['name'] ?? null;
+            $valor = $item['values'][0]['value'] ?? null;
+
+            if (is_string($nome) && is_numeric($valor)) {
+                $numeros[$nome] = (int) $valor;
+            }
+        }
+
+        return $numeros;
     }
 }

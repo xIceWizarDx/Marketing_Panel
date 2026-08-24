@@ -113,7 +113,18 @@ class VisaoGeralController extends Controller
             ];
         }
 
-        $quebradas = $contas->reject->podePublicar();
+        /*
+         * ⛔ **Quem VOCÊ desconectou não é pendência** (DEC-155).
+         *
+         * ⚠️ `podePublicar()` responde "não" para os dois casos, mas eles são
+         * opostos: a conta expirada **parou sozinha** e precisa de conserto; a
+         * desconectada **parou porque você mandou**. Cobrar conserto de um
+         * gesto deliberado é o painel discutindo a decisão de quem usa — e é
+         * assim que a pessoa aprende a ignorar o bloco de avisos inteiro.
+         */
+        $quebradas = $contas
+            ->reject(fn (ContaSocial $c) => $c->status === StatusConta::Desconectada)
+            ->reject->podePublicar();
 
         if ($quebradas->isNotEmpty()) {
             $conta = $quebradas->first();
@@ -213,7 +224,7 @@ class VisaoGeralController extends Controller
 
                 return [
                     'ulid' => $grupo->ulid,
-                    ...($numeros[$grupo->id] ?? ['noAr' => 0, 'andando' => 0, 'naoSubiram' => 0]),
+                    ...($numeros[$grupo->id] ?? ['noAr' => 0, 'andando' => 0, 'naoSubiram' => 0, 'saiuDoAr' => 0]),
                     'cadencia' => $this->cadencia($doGrupo, $ultimas->get($grupo->id)),
                     // ⚠️ Contas que a pessoa VÊ na grade: desconectada não conta.
                     'canaisParados' => $doGrupo

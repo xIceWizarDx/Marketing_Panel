@@ -62,17 +62,27 @@ não guarda estado, não escolhe cor. ⭐ É isso que permite trocar CSS puro po
 
 ## O que a tela mostra
 
-**Como está** — os três quadrados de hoje, agora somando tudo, e logo abaixo a **barra do total**
-em largura cheia com a frase escrita ao lado.
+_(Revisado em 2026-08-06 — ver o LOG do `05`.)_
 
-**Seus grupos** — uma linha por grupo, na ordem fixa do seletor: as marcas empilhadas, o nome, a
-cadência (*"3 canais · publicou hoje"*), a barra **na mesma medida das outras**, os números
-escritos, e *"Entrar neste grupo"* nos que não estão em foco.
+**A faixa de indicadores**, no topo: *no ar · a caminho · não subiram · canais · grupos*. Ela tem
+**sempre o mesmo tamanho**, inclusive com zero — card que aparece e some faz os vizinhos trocarem de
+lugar e o olho perde a posição aprendida. ⭐ **Zero apaga a cor:** *"0 não subiram"* é notícia boa e
+não pode ter a mesma tinta vermelha de *"4 não subiram"*.
 
-⚠️ **A seção não existe com um grupo só** — ela repetiria a barra do total palavra por palavra.
+Abaixo, **duas colunas**. À esquerda, **Seus grupos** — um cartão por grupo: as marcas empilhadas, o
+nome, a cadência (*"3 canais · publicou hoje"*), o problema **escrito** quando existe, a barra na
+mesma medida das outras, e *"Entrar neste grupo"* nos que não estão em foco.
 
-**Suas redes** — inalterado, do grupo em foco. É o semáforo diário (DEC-32), e precisa ser visto
-antes de a conexão quebrar.
+⚠️ **A seção não existe com um grupo só** — comparar uma coisa com nada é decoração.
+
+À direita, um **trilho de largura fixa**: **Precisa de você** (os avisos, que somem quando não há
+nada) e **Suas redes**, o semáforo diário (DEC-32). ⚠️ As redes moram ali de forma permanente, e é
+isso que impede o trilho de ficar em branco na maior parte do tempo.
+
+⛔ **Não existe placar do total.** Ele existiu — *"40 de 44 posts estão no ar"* — e saiu por dois
+motivos somados: repetia os mesmos três números da faixa logo acima, ditos por extenso; e era um
+número somado **desde sempre**, que só sobe. No dia em que for 4.000 de 4.004 a frase não diz nada.
+O que não subiu não é placar, é **tarefa** — e tarefa mora no trilho da direita.
 
 ---
 
@@ -80,12 +90,12 @@ antes de a conexão quebrar.
 
 ⚠️ Hoje duas classes contam a mesma coisa por conta própria. Com grupo, elas divergiriam.
 
-- [ ] **1.1** `ResumoDoPainel` — **uma** consulta agrupada por grupo, plataforma e status, servindo
+- [x] **1.1** `ResumoDoPainel` — **uma** consulta agrupada por grupo, plataforma e status, servindo
   o total, cada grupo e cada rede
-- [ ] **1.2** `ResumoDasRedes` passa a **pedir** os números a ela, em vez de contar de novo
-- [ ] **1.3** ⛔ O `whereIn` escopado **não sai** do `join` cru: é a única coisa que aplica o escopo
+- [x] **1.2** `ResumoDasRedes` passa a **pedir** os números a ela, em vez de contar de novo
+- [x] **1.3** ⛔ O `whereIn` escopado **não sai** do `join` cru: é a única coisa que aplica o escopo
   do dono ali (DEC-74)
-- [ ] **1.4** ⭐ O grupo vem de `publicacoes.grupo_id`, nunca da conta (DEC-75)
+- [x] **1.4** ⭐ O grupo vem de `publicacoes.grupo_id`, nunca da conta (DEC-75)
 
 **Pronto quando:** existe um lugar só que sabe contar, e ele faz uma consulta a menos que hoje.
 
@@ -93,14 +103,14 @@ antes de a conexão quebrar.
 
 ## Fase 2 — O gráfico, atrás de um contrato
 
-- [ ] **2.1** `components/grafico/barra-de-entrega.tsx` — barra empilhada em CSS puro
-- [ ] **2.2** O contrato: valor absoluto, rótulo, cor resolvida, medida compartilhada, sem px, sem
+- [x] **2.1** `components/grafico/barra-de-entrega.tsx` — barra empilhada em CSS puro
+- [x] **2.2** O contrato: valor absoluto, rótulo, cor resolvida, medida compartilhada, sem px, sem
   classe, sem JSX, sem callback
-- [ ] **2.3** ⭐ Fatia maior que zero **nunca fica invisível** (piso de 4px) — e soma zero não
+- [x] **2.3** ⭐ Fatia maior que zero **nunca fica invisível** (piso de 4px) — e soma zero não
   desenha esqueleto nenhum
-- [ ] **2.4** O que está a caminho é **listrado**: é o único estado que não terminou, e é o segundo
+- [x] **2.4** O que está a caminho é **listrado**: é o único estado que não terminou, e é o segundo
   canal para quem não distingue verde de âmbar. ⛔ Cor nunca é o único canal
-- [ ] **2.5** `aria-label` obrigatório
+- [x] **2.5** `aria-label` obrigatório
 
 **Pronto quando:** dá para trocar o desenhista mexendo em um arquivo só.
 
@@ -108,13 +118,13 @@ antes de a conexão quebrar.
 
 ## Fase 3 — A tela
 
-- [ ] **3.1** "Como está" soma tudo; a barra do total e a frase nascem com o primeiro envio
-- [ ] **3.2** "Seus grupos", só com dois ou mais
-- [ ] **3.3** A barra de cada grupo em **coluna de largura fixa** — sem isso as barras não se
+- [x] **3.1** "Como está" soma tudo; a barra do total e a frase nascem com o primeiro envio
+- [x] **3.2** "Seus grupos", só com dois ou mais
+- [x] **3.3** A barra de cada grupo em **coluna de largura fixa** — sem isso as barras não se
   alinham entre si, e a medida compartilhada deixa de ser legível
-- [ ] **3.4** No celular a barra nunca divide a linha com texto
-- [ ] **3.5** Grupo sem post não ganha barra vazia: ganha frase no mesmo lugar
-- [ ] **3.6** ⭐ Caso especial: nenhum subiu de N — a coluna vira texto vermelho de tamanho fixo, em
+- [x] **3.4** No celular a barra nunca divide a linha com texto
+- [x] **3.5** Grupo sem post não ganha barra vazia: ganha frase no mesmo lugar
+- [x] **3.6** ⭐ Caso especial: nenhum subiu de N — a coluna vira texto vermelho de tamanho fixo, em
   vez de pouca tinta vermelha
 
 **Pronto quando:** um grupo parece hoje; três se comparam em dois segundos.
@@ -123,11 +133,11 @@ antes de a conexão quebrar.
 
 ## Fase 4 — Os dois defeitos de hoje
 
-- [ ] **4.1** O aviso passa a contar **posts** (DEC-90)
-- [ ] **4.2** Aviso de outro grupo vira "Entrar em «X»" (DEC-89)
-- [ ] **4.3** Falhas em dois ou mais grupos: **sem ação** — escolher uma seria decidir por conta
+- [x] **4.1** O aviso passa a contar **posts** (DEC-90)
+- [x] **4.2** Aviso de outro grupo vira "Entrar em «X»" (DEC-89)
+- [x] **4.3** Falhas em dois ou mais grupos: **sem ação** — escolher uma seria decidir por conta
   própria qual é o problema da pessoa
-- [ ] **4.4** `grupos.usar` ganha `ver=falhas`, no mesmo padrão de `conectar`
+- [x] **4.4** `grupos.usar` ganha `ver=falhas`, no mesmo padrão de `conectar`
 
 **Pronto quando:** nenhum aviso leva a uma janela vazia.
 
@@ -135,18 +145,21 @@ antes de a conexão quebrar.
 
 ## Fase 5 — Guardiões
 
-- [ ] **5.1** Primeiro dia, um grupo comum, três grupos, grupo com conta quebrada
-- [ ] **5.2** Com um grupo, a seção não renderiza
-- [ ] **5.3** O aviso de outro grupo não abre janela vazia
-- [ ] **5.4** ⛔ A consulta nova vê todos os grupos **do dono**, e nenhum de outro
-- [ ] **5.5** Os dois aceites do gráfico: soma zero não desenha; 1 em 400 continua visível
+- [x] **5.1** Primeiro dia, um grupo comum, três grupos, grupo com conta quebrada
+- [x] **5.2** Com um grupo, a seção não renderiza
+- [x] **5.3** O aviso de outro grupo não abre janela vazia
+- [x] **5.4** ⛔ A consulta nova vê todos os grupos **do dono**, e nenhum de outro
+- [x] **5.5** Os dois aceites do gráfico: soma zero não desenha; 1 em 400 continua visível
 
 ---
 
 ## ⛔ O que fica de fora, de propósito
 
-**Métricas de rede** — bloqueado por fora: com o aplicativo do YouTube em Testes, todo vídeo sobe
-privado e não tem métrica pública. A tela mostraria zero em tudo.
+**Métricas de rede** — e elas continuam fora desta tela, agora por decisão e não por
+impossibilidade. Os contadores existem desde `17-plano-metricas.md`, e moram onde respondem alguma
+coisa: na janela da rede e ao lado da prova, na linha da publicação. ⛔ Aqui não entram porque esta
+tela responde *"como está a entrega"* — contador de rede é outra pergunta, e juntar as duas é como
+nasce a tela que ninguém sabe para que serve.
 
 **Porcentagem, anel, medidor.** Com 3 posts, "100%" vira "67%" e a pessoa acha que o painel piorou.
 *36 de 40* é a mesma verdade sem o número que oscila.

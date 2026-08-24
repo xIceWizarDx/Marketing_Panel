@@ -3,6 +3,7 @@ import { Fragment } from 'react';
 
 import MenuDoUsuario from '@/components/menu-do-usuario';
 import SeletorDeGrupo from '@/components/seletor-de-grupo';
+import SeletorDeTema from '@/components/seletor-de-tema';
 import { type Migalha } from '@/types';
 
 /**
@@ -56,6 +57,11 @@ export default function BarraSuperior({ migalhas = [] }: { migalhas?: Migalha[] 
                 <div className="hidden md:block">
                     <SeletorDeGrupo />
                 </div>
+
+                {/* ⚠️ À direita do grupo, e não à esquerda: o grupo é a
+                    informação que precisa ser encontrada sem procurar, e o que
+                    vem antes dela na leitura disputa esse lugar. */}
+                <SeletorDeTema />
 
                 <div className="md:hidden">
                     <MenuDoUsuario somenteAvatar />

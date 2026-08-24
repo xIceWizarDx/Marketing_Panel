@@ -43,7 +43,19 @@ class Grupo extends Model
     protected $table = 'grupos';
 
     /** ⛔ `usuario_id` fora: quem carimba é a trait, nunca o formulário. */
-    protected $fillable = ['nome'];
+    protected $fillable = ['nome', 'hashtags'];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            // ⭐ Ponto de partida do compositor neste grupo (DEC-152), nunca
+            // carimbo: o que sobe é o que está escrito na hora de publicar.
+            'hashtags' => 'array',
+        ];
+    }
 
     /** @return list<string> */
     public function uniqueIds(): array

@@ -4,6 +4,7 @@ namespace App\Publicadores;
 
 use App\Enums\Plataforma;
 use App\Enums\StatusConta;
+use App\Models\ContaSocial;
 use App\Models\Destino;
 use App\Services\TokenDoGoogle;
 use Illuminate\Http\Client\ConnectionException;
@@ -29,8 +30,11 @@ use Illuminate\Support\Facades\Storage;
  * verificação do OAuth e a auditoria do projeto. A tela precisa dizer isso, em
  * vez de mostrar um link que só o dono abre.
  */
-class PublicadorYoutube implements Publicador
+class PublicadorYoutube implements LeitorDeMetricas, Publicador
 {
+    /** O canal — a mesma base usada pela reconferência diária. */
+    private const API_CANAIS = 'https://www.googleapis.com/youtube/v3/channels';
+
     private const UPLOAD = 'https://www.googleapis.com/upload/youtube/v3/videos';
 
     private const API = 'https://www.googleapis.com/youtube/v3/videos';
@@ -165,6 +169,115 @@ class PublicadorYoutube implements Publicador
             // publicado agora seria mentir.
             default => ResultadoConciliacao::aindaProcessando(),
         };
+    }
+
+    /**
+     * Inscritos do canal.
+     *
+     * ⚠️ **Inscritos ocultos não são zero inscritos.** Quando a pessoa esconde o
+     * número, o YouTube **omite o campo** da resposta e marca
+     * `hiddenSubscriberCount`. Escrever `0` aí seria afirmar um fato falso na
+     * cara de quem tem dez mil (DEC-95).
+     *
+     * ⚠️ O valor vem **arredondado para baixo, com 3 algarismos significativos**
+     * — 1.234 chega como 1.230. É regra da plataforma, vale para todo mundo
+     * inclusive para o dono do canal, e a tela precisa dizer isso.
+     */
+    public function metricasDaConta(ContaSocial $conta): ?MetricasDaConta
+    {
+        $itens = $this->ler(self::API_CANAIS, ['part' => 'statistics', 'mine' => 'true'], $conta);
+
+        if ($itens === null || $itens === []) {
+            return null;
+        }
+
+        $estatisticas = $itens[0]['statistics'] ?? [];
+
+        if (($estatisticas['hiddenSubscriberCount'] ?? false) === true) {
+            return new MetricasDaConta(seguidores: null);
+        }
+
+        return new MetricasDaConta(seguidores: $this->numero($estatisticas, 'subscriberCount'));
+    }
+
+    /**
+     * Visualizações, curtidas e comentários de um vídeo.
+     *
+     * ⚠️ **Enquanto a auditoria de compliance não passar, o vídeo sobe privado**
+     * — e vídeo privado tem visualização zero **de verdade**, porque ninguém
+     * consegue assistir. O zero aqui é honesto; quem precisa explicar isso é a
+     * tela.
+     *
+     * ⛔ Compartilhamento fica `null`: o YouTube **não publica** esse número na
+     * API. Inventar um seria o oposto do que este produto faz.
+     */
+    public function metricasDoPost(Destino $destino): ?MetricasDoPost
+    {
+        if (! $destino->identificador_externo) {
+            return null;
+        }
+
+        $itens = $this->ler(
+            self::API,
+            ['part' => 'statistics', 'id' => $destino->identificador_externo],
+            $destino->contaSocial,
+        );
+
+        if ($itens === null || $itens === []) {
+            return null;
+        }
+
+        $estatisticas = $itens[0]['statistics'] ?? [];
+
+        return new MetricasDoPost(
+            visualizacoes: $this->numero($estatisticas, 'viewCount'),
+            curtidas: $this->numero($estatisticas, 'likeCount'),
+            comentarios: $this->numero($estatisticas, 'commentCount'),
+            // ⛔ `favoriteCount` existe na resposta e vale **sempre 0** desde
+            // 2015 — a própria documentação diz. Guardar esse zero seria guardar
+            // uma mentira, e não é compartilhamento de qualquer forma.
+        );
+    }
+
+    /**
+     * Uma leitura da API do YouTube — `null` em qualquer tropeço.
+     *
+     * ⛔ **Não mexe no status da conta, nunca.** Ler contador é um extra; marcar
+     * conta é assunto da reconferência diária, que sabe distinguir cota
+     * estourada de autorização perdida (DEC-98). Um número que não chegou não
+     * pode desligar a publicação de ninguém.
+     *
+     * @param  array<string, string>  $consulta
+     * @return list<array<string, mixed>>|null
+     */
+    private function ler(string $url, array $consulta, ContaSocial $conta): ?array
+    {
+        $token = $this->tokens->valido($conta);
+
+        if (! $token) {
+            return null;
+        }
+
+        try {
+            $resposta = Http::withToken($token)->timeout(20)->get($url, $consulta);
+        } catch (ConnectionException) {
+            return null;
+        }
+
+        return $resposta->successful() ? $resposta->json('items', []) : null;
+    }
+
+    /**
+     * O número, quando ele existe.
+     *
+     * ⚠️ A API devolve inteiro longo **como texto**. E campo ausente vira
+     * `null`, jamais `0`.
+     *
+     * @param  array<string, mixed>  $estatisticas
+     */
+    private function numero(array $estatisticas, string $campo): ?int
+    {
+        return isset($estatisticas[$campo]) ? (int) $estatisticas[$campo] : null;
     }
 
     /** @param array<string, mixed> $status */

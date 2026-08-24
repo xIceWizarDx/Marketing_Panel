@@ -23,6 +23,15 @@ readonly class ErroDaMeta
         public bool $passageiro,
         /** Limite diário estourado — é espera, não falha (DEC-24). */
         public bool $limiteDiario,
+        /**
+         * ⭐ **A conexão morreu — só reconectar resolve** (DEC-159).
+         *
+         * ⛔ Isto não é "tentar de novo depois": nenhuma tentativa conserta um
+         * token revogado. É o que acende o semáforo vermelho (DEC-32) e põe a
+         * conta em "Precisa de você" — sem isso, ela fica **verde e conectada**
+         * na tela enquanto recusa toda publicação.
+         */
+        public bool $credencialMorreu,
         /** Identificador que o suporte da Meta pede. */
         public ?string $rastreio,
         public ?int $codigo,
@@ -66,16 +75,51 @@ readonly class ErroDaMeta
     /** Limite diário de publicações da conta. */
     private const LIMITE_DIARIO = 2207042;
 
+    /**
+     * ⛔ **A autorização morreu — e nenhuma tentativa conserta** (DEC-159).
+     *
+     * `190` é o `OAuthException` da Meta: token revogado, senha trocada,
+     * aplicativo removido pela pessoa, papel perdido na Página. Os subcódigos
+     * separam o motivo, e todos terminam no mesmo lugar — **reconectar**.
+     *
+     * ⚠️ O token de Página **não expira por tempo**, e foi isso que fez este
+     * caso passar despercebido: sem data de vencimento, parecia que não havia o
+     * que vigiar. Ele não vence, mas morre.
+     */
+    private const CODIGO_DE_AUTORIZACAO = 190;
+
+    /** @var list<int> */
+    private const SUBCODIGOS_DE_MORTE = [
+        458, // a pessoa removeu o aplicativo
+        459, // conta em verificação (checkpoint)
+        460, // senha trocada
+        463, // o token expirou
+        464, // sessão não confirmada
+        467, // token inválido
+    ];
+
     public static function de(Response $resposta): self
     {
         $erro = $resposta->json('error') ?? [];
         $subcodigo = isset($erro['error_subcode']) ? (int) $erro['error_subcode'] : null;
         $codigo = isset($erro['code']) ? (int) $erro['code'] : null;
 
+        $morreu = $codigo === self::CODIGO_DE_AUTORIZACAO
+            || ($subcodigo !== null && in_array($subcodigo, self::SUBCODIGOS_DE_MORTE, true));
+
         return new self(
-            mensagem: self::traduzir($erro, $subcodigo),
-            passageiro: self::ehPassageiro($erro, $subcodigo, $resposta->status()),
+            mensagem: $morreu
+                ? 'A conexão com esta conta não vale mais. Reconecte para voltar a publicar.'
+                : self::traduzir($erro, $subcodigo),
+            /*
+             * ⛔ Autorização morta NUNCA é passageira, mesmo que a Meta diga que
+             * é: `is_transient` fala do servidor dela, não da nossa credencial.
+             * Insistir aqui queima as três tentativas contra algo que só um
+             * humano resolve.
+             */
+            passageiro: ! $morreu && self::ehPassageiro($erro, $subcodigo, $resposta->status()),
             limiteDiario: $subcodigo === self::LIMITE_DIARIO,
+            credencialMorreu: $morreu,
             // Sem ele, um "não conseguimos rastrear" na hora de abrir chamado.
             rastreio: $erro['fbtrace_id'] ?? null,
             codigo: $codigo,

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\Plataforma;
 use App\Enums\StatusConta;
 use App\Models\ContaSocial;
+use App\Support\Conexao\CanalDeUmGrupoSo;
 use App\Support\RegistroDeSeguranca;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
@@ -37,6 +38,11 @@ class ContaSocialService
         $sessao = $this->abrirSessaoBluesky($identificador, $senhaDeAplicativo);
 
         return DB::transaction(function () use ($identificador, $senhaDeAplicativo, $sessao) {
+            // ⛔ Antes de gravar: o canal já pode viver em outro grupo, e aí
+            // gravar aqui atualizaria o registro de lá e responderia "conectado"
+            // sem nada aparecer neste grupo.
+            CanalDeUmGrupoSo::garantir(Plataforma::Bluesky, $sessao['did'], 'identificador');
+
             $conta = ContaSocial::updateOrCreate(
                 [
                     'plataforma' => Plataforma::Bluesky,

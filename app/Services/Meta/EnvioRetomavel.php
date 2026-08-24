@@ -30,25 +30,26 @@ class EnvioRetomavel
     private function __construct(
         private readonly string $caminhoDaApi,
         /**
-         * A rede diz quanto já recebeu?
+         * ⭐ **Qual campo carrega o quanto já subiu** (DEC-158).
          *
-         * Só o Facebook documenta isso. No Instagram não há mecanismo descrito —
-         * e continuar de um ponto adivinhado corromperia o arquivo, o que é bem
-         * pior que reenviar.
+         * ⚠️ As duas redes documentam retomada, e **cada uma num campo com nome
+         * diferente**: o Facebook responde em `status`, o Instagram em
+         * `video_status`. Perguntar pelo campo errado não devolve nulo — o
+         * Graph derruba a chamada inteira com o erro 100.
          */
-        private readonly bool $sabeRetomar,
+        private readonly string $campoDoStatus,
     ) {}
 
     /** O caminho do Facebook: reels de Página. */
     public static function paraFacebook(): self
     {
-        return new self('video-upload', sabeRetomar: true);
+        return new self('video-upload', campoDoStatus: 'status');
     }
 
     /** O caminho do Instagram: container já criado. */
     public static function paraInstagram(): self
     {
-        return new self('ig-api-upload', sabeRetomar: false);
+        return new self('ig-api-upload', campoDoStatus: 'video_status');
     }
 
     /**
@@ -82,22 +83,28 @@ class EnvioRetomavel
      * Quantos bytes a rede já recebeu.
      *
      * ⚠️ O caminho documentado é o **Graph**, não o `rupload`: pergunta-se o
-     * `status` do vídeo e lê-se `uploading_phase.bytes_transfered`. (A mesma
-     * página chama esse bloco de `upload_phase` no texto corrido e de
-     * `uploading_phase` na tabela de campos — os dois são conferidos.)
+     * status do envio e lê-se `uploading_phase.bytes_transfered`.
+     *
+     * ⭐ **As DUAS redes documentam isto** (DEC-158). Aqui o Instagram devolvia
+     * `0` sempre, com um comentário dizendo que ele não descrevia retomada — e
+     * descreve: no guia de *resumable uploads*, no campo `video_status`. O
+     * preço do engano era um vídeo inteiro reenviado do zero a cada tropeço de
+     * rede, que é justamente o que esta classe existe para evitar.
+     *
+     * ⚠️ **Quatro grafias conferidas, e não é zelo excessivo:** a Meta escreve
+     * `bytes_transfered` (com um `r`) no exemplo do Facebook e
+     * `bytes_transferred` no do Instagram, e chama o bloco de `upload_phase` no
+     * texto corrido e de `uploading_phase` na tabela. Ler só uma grafia devolve
+     * `0` em silêncio — e `0` aqui não parece defeito, parece envio novo.
      *
      * Devolve `0` quando não dá para saber, e aí recomeça do zero: reenviar é
      * lento, continuar de um ponto errado corrompe o arquivo.
      */
     public function jaRecebidos(string $token, string $identificador): int
     {
-        if (! $this->sabeRetomar) {
-            return 0;
-        }
-
         try {
             $resposta = Http::withToken($token)->timeout(30)
-                ->get(self::GRAPH.'/'.self::VERSAO.'/'.$identificador, ['fields' => 'status']);
+                ->get(self::GRAPH.'/'.self::VERSAO.'/'.$identificador, ['fields' => $this->campoDoStatus]);
         } catch (ConnectionException) {
             return 0;
         }
@@ -106,9 +113,16 @@ class EnvioRetomavel
             return 0;
         }
 
-        $bytes = $resposta->json('status.uploading_phase.bytes_transfered')
-            ?? $resposta->json('status.upload_phase.bytes_transfered');
+        foreach (['uploading_phase', 'upload_phase'] as $bloco) {
+            foreach (['bytes_transfered', 'bytes_transferred'] as $campo) {
+                $bytes = $resposta->json("{$this->campoDoStatus}.{$bloco}.{$campo}");
 
-        return is_numeric($bytes) ? (int) $bytes : 0;
+                if (is_numeric($bytes)) {
+                    return (int) $bytes;
+                }
+            }
+        }
+
+        return 0;
     }
 }

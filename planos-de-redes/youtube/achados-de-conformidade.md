@@ -119,8 +119,16 @@ e aprovar, **é o caso proibido**.
 > divulgação clara e destacada"*.
 
 Nosso KPI de "posts confirmados no ar" é **contagem nossa de entregas**, não métrica do YouTube
-— então está fora da proibição. Mas quando entrarem visualizações e curtidas, a regra pega:
-mostrar o número do YouTube, sem recalcular, e separar visualmente o que é nosso.
+— então está fora da proibição.
+
+✅ **Atendido em 2026-08-05.** Visualizações, curtidas e comentários entraram, e entraram do jeito
+permitido: o número **vem do YouTube e é gravado como veio**, sem conta nenhuma por cima. É por isso
+que não guardamos histórico (DEC-97): calcular *"ganhou 12 inscritos hoje"* subtraindo duas leituras
+nossas seria exatamente a "métrica derivada" que a política proíbe. O caminho permitido para isso é
+`subscribersGained`, da Analytics API — e ele só entra quando o escopo entrar.
+
+⚠️ O que é **nosso** (posts confirmados no ar) e o que é **do YouTube** (visualizações, curtidas)
+aparecem em telas diferentes, o que já cumpre a separação exigida.
 
 ---
 
@@ -145,6 +153,6 @@ pessoa**, nunca um `false` fixo escondido no código.
 | 5 | Nomear o canal na ação | exigência literal |
 | 6 | Automação futura exige "sim" por publicação | trava o corte com IA automático |
 | 8 | `madeForKids` escolha explícita | COPPA |
-| 7 | Não recalcular métrica (quando houver) | futuro |
+| 7 | Não recalcular métrica | ✅ atendido em 2026-08-05 — número gravado como veio, sem histórico |
 
 _2026-07-31 — leitura das Políticas do Desenvolvedor._

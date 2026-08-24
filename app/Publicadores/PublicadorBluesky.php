@@ -3,6 +3,7 @@
 namespace App\Publicadores;
 
 use App\Enums\Plataforma;
+use App\Models\ContaSocial;
 use App\Models\Destino;
 use App\Support\Midia\EspecificacaoDaRede;
 use Illuminate\Http\Client\ConnectionException;
@@ -20,7 +21,7 @@ use Illuminate\Support\Facades\Storage;
  *
  * Fluxo do AT Protocol: abrir sessão → subir o arquivo (blob) → criar o post.
  */
-class PublicadorBluesky implements Publicador
+class PublicadorBluesky implements LeitorDeMetricas, Publicador
 {
     private const SERVIDOR = 'https://bsky.social';
 
@@ -46,7 +47,14 @@ class PublicadorBluesky implements Publicador
             );
         }
 
-        $texto = $destino->textoFinal();
+        /*
+         * ⛔ **Título junto** — esta rede não tem campo de título, e sem isto o
+         * que a pessoa escreveu ali **desaparece sem aviso**.
+         *
+         * ⚠️ E é por isso que os dois dividem um orçamento de texto só: a
+         * conferência mede o que de fato sobe, antes de subir.
+         */
+        $texto = trim(($destino->titulo() ?? '').' '.$destino->textoFinal());
         $especificacao = EspecificacaoDaRede::de(Plataforma::Bluesky);
 
         // Barra antes de gastar upload. O Bluesky conta GRAFEMAS: emoji de
@@ -133,6 +141,115 @@ class PublicadorBluesky implements Publicador
     }
 
     /** @return array{accessJwt: string, did: string}|null */
+    /**
+     * Seguidores do perfil.
+     *
+     * ⚠️ `followersCount` é **opcional** no lexicon: num protocolo federado, o
+     * índice que ainda não alcançou o perfil simplesmente não manda o campo.
+     * Ausente vira `null`, nunca `0` (DEC-95).
+     */
+    public function metricasDaConta(ContaSocial $conta): ?MetricasDaConta
+    {
+        $sessao = $this->sessaoDe($conta);
+
+        if ($sessao === null) {
+            return null;
+        }
+
+        try {
+            $resposta = Http::withToken($sessao['accessJwt'])->timeout(20)
+                ->get(self::SERVIDOR.'/xrpc/app.bsky.actor.getProfile', ['actor' => $sessao['did']]);
+        } catch (ConnectionException) {
+            return null;
+        }
+
+        if (! $resposta->successful()) {
+            return null;
+        }
+
+        return new MetricasDaConta(seguidores: $this->numero($resposta->json(), 'followersCount'));
+    }
+
+    /**
+     * Curtidas, respostas e reposts de um post.
+     *
+     * ⛔ **Visualização não existe no protocolo do Bluesky** — não é falta de
+     * permissão nem plano pago: o lexicon `app.bsky.feed.defs` não define o
+     * campo. `visualizacoes` fica `null` e a tela escreve a frase, em vez de
+     * mostrar um zero que nunca vai sair do lugar (DEC-94).
+     *
+     * ⚠️ **A conciliação não muda por causa disto.** Ela lê o repositório do
+     * autor (`repo.getRecord`), que é prova mais forte; os contadores vivem no
+     * índice (`getPosts`), que pode estar atrasado. Trocar um pelo outro para
+     * economizar uma chamada seria enfraquecer a prova para ganhar um enfeite.
+     */
+    public function metricasDoPost(Destino $destino): ?MetricasDoPost
+    {
+        if (! $destino->identificador_externo) {
+            return null;
+        }
+
+        $sessao = $this->sessaoDe($destino->contaSocial);
+
+        if ($sessao === null) {
+            return null;
+        }
+
+        try {
+            $resposta = Http::withToken($sessao['accessJwt'])->timeout(20)
+                ->get(self::SERVIDOR.'/xrpc/app.bsky.feed.getPosts', ['uris' => [$destino->identificador_externo]]);
+        } catch (ConnectionException) {
+            return null;
+        }
+
+        if (! $resposta->successful()) {
+            return null;
+        }
+
+        $post = $resposta->json('posts.0');
+
+        if (! is_array($post)) {
+            return null;
+        }
+
+        return new MetricasDoPost(
+            // ⛔ Sempre nulo: ver o comentário acima.
+            visualizacoes: null,
+            curtidas: $this->numero($post, 'likeCount'),
+            comentarios: $this->numero($post, 'replyCount'),
+            compartilhamentos: $this->numero($post, 'repostCount'),
+        );
+    }
+
+    /** A sessão da conta, ou `null` quando não deu para abrir agora. */
+    private function sessaoDe(ContaSocial $conta): ?array
+    {
+        $credencial = $conta->credencial;
+
+        if (! $credencial) {
+            return null;
+        }
+
+        try {
+            return $this->abrirSessao($credencial->access_token, $conta->nome_exibicao);
+        } catch (ConnectionException) {
+            return null;
+        }
+    }
+
+    /**
+     * O contador, quando ele veio.
+     *
+     * ⚠️ Todos os contadores do Bluesky são **opcionais** no lexicon. Campo
+     * ausente é `null`, e `null` não é zero.
+     *
+     * @param  array<string, mixed>  $dados
+     */
+    private function numero(array $dados, string $campo): ?int
+    {
+        return isset($dados[$campo]) ? (int) $dados[$campo] : null;
+    }
+
     private function abrirSessao(string $senhaDeAplicativo, string $identificador): ?array
     {
         $resposta = Http::asJson()->post(self::SERVIDOR.'/xrpc/com.atproto.server.createSession', [

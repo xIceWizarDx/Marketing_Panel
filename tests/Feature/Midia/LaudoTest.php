@@ -36,10 +36,29 @@ function temErro(array $achados): bool
 }
 
 describe('as regras de cada rede', function () {
-    it('aprova o vídeo dentro do perfil canônico em todas as redes', function () {
+    it('aprova o vídeo do perfil canônico — e diz QUAIS redes não cabem nele', function () {
+        /*
+         * ⭐ O perfil canonico (doc 07 §6) e o video de 20 MB que o produto
+         * assume: 1080x1920, 30 s, h264/aac.
+         *
+         * ⛔ **Algumas redes tem teto MENOR que isso**, e nao e defeito nosso —
+         * e regra delas. Enumerar aqui, com o motivo, e o que impede duas
+         * coisas: alguem "consertar" o limite achando que e engano, e alguem
+         * ligar rede nova com teto apertado sem perceber.
+         */
+        $naoCabemNoCanonico = [
+            // ⚠️ Teto de 10 MB no servidor sem impulsionamento — o piso do
+            // Discord, e o unico numero que vale para qualquer servidor.
+            Plataforma::Discord,
+        ];
+
         foreach (EspecificacaoDaRede::todas() as $rede) {
-            expect(temErro($rede->conferir(fichaDeVideo(), true)))
-                ->toBeFalse("{$rede->plataforma->value} recusou o vídeo que devia aceitar");
+            $recusa = temErro($rede->conferir(fichaDeVideo(), true));
+
+            expect($recusa)->toBe(
+                in_array($rede->plataforma, $naoCabemNoCanonico, true),
+                "{$rede->plataforma->value} nao se comportou como o esperado com o video canonico."
+            );
         }
     });
 
@@ -111,12 +130,39 @@ describe('as regras de cada rede', function () {
         expect(temErro($achados))->toBeTrue();
     });
 
-    it('sabe que YouTube e TikTok não recebem imagem por aqui', function () {
+    it('⛔ o laudo de imagem concorda com o PUBLICADOR, rede por rede', function () {
+        /*
+         * ⛔ `aceitaImagem` nao e "a plataforma suporta imagem": e "o PAINEL
+         * publica imagem aqui" — a propria frase do laudo diz "nao publica
+         * imagem POR AQUI".
+         *
+         * ⚠️ Quatro redes declaravam `true` enquanto o publicador delas recusava
+         * imagem na primeira linha. A pessoa via "formato aceito" no laudo e
+         * recebia "o X recebe video por aqui" na hora de publicar.
+         *
+         * ⛔ **Ao ligar uma rede nova, esta lista tem que crescer junto** — e e
+         * de proposito que ela quebre se ninguem lembrar.
+         */
+        $publicamImagem = [
+            Plataforma::Bluesky,
+            Plataforma::Threads,
+            // ⭐ O Mastodon aceita qualquer arquivo que o servidor aceite: o
+            // publicador nao filtra por tipo, e o laudo diz o mesmo.
+            Plataforma::Mastodon,
+            // ⭐ O Discord tambem nao filtra: e um anexo de mensagem.
+            Plataforma::Discord,
+        ];
+
         $imagem = new FichaTecnica(largura: 1080, altura: 1350, tamanhoBytes: 2 * 1024 * 1024);
 
-        expect(temErro(EspecificacaoDaRede::de(Plataforma::Youtube)->conferir($imagem, false)))->toBeTrue()
-            ->and(temErro(EspecificacaoDaRede::de(Plataforma::Tiktok)->conferir($imagem, false)))->toBeTrue()
-            ->and(temErro(EspecificacaoDaRede::de(Plataforma::Instagram)->conferir($imagem, false)))->toBeFalse();
+        foreach (Plataforma::comEspecificacao() as $rede) {
+            $recusa = temErro(EspecificacaoDaRede::de($rede)->conferir($imagem, false));
+
+            expect($recusa)->toBe(
+                ! in_array($rede, $publicamImagem, true),
+                "O laudo de imagem do {$rede->rotulo()} nao bate com o publicador dele."
+            );
+        }
     });
 
     it('sempre explica o que será feito quando aponta um problema', function () {
@@ -204,7 +250,7 @@ describe('quais redes entram no laudo', function () {
     });
 
     it('recusa montar regra para rede em estudo', function () {
-        expect(fn () => EspecificacaoDaRede::de(Plataforma::Pinterest))
+        expect(fn () => EspecificacaoDaRede::de(Plataforma::Snapchat))
             ->toThrow(InvalidArgumentException::class);
     });
 });

@@ -120,9 +120,9 @@ grupo.
 
 **Cobrança e limite por grupo.** É coluna que se acrescenta qualquer dia; não muda estrutura.
 
-**Dashboard de métricas por grupo.** Continua fazendo sentido, mas está bloqueado por fora:
-enquanto o aplicativo do YouTube estiver em modo de Testes, todo vídeo sobe privado, e vídeo privado
-não tem métrica pública. O dashboard mostraria zero em tudo.
+**Dashboard de métricas por grupo.** Os contadores existem desde `17-plano-metricas.md`, e ficaram
+**por conta e por post** — não somados por grupo. Somar visualização entre redes seria inventar um
+número: cada rede define *view* de um jeito, e o Bluesky não define nenhum (DEC-94).
 
 ---
 
@@ -313,6 +313,51 @@ no Google, quando não há mais como voltar atrás.
 
 ### O que ficou de fora, de propósito
 
-Cobrança por grupo (é coluna, não estrutura) e o dashboard de métricas — este bloqueado por fora:
-enquanto o aplicativo do YouTube estiver em modo de Testes, todo vídeo sobe privado, e vídeo
-privado não tem métrica pública.
+Cobrança por grupo (é coluna, não estrutura) e o dashboard de métricas por grupo — os contadores
+existem (`17-plano-metricas.md`), mas ficaram por conta e por post: somar visualização entre redes
+seria inventar um número (DEC-94).
+
+---
+
+## ⭐ DEC-152 — as hashtags que já vêm escritas moram no GRUPO
+
+Pedido de campo. Quem publica a mesma linha de conteúdo repete as mesmas hashtags em todo post — e
+digitá-las de novo a cada vez é trabalho que o painel podia poupar.
+
+**Por que no grupo, e não na conta nem no usuário:** é o grupo que separa linhas de conteúdo
+(DEC-69). Quem tem um canal de notícias e um de novelas escreve `#noticias` cem vezes por mês num, e
+nunca no outro. No usuário, a lista serviria mal aos dois; na conta, seria a mesma lista repetida em
+cada canal do grupo.
+
+⛔ **Ponto de partida, nunca carimbo.** O campo continua editável e **o que sobe é o que estiver
+escrito na hora de publicar**. Fosse carimbo, seria o sistema decidindo o conteúdo de alguém — e o
+post em que ela não quer aquelas hashtags viraria uma luta contra a ferramenta.
+
+⚠️ **Ao republicar valem as do post anterior, não as do grupo** (DEC-61): quem clicou em republicar
+veio reaproveitar aquele texto, e trocá-lo seria reescrever a intenção dela no meio do gesto.
+
+⭐ **E a limpeza do `#` virou regra das duas portas.** Publicar recusava `#corte` com uma mensagem
+sobre um caractere que a pessoa não escolheu escrever — o campo da tela separa por `#`, mas colar uma
+lista pronta não passa por ele. Agora o `#` cai antes da validação em **`HashtagsLimpas`**, usado
+pelo publicar e pelo grupo. Espaço continua recusado: `corte shorts` seria uma hashtag só, e ela
+quis duas.
+
+---
+
+## ⭐ DEC-154 — a janela do grupo LEVA à janela da rede
+
+Achado de campo: *"falta a opção de desconectar uma rede do grupo"*.
+
+A janela do grupo mostrava as redes de dentro dele e **não deixava agir sobre nenhuma** — um beco. A
+saída óbvia seria pôr o "desconectar" ali.
+
+⛔ **E é justamente o que não se faz.** Desconectar é ação **sem volta**, e ela já mora na janela da
+rede, junto com o mover de grupo. Duas portas para o mesmo gesto irreversível é como nasce o
+*"desconectei e continuou aparecendo"* — cada porta com o seu jeito de atualizar a tela.
+
+⭐ **Então a janela não repete o gesto: ela leva até ele.** O quadrado da rede virou botão. Clicar
+troca o grupo corrente e abre a janela daquela rede, onde estão as contas com desconectar e mover.
+
+⚠️ Usa o mesmo mecanismo do "conectar uma rede neste grupo" — **recado de uma requisição só**, não
+parâmetro na URL: com `?rede=` grudado no endereço, a atualização automática da tela reabriria o
+modal para sempre.

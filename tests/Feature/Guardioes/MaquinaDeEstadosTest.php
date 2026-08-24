@@ -281,8 +281,21 @@ it('registra cada tentativa com início e fim', function () {
 });
 
 it('mantém a lista de transições coerente com o enum', function () {
-    // Trava a máquina inteira: mexer numa transição sem pensar quebra aqui.
-    expect(StatusDestino::Publicado->transicoesPermitidas())->toBe([])
+    /*
+     * Trava a máquina inteira: mexer numa transição sem pensar quebra aqui.
+     *
+     * ⭐ **`Publicado` deixou de ser um beco sem saída** (DEC-148): rede remove
+     * post depois de aceitar, e a reconferência existe para descobrir isso.
+     *
+     * ⛔ Mas a única saída é `Removido` — nunca `Falhou`. Dizer que falhou o que
+     * subiu é mentir na direção oposta, e mandaria a pessoa publicar de novo.
+     */
+    expect(StatusDestino::Publicado->transicoesPermitidas())->toBe([StatusDestino::Removido])
+        ->and(StatusDestino::Publicado->podeIrPara(StatusDestino::Falhou))->toBeFalse()
+        // ⚠️ Sem volta: post removido pela rede não volta sozinho, e republicar
+        // é outra publicação — com outra data e outra prova.
+        ->and(StatusDestino::Removido->transicoesPermitidas())->toBe([])
+        ->and(StatusDestino::Removido->ehTerminal())->toBeTrue()
         ->and(StatusDestino::Publicado->ehTerminal())->toBeTrue()
         ->and(StatusDestino::Falhou->ehTerminal())->toBeTrue()
         ->and(StatusDestino::Pendente->podeIrPara(StatusDestino::Publicado))->toBeFalse()
